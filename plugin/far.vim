@@ -7,13 +7,14 @@ if exists('g:loaded_far')
     finish
 endif
 
+"TODO Far w/out args promps inputs
 "TODO support Nx - N excludes in a row
 "TODO statusline (done in Xms stat, number of matches)
 "TODO async for neovim
 "TODO zc & zo for expanding
 
 " options {{{
-let g:far#window_width = 100
+let g:far#window_width = 140
 let g:far#repl_devider = '  >  '
 
 let g:far#window_name = 'FAR'
@@ -38,10 +39,43 @@ function! s:log(msg)
 endfunction
 "}}}
 
-function! Far(pattern, path, replace_with)
-    let far_ctx = s:assemble_context(a:pattern, a:replace_with, a:path)
+
+function! FarPrompt() abort "{{{
+    let g:far_prompt_pattern = input('Search (pattern): ',
+        \   (exists('g:far_prompt_pattern')? g:far_prompt_pattern : ''))
+    if g:far_prompt_pattern == ''
+        call s:echo_err('Empty search pattern')
+        return []
+    endif
+
+    let g:far_prompt_replace_with = input('Replace with: ',
+        \   (exists('g:far_prompt_replace_with')? g:far_prompt_replace_with : ''))
+    if g:far_prompt_replace_with == ''
+        call s:echo_err('Empty replace pattern')
+        return []
+    endif
+
+    let g:far_prompt_files_mask = input('File mask: ',
+        \   (exists('g:far_prompt_files_mask')? g:far_prompt_files_mask : '**/*.*'))
+    if g:far_prompt_files_mask == ''
+        call s:echo_err('Empty files mask')
+        return []
+    endif
+
+    let far_ctx = s:assemble_context(g:far_prompt_pattern,
+        \   g:far_prompt_replace_with, g:far_prompt_files_mask)
     call s:open_far_buffer(far_ctx)
-endfunction
+endfunction "}}}
+command! -nargs=0 FarPrompt call FarPrompt()
+
+
+function! Far(pattern, replace_with, files_mask) abort "{{{
+    call s:log('fargs: '.a:pattern.','. a:replace_with.', '.a:files_mask)
+
+    let far_ctx = s:assemble_context(a:pattern, a:replace_with, a:files_mask)
+    call s:open_far_buffer(far_ctx)
+endfunction "}}}
+command! -nargs=+ Far call Far(<f-args>)
 
 
 function! g:far#toogle_exclude_under_cursor() abort "{{{
@@ -139,6 +173,8 @@ endfunction "}}}
 
 
 function! s:assemble_context(pattern, replace_with, files_mask) abort "{{{
+    call s:log('assemble_context(): '.string([a:pattern, a:replace_with, a:files_mask]))
+
     let qfitems = getqflist()
     exec 'vimgrep/'.a:pattern.'/gj '.a:files_mask
     let items = getqflist()
@@ -376,6 +412,13 @@ function! s:limit_text(text, limit, centr, shift) abort "{{{
     endif
 
     return {'text': text, 'centr': centr}
+endfunction "}}}
+
+function! s:echo_err(msg) abort "{{{
+    execute 'normal! \<Esc>'
+    echohl ErrorMsg
+    echomsg a:msg
+    echohl None
 endfunction "}}}
 
 " let g:loaded_far = 0
