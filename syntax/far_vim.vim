@@ -4,8 +4,10 @@
 " Author: Oleg Khalidov <brooth@gmail.com>
 " License: MIT
 
-hi def link FarFileStats Commect
-hi def link FarFilePath vimString
-hi def link FarLineColNmbr vimHiNmbr
-hi def link FarSearchText vimSynReg
-hi def link FarReplaceText vimSynRegOpt
+hi def link FarFileStats Comment
+hi def link FarFilePath Title
+hi def link FarLineColNmbr LineNr
+hi def link FarSearchText Statement
+hi def link FarDevider Comment
+hi def link FarReplaceText Special
+hi def link FarExcludedItem Ignore
