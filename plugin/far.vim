@@ -7,14 +7,19 @@ if exists('g:loaded_far')
     finish
 endif
 
-"TODO Far w/out args promps inputs
+" TODOs {{{
+"TODO support 'grep' (not vimgrep)
 "TODO support Nx - N excludes in a row
 "TODO statusline (done in Xms stat, number of matches)
 "TODO async for neovim
 "TODO zc & zo for expanding
+"TODO config window (top, left, right, buttom, current)
+"TODO preview window (none, top, left, right, buttom, current)
+"}}}
+
 
 " options {{{
-let g:far#window_width = 140
+let g:far#window_width = 100
 let g:far#repl_devider = '  >  '
 
 let g:far#window_name = 'FAR'
@@ -23,6 +28,7 @@ let g:far#buffer_counter = 1
 let s:debug = 1
 let s:debugfile = $HOME.'/far.vim.log'
 "}}}
+
 
 "logging {{{
 if s:debug
@@ -37,6 +43,23 @@ function! s:log(msg)
         redir END
     endif
 endfunction
+"}}}
+
+
+function! Far(pattern, replace_with, files_mask) abort "{{{
+    call s:log('fargs: '.a:pattern.','. a:replace_with.', '.a:files_mask)
+
+    let far_ctx = s:assemble_context(a:pattern, a:replace_with, a:files_mask)
+    if empty(far_ctx)
+        let pattern = input('No match: "'.a:pattern.'". Repeat?: ', a:pattern)
+        if empty(pattern)
+            return
+        endif
+        return Far(pattern, a:replace_with, a:files_mask)
+    endif
+    call s:open_far_buffer(far_ctx)
+endfunction
+command! -nargs=+ Far call Far(<f-args>)
 "}}}
 
 
@@ -62,20 +85,10 @@ function! FarPrompt() abort "{{{
         return []
     endif
 
-    let far_ctx = s:assemble_context(g:far_prompt_pattern,
-        \   g:far_prompt_replace_with, g:far_prompt_files_mask)
-    call s:open_far_buffer(far_ctx)
-endfunction "}}}
+    call Far(g:far_prompt_pattern, g:far_prompt_replace_with, g:far_prompt_files_mask)
+endfunction
 command! -nargs=0 FarPrompt call FarPrompt()
-
-
-function! Far(pattern, replace_with, files_mask) abort "{{{
-    call s:log('fargs: '.a:pattern.','. a:replace_with.', '.a:files_mask)
-
-    let far_ctx = s:assemble_context(a:pattern, a:replace_with, a:files_mask)
-    call s:open_far_buffer(far_ctx)
-endfunction "}}}
-command! -nargs=+ Far call Far(<f-args>)
+"}}}
 
 
 function! g:far#toogle_exclude_under_cursor() abort "{{{
@@ -176,12 +189,17 @@ function! s:assemble_context(pattern, replace_with, files_mask) abort "{{{
     call s:log('assemble_context(): '.string([a:pattern, a:replace_with, a:files_mask]))
 
     let qfitems = getqflist()
-    exec 'vimgrep/'.a:pattern.'/gj '.a:files_mask
+    try
+        silent exec 'vimgrep/'.a:pattern.'/gj '.a:files_mask
+    catch /.*/
+        call s:log('vimgrep error:'.v:exception)
+    endtry
+
     let items = getqflist()
     call setqflist(qfitems, 'r')
 
     if empty(items)
-        return
+        return {}
     endif
 
     let far_ctx = {
@@ -414,12 +432,23 @@ function! s:limit_text(text, limit, centr, shift) abort "{{{
     return {'text': text, 'centr': centr}
 endfunction "}}}
 
+
 function! s:echo_err(msg) abort "{{{
     execute 'normal! \<Esc>'
     echohl ErrorMsg
     echomsg a:msg
     echohl None
 endfunction "}}}
+
+
+function! s:exec_silent(cmd) abort "{{{
+    call s:log("s:exec_silent() ".a:cmd)
+    let ei_bak= &eventignore
+    set eventignore=BufEnter,BufLeave,BufWinLeave,InsertLeave,CursorMoved,BufWritePost
+    silent exe a:cmd
+    let &eventignore = ei_bak
+endfunction "}}}
+
 
 " let g:loaded_far = 0
 
