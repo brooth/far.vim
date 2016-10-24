@@ -8,6 +8,7 @@ if exists('g:loaded_far')
 endif
 
 " TODOs {{{
+"TODO: readonly buffers? not saved buffers?
 "TODO support 'grep' (not vimgrep)
 "TODO support Nx - N excludes in a row
 "TODO statusline (done in Xms stat, number of matches)
@@ -15,12 +16,18 @@ endif
 "TODO zc & zo for expanding
 "TODO config window (top, left, right, buttom, current)
 "TODO preview window (none, top, left, right, buttom, current)
+"TODO u - undo excluded items (redo also)
+"TODO far redo (repeate same far)
+"TODO auto colaps if more than x buffers. items...
+"TODO confirm Fardo: Replace 67 matches in 5 files? (option...)
 "}}}
 
 
 " options {{{
 let g:far#window_width = 100
-let g:far#repl_devider = '  >  '
+let g:far#repl_devider = '  ➝  '
+let g:far#left_cut_text_sigh = '…'
+let g:far#right_cut_text_sigh = '…'
 
 let g:far#window_name = 'FAR'
 let g:far#buffer_counter = 1
@@ -87,7 +94,7 @@ function! FarPrompt() abort "{{{
 
     call Far(g:far_prompt_pattern, g:far_prompt_replace_with, g:far_prompt_files_mask)
 endfunction
-command! -nargs=0 FarPrompt call FarPrompt()
+command! -nargs=0 Farp call FarPrompt()
 "}}}
 
 
@@ -219,7 +226,7 @@ function! s:assemble_context(pattern, replace_with, files_mask) abort "{{{
             let buf_ctx.bufnr = item.bufnr
             let buf_ctx.bufname = bufname(item.bufnr)
             let buf_ctx.expanded = 1
-            let buf_ctx.readonly = 0    "TODO: readonly?
+            let buf_ctx.readonly = 0
             let buf_ctx.items = []
             let far_ctx.items[item.bufnr] = buf_ctx
         endif
@@ -266,10 +273,10 @@ function! s:build_buffer_content(far_ctx) abort "{{{
 
         if num_excluded < len(ctx.items)
             let bname_syn = 'syn region FarFilePath start="\%'.line_num.
-                        \   'l^.."hs=s+2 end=".\{'.(len(ctx.bufname)).'\}"'
+                        \   'l^.."hs=s+2 end=".\{'.(strchars(ctx.bufname)).'\}"'
             call add(syntaxs, bname_syn)
             let bstats_syn = 'syn region FarFileStats start="\%'.line_num.'l^.\{'.
-                \   (len(ctx.bufname)+3).'\}"hs=e end="$" contains=FarFilePath keepend'
+                \   (strchars(ctx.bufname)+3).'\}"hs=e end="$" contains=FarFilePath keepend'
             call add(syntaxs, bstats_syn)
         else
             let excl_syn = 'syn region FarExcludedItem start="\%'.line_num.'l^" end="$"'
@@ -291,54 +298,34 @@ function! s:build_buffer_content(far_ctx) abort "{{{
 
         for item_ctx in ctx.items
             let line_num += 1
-
-            " Number Column
             let line_num_text = item_ctx.lnum.':'.item_ctx.col
-            let line_num_col_text = '  '.line_num_text.repeat(' ', 8-len(line_num_text))
-            if item_ctx.excluded == 0
-                let line_num_col_syn = 'syn region FarLineColNmbr start="\%'.line_num.
-                    \   'l^"hs=s+2 end=".\{'.(len(line_num_col_text)).'\}"he=e-'.
-                    \   (len(line_num_col_text)-len(line_num_text)-2)
-                call add(syntaxs, line_num_col_syn)
-            endif
+            let line_num_col_text = '  '.line_num_text.repeat(' ', 8-strchars(line_num_text))
+            let max_text_len = g:far#window_width / 2 - strchars(line_num_col_text) - 1
+            let max_repl_len = g:far#window_width / 2 - strchars(g:far#repl_devider) - 4
+            let match_text = s:cetrify_text(item_ctx.match_text, max_text_len, item_ctx.col, 5)
+            let repl_text = s:cetrify_text(item_ctx.repl_text, max_repl_len, item_ctx.col, 5)
+            let out = line_num_col_text.match_text.text.g:far#repl_devider.repl_text.text
+            call add(content, out)
 
-            " Match Column
-            let max_text_len = g:far#window_width / 2 - len(line_num_col_text) - 1
-            let max_repl_len = g:far#window_width / 2 - len(g:far#repl_devider) - 4
-            let match_text = s:limit_text(item_ctx.match_text, max_text_len, item_ctx.col, 5)
-
-            if item_ctx.excluded == 0
-                let match_col_syn = 'syn region FarSearchText start="\%'.line_num.
-                    \   'l^.\{'.(len(line_num_col_text)+match_text.centr-1).'\}"hs=e+1'.
-                    \   ' end="'.item_ctx.match_val.'" contains=FarLineColNmbr keepend'
-                call add(syntaxs, match_col_syn)
-            endif
-
-            " Devider Column
-            if item_ctx.excluded == 0
-                let devi_col_syn = 'syn region FarDevider start="\%'.line_num.'l^.\{'.
-                    \   (len(line_num_col_text)+len(match_text.text)).
-                    \   '\}"hs=e+1 end=".\{'.len(g:far#repl_devider).'\}" contains=FarSearchText keepend'
-                call add(syntaxs, devi_col_syn)
-            endif
-
-            " Replace Column
-            let repl_text = s:limit_text(item_ctx.repl_text, max_repl_len, item_ctx.col, 5)
-            if item_ctx.excluded == 0
-                let repl_col_syn = 'syn region FarReplaceText start="\%'.line_num.'l^.\{'.
-                    \   (len(line_num_col_text)+len(match_text.text)+len(g:far#repl_devider)+repl_text.centr-1).
-                    \   '\}"hs=e+1 end="'.item_ctx.repl_val.'" contains=FarDevider keepend'
-                call add(syntaxs, repl_col_syn)
-            endif
-
-            " Excluded item
+            " Syntax
             if item_ctx.excluded
                 let excl_syn = 'syn region FarExcludedItem start="\%'.line_num.'l^" end="$"'
                 call add(syntaxs, excl_syn)
+            else
+                let match_col = strchars(line_num_col_text) + match_text.val_col - 1
+                let repl_col = strchars(line_num_col_text) + strchars(match_text.text) +
+                            \    strchars(g:far#repl_devider) + repl_text.val_col - match_col -
+                            \    strchars(item_ctx.match_val) - 1
+                let repl_col_wtf = len(line_num_col_text) + len(match_text.text) +
+                            \    len(g:far#repl_devider) + repl_text.val_col - match_col -
+                            \    len(item_ctx.match_val) - 1
+                let line_syn = 'syn region FarNone matchgroup=FarSearchVal '.
+                            \   'start="\%'.line_num.'l^"rs=s+'.(match_col+strchars(item_ctx.match_val)).
+                            \   ',hs=s+'.match_col.' matchgroup=FarReplaceVal end=".*$"re=s+'.
+                            \   repl_col_wtf.',he=s+'.(repl_col+strchars(item_ctx.repl_val)-1).
+                            \   ' oneline'
+                call add(syntaxs, line_syn)
             endif
-
-            let out = line_num_col_text.match_text.text.g:far#repl_devider.repl_text.text
-            call add(content, out)
         endfor
     endfor
 
@@ -408,28 +395,29 @@ function! s:update_far_buffer(bufnr) abort "{{{
     syntax clear
     set syntax=far_vim
     for buf_syn in buff_content.syntaxs
+        call s:log('apply syntax: '.buf_syn)
         exec buf_syn
     endfor
 endfunction "}}}
 
 
-function! s:limit_text(text, limit, centr, shift) abort "{{{
+function! s:cetrify_text(text, limit, val_col, shift) abort "{{{
     let text = copy(a:text)
-    let centr = a:centr
-    if len(text) > a:limit
-        if a:centr > a:limit/2
-            let left_start = a:centr - a:limit/2 + a:shift
-            let centr = a:centr - left_start + 2
-            let text = '..'.a:text[left_start:9999]
+    let val_col = a:val_col
+    if strchars(text) > a:limit
+        if a:val_col > a:limit/2
+            let left_start = a:val_col - a:limit/2 + a:shift
+            let val_col = a:val_col - left_start + strchars(g:far#left_cut_text_sigh)
+            let text = g:far#left_cut_text_sigh.a:text[left_start:9999]
         endif
     endif
-    if len(text) > a:limit
-        let text = text[0:a:limit-3].'..'
+    if strchars(text) > a:limit
+        let text = text[0:a:limit-strchars(g:far#right_cut_text_sigh)-1].g:far#right_cut_text_sigh
     else
-        let text = text.repeat(' ', a:limit - len(text))
+        let text = text.repeat(' ', a:limit - strchars(text))
     endif
 
-    return {'text': text, 'centr': centr}
+    return {'text': text, 'val_col': val_col}
 endfunction "}}}
 
 

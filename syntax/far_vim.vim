@@ -6,8 +6,8 @@
 
 hi def link FarFileStats Comment
 hi def link FarFilePath Title
-hi def link FarLineColNmbr LineNr
-hi def link FarSearchText Statement
-hi def link FarDevider Comment
-hi def link FarReplaceText Special
+hi def link FarSearchVal Statement
+hi def link FarReplaceVal Special
 hi def link FarExcludedItem NonText
+
+syn match FarNone ".*"
