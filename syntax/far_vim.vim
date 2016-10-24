@@ -7,7 +7,7 @@
 hi def link FarFileStats Comment
 hi def link FarFilePath Title
 hi def link FarSearchVal Statement
-hi def link FarReplaceVal Special
+hi def link FarReplaceVal Title
 hi def link FarExcludedItem NonText
 hi def link FarLineCol LineNr
 

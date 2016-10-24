@@ -9,6 +9,7 @@ endif "}}}
 
 
 " TODOs {{{
+"TODO X - toogle excluded ALL
 "TODO confirm Fardo: Replace 67 matches in 5 files? (option...)
 "TODO readonly buffers? not saved buffers?
 "TODO far redo (repeate same far)
@@ -26,10 +27,12 @@ endif "}}}
 
 
 " options {{{
-let g:far#window_width = 100
+let g:far#window_width = 110
 let g:far#repl_devider = '  ➝  '
 let g:far#left_cut_text_sigh = '…'
 let g:far#right_cut_text_sigh = '…'
+let g:far#auth_close_replaced_buffers = 0
+let g:far#auth_write_replaced_buffers = 1
 
 let g:far#window_name = 'FAR'
 let g:far#buffer_counter = 1
@@ -202,41 +205,66 @@ endfunction "}}}
 function! s:do_replece(far_ctx) abort "{{{
     call s:log('do_replece('.a:far_ctx.pattern.', '.a:far_ctx.replace_with.
         \   ', '.a:far_ctx.files_mask.')')
+    call s:log(' -far#auth_close_replaced_buffers: '.g:far#auth_close_replaced_buffers)
+    call s:log(' -far#auth_write_replaced_buffers: '.g:far#auth_write_replaced_buffers)
 
+    let bufnr = bufnr('%')
     let repl_files = 0
     let repl_errors = 0
     let repl_matches = 0
-
+    let close_buffs = []
     arglocal
-
     for k in keys(a:far_ctx.items)
         let ctx = a:far_ctx.items[k]
         call s:log('replacing buffer '.ctx.bufnr.' '.ctx.bufname)
 
         let cmds = []
         for item_ctx in ctx.items
-            call setreg('F', item_ctx.repl_text)
-            call add(cmds, 'norm! exec '.item_ctx.col.'gg0D"Fp')
+            if item_ctx.excluded
+                continue
+            endif
+            let cmd = item_ctx.lnum.'gg0'.(item_ctx.col-1 > 0? item_ctx.col-1.'l' : '').
+                \   'd'.strchars(item_ctx.match_val).'l'.
+                \   'i'.item_ctx.repl_val.''
+            call s:log('cmd: '.cmd)
+            call add(cmds, cmd)
         endfor
 
         if empty(cmds)
             call s:log('no commands for buffer '.ctx.bufnr)
         else
-            try
-                let cmd = join(cmds)
-                call s:log('argdo cmd for buffer '.ctx.bufnr.': '.cmd)
+            let cmd = join(cmds)
+            call s:log('argdo: '.cmd)
 
+            try
                 exec 'argadd '.ctx.bufname
-                exec 'argdo '.join(cmds)
+                exec 'silent! argdo! norm!'.join(cmds)
                 exec 'argdelete '.ctx.bufname
-                exec 'update'
-                let repl_files += 1
             catch /.*/
                 call s:log('failed to replace in buffer '.ctx.bufnr.', error: '.v:exception)
                 let repl_errors += 1
+                continue
             endtry
+
+            let repl_files += 1
+            if g:far#auth_write_replaced_buffers
+                call s:log('writing buffer: '.ctx.bufnr)
+                exec 'w'
+            endif
+            if g:far#auth_close_replaced_buffers && g:far#auth_write_replaced_buffers &&
+                        \   !bufloaded(ctx.bufnr)
+                call add(close_buffs, ctx.bufnr)
+            endif
         endif
     endfor
+
+    if !empty(close_buffs)
+        let cbufs = join(close_buffs)
+        call s:log('closing buffers: '.cbufs)
+        exec 'bd '.cbufs
+    endif
+
+    return {'files': repl_files, 'matches': repl_matches, 'errors': repl_errors}
 endfunction "}}}
 
 
