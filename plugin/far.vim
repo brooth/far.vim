@@ -32,7 +32,7 @@ let g:far#repl_devider = '  ➝  '
 let g:far#left_cut_text_sigh = '…'
 let g:far#right_cut_text_sigh = '…'
 let g:far#auth_close_replaced_buffers = 0
-let g:far#auth_write_replaced_buffers = 1
+let g:far#auth_write_replaced_buffers = 0
 
 let g:far#window_name = 'FAR'
 let g:far#buffer_counter = 1
@@ -114,7 +114,13 @@ function! FarDo() abort "{{{
         return
     endif
 
-    call s:do_replece(far_ctx)
+    let result = s:do_replece(far_ctx)
+    if empty(result)
+        return
+    endif
+
+    echomsg result.matches.' matche(s) in '.result.files.' file(s). '.
+        \   result.errors.' error(s). time '.result.time.'s'
 endfunction
 command! -nargs=0 Fardo call FarDo()
 "}}}
@@ -213,6 +219,7 @@ function! s:do_replece(far_ctx) abort "{{{
     let repl_errors = 0
     let repl_matches = 0
     let close_buffs = []
+    let ts = localtime()
     arglocal
     for k in keys(a:far_ctx.items)
         let ctx = a:far_ctx.items[k]
@@ -247,9 +254,10 @@ function! s:do_replece(far_ctx) abort "{{{
             endtry
 
             let repl_files += 1
+            let repl_matches += len(cmds)
             if g:far#auth_write_replaced_buffers
                 call s:log('writing buffer: '.ctx.bufnr)
-                exec 'w'
+                exec 'silent w'
             endif
             if g:far#auth_close_replaced_buffers && g:far#auth_write_replaced_buffers &&
                         \   !bufloaded(ctx.bufnr)
@@ -264,7 +272,8 @@ function! s:do_replece(far_ctx) abort "{{{
         exec 'bd '.cbufs
     endif
 
-    return {'files': repl_files, 'matches': repl_matches, 'errors': repl_errors}
+    return {'files': repl_files, 'matches': repl_matches,
+        \   'errors': repl_errors, 'time': (localtime()-ts)}
 endfunction "}}}
 
 
@@ -501,6 +510,12 @@ function! s:echo_err(msg) abort "{{{
     echohl ErrorMsg
     echomsg a:msg
     echohl None
+endfunction "}}}
+
+
+function! s:echo_msg(msg) abort "{{{
+    execute 'normal! \<Esc>'
+    echomsg a:msg
 endfunction "}}}
 
 
