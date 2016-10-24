@@ -9,15 +9,17 @@ endif "}}}
 
 
 " TODOs {{{
-"TODO X - toogle excluded ALL
+"TODO x - exclude, i - include, c - toogle
+"TODO I,C,X - do for all
+"TODO g:far#details_mappings = 1
 "TODO confirm Fardo: Replace 67 matches in 5 files? (option...)
-"TODO readonly buffers? not saved buffers?
-"TODO far redo (repeate same far)
-"TODO zc & zo for expanding
+"TODO readonly buffers? not saved buffers? modified (after search)?
 "TODO config window (top, left, right, buttom, current)
 "TODO preview window (none, top, left, right, buttom, current)
+"TODO Faredo (repeate same far in same window)
+"TODO folding (zc & zo for expanding)
 "TODO auto colaps if more than x buffers. items...
-"TODO support Nx - N excludes in a row
+"TODO support N[i,x,c] - do N times
 "TODO async for neovim
 "TODO support alternative providers (not vimgrep)
 "TODO support alternative replacers
@@ -528,6 +530,8 @@ function! s:exec_silent(cmd) abort "{{{
 endfunction "}}}
 
 
-" let g:loaded_far = 0
+if !s:debug "{{{
+    let g:loaded_far = 0
+endif "}}}
 
 " vim: set et fdm=marker sts=4 sw=4:
