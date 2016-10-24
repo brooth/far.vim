@@ -9,17 +9,18 @@ endif "}}}
 
 
 " TODOs {{{
+"TODO confirm Fardo: Replace 67 matches in 5 files? (option...)
 "TODO readonly buffers? not saved buffers?
-"TODO statusline (done in Xms stat, number of matches)
 "TODO far redo (repeate same far)
 "TODO zc & zo for expanding
 "TODO config window (top, left, right, buttom, current)
 "TODO preview window (none, top, left, right, buttom, current)
-"TODO confirm Fardo: Replace 67 matches in 5 files? (option...)
 "TODO auto colaps if more than x buffers. items...
 "TODO support Nx - N excludes in a row
 "TODO async for neovim
 "TODO support alternative providers (not vimgrep)
+"TODO support alternative replacers
+"TODO statusline (done in Xms stat, number of matches)
 "TODO u - undo excluded items (redo, multiple (after visual select))
 "}}}
 
@@ -55,6 +56,7 @@ endfunction
 
 
 function! Far(pattern, replace_with, files_mask) abort "{{{
+    call s:log('=============== FAR ================')
     call s:log('fargs: '.a:pattern.','. a:replace_with.', '.a:files_mask)
 
     let far_ctx = s:assemble_context(a:pattern, a:replace_with, a:files_mask)
@@ -72,6 +74,7 @@ command! -nargs=+ Far call Far(<f-args>)
 
 
 function! FarPrompt() abort "{{{
+    call s:log('============ FAR PROMPT ================')
     let g:far_prompt_pattern = input('Search (pattern): ',
         \   (exists('g:far_prompt_pattern')? g:far_prompt_pattern : ''))
     if g:far_prompt_pattern == ''
@@ -96,6 +99,21 @@ function! FarPrompt() abort "{{{
     call Far(g:far_prompt_pattern, g:far_prompt_replace_with, g:far_prompt_files_mask)
 endfunction
 command! -nargs=0 Farp call FarPrompt()
+"}}}
+
+
+function! FarDo() abort "{{{
+    call s:log('============= FAR DO ================')
+    let bufnr = bufnr('%')
+    let far_ctx = getbufvar(bufnr, 'far_ctx', {})
+    if empty(far_ctx)
+        call s:echo_err('Not a FAR buffer!')
+        return
+    endif
+
+    call s:do_replece(far_ctx)
+endfunction
+command! -nargs=0 Fardo call FarDo()
 "}}}
 
 
@@ -176,6 +194,47 @@ function! s:toogle_expand(far_ctx, bufnr, pos) abort "{{{
                     return
                 endif
             endfor
+        endif
+    endfor
+endfunction "}}}
+
+
+function! s:do_replece(far_ctx) abort "{{{
+    call s:log('do_replece('.a:far_ctx.pattern.', '.a:far_ctx.replace_with.
+        \   ', '.a:far_ctx.files_mask.')')
+
+    let repl_files = 0
+    let repl_errors = 0
+    let repl_matches = 0
+
+    arglocal
+
+    for k in keys(a:far_ctx.items)
+        let ctx = a:far_ctx.items[k]
+        call s:log('replacing buffer '.ctx.bufnr.' '.ctx.bufname)
+
+        let cmds = []
+        for item_ctx in ctx.items
+            call setreg('F', item_ctx.repl_text)
+            call add(cmds, 'norm! exec '.item_ctx.col.'gg0D"Fp')
+        endfor
+
+        if empty(cmds)
+            call s:log('no commands for buffer '.ctx.bufnr)
+        else
+            try
+                let cmd = join(cmds)
+                call s:log('argdo cmd for buffer '.ctx.bufnr.': '.cmd)
+
+                exec 'argadd '.ctx.bufname
+                exec 'argdo '.join(cmds)
+                exec 'argdelete '.ctx.bufname
+                exec 'update'
+                let repl_files += 1
+            catch /.*/
+                call s:log('failed to replace in buffer '.ctx.bufnr.', error: '.v:exception)
+                let repl_errors += 1
+            endtry
         endif
     endfor
 endfunction "}}}
@@ -343,7 +402,6 @@ function! s:open_far_buffer(far_ctx) abort "{{{
     setlocal nospell
     setlocal norelativenumber
     setlocal cursorline
-    " setlocal statusline=%!t:undotree.GetStatusLine() TODO: done in 32ms...
     setfiletype far_vim
 
     nnoremap <buffer><silent> x :call g:far#toogle_exclude_under_cursor()<cr>
