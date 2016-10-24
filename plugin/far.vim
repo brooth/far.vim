@@ -3,14 +3,14 @@
 " Author: Oleg Khalidov <brooth@gmail.com>
 " License: MIT
 
-if exists('g:loaded_far')
+if exists('g:loaded_far') "{{{
     finish
-endif
+endif "}}}
+
 
 " TODOs {{{
 "TODO readonly buffers? not saved buffers?
 "TODO statusline (done in Xms stat, number of matches)
-"TODO u - undo excluded items (redo also)
 "TODO far redo (repeate same far)
 "TODO zc & zo for expanding
 "TODO config window (top, left, right, buttom, current)
@@ -20,6 +20,7 @@ endif
 "TODO support Nx - N excludes in a row
 "TODO async for neovim
 "TODO support alternative providers (not vimgrep)
+"TODO u - undo excluded items (redo, multiple (after visual select))
 "}}}
 
 
@@ -98,19 +99,6 @@ command! -nargs=0 Farp call FarPrompt()
 "}}}
 
 
-function! g:far#toogle_exclude_under_cursor() abort "{{{
-    let bufnr = bufnr('%')
-    let far_ctx = getbufvar(bufnr, 'far_ctx', {})
-    if empty(far_ctx)
-        echoerr 'far context not found for current buffer'
-        return
-    endif
-
-    let pos = getcurpos()[1]
-    call s:toogle_expand(far_ctx, bufnr, pos)
-endfunction "}}}
-
-
 function! g:far#toogle_expand_under_cursor() abort "{{{
     let bufnr = bufnr('%')
     let far_ctx = getbufvar(bufnr, 'far_ctx', {})
@@ -138,11 +126,7 @@ function! g:far#toogle_expand_under_cursor() abort "{{{
             endfor
         endif
         if toogle_expand
-            if buf_ctx.expanded == 0
-                let buf_ctx.expanded = 1
-            else
-                let buf_ctx.expanded = 0
-            endif
+            let buf_ctx.expanded = buf_ctx.expanded == 0 ? 1 :0
             call setbufvar('%', 'far_ctx', far_ctx)
             call s:update_far_buffer(bufnr)
             exec 'norm! '.buf_curpos.'gg'
@@ -154,6 +138,19 @@ function! g:far#toogle_expand_under_cursor() abort "{{{
 endfunction "}}}
 
 
+function! g:far#toogle_exclude_under_cursor() abort "{{{
+    let bufnr = bufnr('%')
+    let far_ctx = getbufvar(bufnr, 'far_ctx', {})
+    if empty(far_ctx)
+        echoerr 'far context not found for current buffer'
+        return
+    endif
+
+    let pos = getcurpos()[1]
+    call s:toogle_expand(far_ctx, bufnr, pos)
+endfunction "}}}
+
+
 function! s:toogle_expand(far_ctx, bufnr, pos) abort "{{{
     let index = 0
     for k in keys(a:far_ctx.items)
@@ -161,11 +158,7 @@ function! s:toogle_expand(far_ctx, bufnr, pos) abort "{{{
         let index += 1
         if a:pos == index
             for item_ctx in buf_ctx.items
-                if item_ctx.excluded == 0
-                    let item_ctx.excluded = 1
-                else
-                    let item_ctx.excluded = 0
-                endif
+                let item_ctx.excluded = item_ctx.excluded == 0 ? 1 : 0
             endfor
             call setbufvar('%', 'far_ctx', a:far_ctx)
             call s:update_far_buffer(a:bufnr)
@@ -176,11 +169,7 @@ function! s:toogle_expand(far_ctx, bufnr, pos) abort "{{{
             for item_ctx in buf_ctx.items
                 let index += 1
                 if a:pos == index
-                    if item_ctx.excluded == 0
-                        let item_ctx.excluded = 1
-                    else
-                        let item_ctx.excluded = 0
-                    endif
+                    let item_ctx.excluded = item_ctx.excluded == 0 ? 1 : 0
                     call setbufvar('%', 'far_ctx', a:far_ctx)
                     call s:update_far_buffer(a:bufnr)
                     exec 'norm! j'
@@ -312,15 +301,14 @@ function! s:build_buffer_content(far_ctx) abort "{{{
                 let excl_syn = 'syn region FarExcludedItem start="\%'.line_num.'l^" end="$"'
                 call add(syntaxs, excl_syn)
             else
-                let match_col = strchars(line_num_col_text) + match_text.val_col - 1
-                let repl_col = strchars(line_num_col_text) + strchars(match_text.text) +
-                            \    strchars(g:far#repl_devider) + repl_text.val_col - match_col -
-                            \    strchars(item_ctx.match_val) - 1
-                let repl_col_wtf = len(line_num_col_text) + len(match_text.text) +
-                            \    len(g:far#repl_devider) + repl_text.val_col - match_col -
-                            \    len(item_ctx.match_val) - 1
-                let line_syn = 'syn region FarNone matchgroup=FarSearchVal '.
-                            \   'start="\%'.line_num.'l^"rs=s+'.(match_col+strchars(item_ctx.match_val)).
+                let match_col = match_text.val_col
+                let repl_col = strchars(match_text.text) + strchars(g:far#repl_devider) + repl_text.val_col -
+                            \    match_col - strchars(item_ctx.match_val)
+                let repl_col_wtf = len(match_text.text) + len(g:far#repl_devider) + repl_text.val_col -
+                            \    match_col - len(item_ctx.match_val)
+                let line_syn = 'syn region FarItem matchgroup=FarSearchVal '.
+                            \   'start="\%'.line_num.'l\%'.strchars(line_num_col_text).'c"rs=s+'.
+                            \   (match_col+strchars(item_ctx.match_val)).
                             \   ',hs=s+'.match_col.' matchgroup=FarReplaceVal end=".*$"re=s+'.
                             \   repl_col_wtf.',he=s+'.(repl_col+strchars(item_ctx.repl_val)-1).
                             \   ' oneline'
@@ -385,11 +373,12 @@ function! s:update_far_buffer(bufnr) abort "{{{
         exec 'norm! '.winnr.'\<c-w>\<c-w>'
     endif
 
-    let pos = getcurpos()
+    let pos = winsaveview()
     setlocal modifiable
     exec 'norm! ggdG'
     call append(0, buff_content.content)
-    exec 'norm! Gdd'.pos[1].'gg'
+    exec 'norm! Gdd'
+    call winrestview(pos)
     setlocal nomodifiable
 
     syntax clear
@@ -404,8 +393,8 @@ endfunction "}}}
 function! s:cetrify_text(text, width, val_col) abort "{{{
     let text = copy(a:text)
     let val_col = a:val_col
-    if strchars(text) > a:width && a:val_col > a:width/2
-        let left_start = a:val_col - a:width/2 + 4
+    if strchars(text) > a:width && a:val_col > a:width/2 - 7
+        let left_start = a:val_col - a:width/2 + 7
         let val_col = a:val_col - left_start + strchars(g:far#left_cut_text_sigh)
         let text = g:far#left_cut_text_sigh.text[left_start:]
     endif
