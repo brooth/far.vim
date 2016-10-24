@@ -8,18 +8,18 @@ if exists('g:loaded_far')
 endif
 
 " TODOs {{{
-"TODO: readonly buffers? not saved buffers?
-"TODO support 'grep' (not vimgrep)
-"TODO support Nx - N excludes in a row
+"TODO readonly buffers? not saved buffers?
 "TODO statusline (done in Xms stat, number of matches)
-"TODO async for neovim
+"TODO u - undo excluded items (redo also)
+"TODO far redo (repeate same far)
 "TODO zc & zo for expanding
 "TODO config window (top, left, right, buttom, current)
 "TODO preview window (none, top, left, right, buttom, current)
-"TODO u - undo excluded items (redo also)
-"TODO far redo (repeate same far)
-"TODO auto colaps if more than x buffers. items...
 "TODO confirm Fardo: Replace 67 matches in 5 files? (option...)
+"TODO auto colaps if more than x buffers. items...
+"TODO support Nx - N excludes in a row
+"TODO async for neovim
+"TODO support alternative providers (not vimgrep)
 "}}}
 
 
@@ -243,7 +243,7 @@ function! s:assemble_context(pattern, replace_with, files_mask) abort "{{{
         else
             let front = item.text[0:item.col-2]
         endif
-        let item_ctx.repl_text = front.substitute(item.text[item.col-1:9999],
+        let item_ctx.repl_text = front.substitute(item.text[item.col-1:],
             \    item_ctx.match_val, item_ctx.repl_val, '')
         call add(buf_ctx.items, item_ctx)
     endfor
@@ -302,8 +302,8 @@ function! s:build_buffer_content(far_ctx) abort "{{{
             let line_num_col_text = '  '.line_num_text.repeat(' ', 8-strchars(line_num_text))
             let max_text_len = g:far#window_width / 2 - strchars(line_num_col_text) - 1
             let max_repl_len = g:far#window_width / 2 - strchars(g:far#repl_devider) - 4
-            let match_text = s:cetrify_text(item_ctx.match_text, max_text_len, item_ctx.col, 5)
-            let repl_text = s:cetrify_text(item_ctx.repl_text, max_repl_len, item_ctx.col, 5)
+            let match_text = s:cetrify_text(item_ctx.match_text, max_text_len, item_ctx.col)
+            let repl_text = s:cetrify_text(item_ctx.repl_text, max_repl_len, item_ctx.col)
             let out = line_num_col_text.match_text.text.g:far#repl_devider.repl_text.text
             call add(content, out)
 
@@ -401,20 +401,20 @@ function! s:update_far_buffer(bufnr) abort "{{{
 endfunction "}}}
 
 
-function! s:cetrify_text(text, limit, val_col, shift) abort "{{{
+function! s:cetrify_text(text, width, val_col) abort "{{{
     let text = copy(a:text)
     let val_col = a:val_col
-    if strchars(text) > a:limit
-        if a:val_col > a:limit/2
-            let left_start = a:val_col - a:limit/2 + a:shift
-            let val_col = a:val_col - left_start + strchars(g:far#left_cut_text_sigh)
-            let text = g:far#left_cut_text_sigh.a:text[left_start:9999]
-        endif
+    if strchars(text) > a:width && a:val_col > a:width/2
+        let left_start = a:val_col - a:width/2 + 4
+        let val_col = a:val_col - left_start + strchars(g:far#left_cut_text_sigh)
+        let text = g:far#left_cut_text_sigh.text[left_start:]
     endif
-    if strchars(text) > a:limit
-        let text = text[0:a:limit-strchars(g:far#right_cut_text_sigh)-1].g:far#right_cut_text_sigh
-    else
-        let text = text.repeat(' ', a:limit - strchars(text))
+    if strchars(text) > a:width
+        let wtf = -1-(len(text)-strchars(text))
+        let text = text[0:a:width-len(g:far#right_cut_text_sigh)-wtf].g:far#right_cut_text_sigh
+    endif
+    if strchars(text) < a:width
+        let text = text.repeat(' ', a:width - strchars(text))
     endif
 
     return {'text': text, 'val_col': val_col}
