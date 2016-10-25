@@ -9,7 +9,6 @@ endif "}}}
 
 
 " TODOs {{{
-"TODO config window (top, left, right, buttom, tab, fullscreen, current)
 "TODO preview window (none, top, left, right, buttom, current)
 "TODO pass win args as params
 "TODO update buff on win resize
@@ -47,6 +46,10 @@ let g:far#window_width = 115
 let g:far#window_height = 25
 "(top, left, right, bottom, tab, current)
 let g:far#window_layout = 'right'
+
+let g:far#jump_window_width = 60
+let g:far#jump_window_height = 15
+let g:far#jump_window_layout = 'bottom'
 "}}}
 
 
@@ -76,8 +79,7 @@ endfunction
 "}}}
 
 
-"config plugin {{{
-function! g:far#apply_default_mappings() abort
+function! g:far#apply_default_mappings() abort "{{{
     call s:log('apply_default_mappings()')
 
     nnoremap <buffer><silent> o :call g:far#change_expand_under_cursor(-1)<cr>
@@ -97,9 +99,10 @@ function! g:far#apply_default_mappings() abort
     nnoremap <buffer><silent> X :call g:far#change_exclude_all(1)<cr>
     nnoremap <buffer><silent> I :call g:far#change_exclude_all(0)<cr>
     nnoremap <buffer><silent> T :call g:far#change_exclude_all(-1)<cr>
-endfunction
 
-"}}}
+    nnoremap <buffer><silent> <cr> :call g:far#jump_buffer_under_cursor()<cr>
+
+endfunction "}}}
 
 
 function! Far(pattern, replace_with, files_mask) abort "{{{
@@ -194,6 +197,54 @@ function! FarDo() abort "{{{
 endfunction
 command! -nargs=0 Fardo call FarDo()
 "}}}
+
+
+function! g:far#jump_buffer_under_cursor() abort "{{{
+    let bufnr = bufnr('%')
+    let far_ctx = s:get_buf_far_ctx(bufnr)
+    let pos = getcurpos()[1]
+    let index = 0
+    let jump_ctx = {}
+    let jump_pos = []
+    for k in keys(far_ctx.items)
+        let buf_ctx = far_ctx.items[k]
+        let index += 1
+        if pos == index
+            let jump_ctx = buf_ctx
+            break
+        endif
+
+        if buf_ctx.expanded
+            for item_ctx in buf_ctx.items
+                let index += 1
+                if pos == index
+                    let jump_ctx = buf_ctx
+                    let jump_pos = [item_ctx.lnum, item_ctx.cnum]
+                    break
+                endif
+            endfor
+            if jump_ctx != {}
+                break
+            endif
+        endif
+    endfor
+
+    if jump_ctx != {}
+        let winnr = bufwinnr(jump_ctx.bufnr)
+        if winnr == -1
+            exec s:get_new_buf_layout(g:far#jump_window_layout, jump_ctx.bufname,
+                \   g:far#jump_window_width, g:far#jump_window_height)
+        else
+            exec 'norm! '.winnr.''
+        endif
+        if !empty(jump_pos)
+            exec 'norm! '.jump_pos[0].'gg0'.(jump_pos[1]-1).'lzv'
+        endif
+        return
+    endif
+
+    echoerr 'no far ctx item found under cursor '.pos
+endfunction "}}}
 
 
 function! g:far#change_expand_all(cmode) abort "{{{
@@ -513,7 +564,7 @@ function! s:open_far_buff(far_ctx, wmode) abort "{{{
         return
     endif
 
-    let win_layout = s:get_new_buf_layout(a:wmode)
+    let win_layout = s:get_new_buf_layout(a:wmode, bufname, g:far#window_width, g:far#window_height)
     exec 'silent keepalt '.win_layout
     let bufnr = last_buffer_nr()
     let s:buffer_counter += 1
@@ -537,29 +588,24 @@ function! s:open_far_buff(far_ctx, wmode) abort "{{{
 endfunction "}}}
 
 
-function! s:get_new_buf_layout(wmode) abort "{{{
-    let bname = s:far_buffer_name.'-'.s:buffer_counter
-
+function! s:get_new_buf_layout(wmode, bname, width, height) abort "{{{
     if a:wmode == 'current'
-        return 'edit '.bname
-    endif
-    if a:wmode == 'tab'
-        return 'tabedit '.bname
-    endif
-
-    if a:wmode == 'top'
-        let layout = 'topleft '.g:far#window_height
+        return 'edit '.a:bname
+    elseif a:wmode == 'tab'
+        return 'tabedit '.a:bname
+    elseif a:wmode == 'top'
+        let layout = 'topleft '.a:height
     elseif a:wmode == 'left'
-        let layout = 'leftabove vertical '.g:far#window_width
+        let layout = 'leftabove vertical '.a:width
     elseif a:wmode == 'right'
-        let layout = 'rightbelow vertical '.g:far#window_width
+        let layout = 'rightbelow vertical '.a:width
     elseif a:wmode == 'bottom'
-        let layout = 'botright '.g:far#window_height
+        let layout = 'botright '.a:height
     else
         echoerr 'invalid window layout '.a:wmode
-        let layout = 'rightbelow vertical '.g:far#window_width
+        let layout = 'rightbelow vertical '.a:width
     endif
-    return layout.' new '.bname
+    return layout.' new '.a:bname
 endfunction "}}}
 
 
@@ -578,7 +624,7 @@ function! s:update_far_buffer(bufnr) abort "{{{
     let buff_content = s:build_buffer_content(far_ctx)
 
     if winnr != winnr()
-        exec 'norm! '.winnr.'\<c-w>\<c-w>'
+        exec 'norm! '.winnr.''
     endif
 
     let pos = winsaveview()
