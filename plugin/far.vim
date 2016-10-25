@@ -9,21 +9,26 @@ endif "}}}
 
 
 " TODOs {{{
-"TODO x - exclude, i - include, c - toogle
+"TODO x - exclude, i - include, c - toogle, r - change item result
 "TODO I,C,X - do for all
 "TODO g:far#details_mappings = 1
 "TODO confirm Fardo: Replace 67 matches in 5 files? (option...)
 "TODO readonly buffers? not saved buffers? modified (after search)?
 "TODO config window (top, left, right, buttom, current)
 "TODO preview window (none, top, left, right, buttom, current)
+"TODO pass win args as params
+"TODO update buff on win resize
 "TODO Faredo (repeate same far in same window)
 "TODO folding (zc & zo for expanding)
 "TODO auto colaps if more than x buffers. items...
 "TODO support N[i,x,c] - do N times
 "TODO async for neovim
+"TODO statusline (done in Xms stat, number of matches)
 "TODO support alternative providers (not vimgrep)
 "TODO support alternative replacers
-"TODO statusline (done in Xms stat, number of matches)
+"TODO pass providers as params (Farp as well)
+"TODO python rename provider (tags? rope? jedi?)
+"TODO nested ctxs? for dirs? for python package/module/class/method
 "TODO u - undo excluded items (redo, multiple (after visual select))
 "}}}
 
