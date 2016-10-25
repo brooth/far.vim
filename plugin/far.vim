@@ -9,16 +9,18 @@ endif "}}}
 
 
 " TODOs {{{
-"TODO readonly buffers? not saved buffers? modified (after search)?
-"TODO config window (top, left, right, buttom, current)
+"TODO config window (top, left, right, buttom, tab, fullscreen, current)
 "TODO preview window (none, top, left, right, buttom, current)
 "TODO pass win args as params
 "TODO update buff on win resize
 "TODO Faredo (repeate same far in same window)
 "TODO auto colaps if more than x buffers. items...
+"TODO keep file highlight? change bg color to highlight?
 "TODO r - change item result
 "TODO support far for visual selected lines?!?!?!
 "TODO support N[i,x,c] - do N times
+"TODO readonly buffers? not saved buffers? modified (after search)?
+"TODO check consistancy timer
 "TODO wildmenu for args
 "TODO async for neovim
 "TODO statusline (done in Xms stat, number of matches)
@@ -39,13 +41,18 @@ let g:far#left_cut_text_sigh = '…'
 let g:far#right_cut_text_sigh = '…'
 let g:far#auth_close_replaced_buffers = 0
 let g:far#auth_write_replaced_buffers = 0
-let g:far#confirm_fardo = 1
+"let g:far#check_buff_consistency = 1
+let g:far#confirm_fardo = 0
+"}}}
 
+
+" vars {{{
 let s:far_buffer_name = 'FAR'
 let s:buffer_counter = 1
 
 let s:debug = 1
 let s:debugfile = $HOME.'/far.vim.log'
+let s:repl_do_pre_cmd = 'zR :let g:far#__readonlytest__ = &readonly || !&modifiable'
 "}}}
 
 
@@ -117,21 +124,21 @@ command! -nargs=+ Far call Far(<f-args>)
 function! FarPrompt() abort "{{{
     call s:log('============ FAR PROMPT ================')
     let g:far_prompt_pattern = input('Search (pattern): ',
-        \   (exists('g:far_prompt_pattern')? g:far_prompt_pattern : ''))
+                \   (exists('g:far_prompt_pattern')? g:far_prompt_pattern : ''))
     if g:far_prompt_pattern == ''
         call s:echo_err('Empty search pattern')
         return []
     endif
 
     let g:far_prompt_replace_with = input('Replace with: ',
-        \   (exists('g:far_prompt_replace_with')? g:far_prompt_replace_with : ''))
+                \   (exists('g:far_prompt_replace_with')? g:far_prompt_replace_with : ''))
     if g:far_prompt_replace_with == ''
         call s:echo_err('Empty replace pattern')
         return []
     endif
 
     let g:far_prompt_files_mask = input('File mask: ',
-        \   (exists('g:far_prompt_files_mask')? g:far_prompt_files_mask : '**/*.*'))
+                \   (exists('g:far_prompt_files_mask')? g:far_prompt_files_mask : '**/*.*'))
     if g:far_prompt_files_mask == ''
         call s:echo_err('Empty files mask')
         return []
@@ -178,8 +185,8 @@ function! FarDo() abort "{{{
         return
     endif
 
-    echomsg result.matches.' matche(s). '.result.files.' file(s). '.
-        \   result.errors.' error(s). time '.result.time.'s.'
+    echomsg 'Done in '.result.time.'sec. '.result.matches.' replacements in '.result.files.' file(s). '.
+                \   (empty(result.skipped)? '' : result.skipped.' file(s) skipped!')
 endfunction
 command! -nargs=0 Fardo call FarDo()
 "}}}
@@ -289,58 +296,64 @@ endfunction "}}}
 
 function! s:do_replece(far_ctx) abort "{{{
     call s:log('do_replece('.a:far_ctx.pattern.', '.a:far_ctx.replace_with.
-        \   ', '.a:far_ctx.files_mask.')')
+                \   ', '.a:far_ctx.files_mask.')')
     call s:log(' -far#auth_close_replaced_buffers: '.g:far#auth_close_replaced_buffers)
     call s:log(' -far#auth_write_replaced_buffers: '.g:far#auth_write_replaced_buffers)
 
     let bufnr = bufnr('%')
     let repl_files = 0
-    let repl_errors = 0
+    let repl_skipped = 0
     let repl_matches = 0
     let close_buffs = []
     let ts = localtime()
     arglocal
     for k in keys(a:far_ctx.items)
-        let ctx = a:far_ctx.items[k]
-        call s:log('replacing buffer '.ctx.bufnr.' '.ctx.bufname)
+        let buf_ctx = a:far_ctx.items[k]
+        call s:log('replacing buffer '.buf_ctx.bufnr.' '.buf_ctx.bufname)
 
         let cmds = []
-        for item_ctx in ctx.items
+        for item_ctx in buf_ctx.items
             if item_ctx.excluded
                 continue
             endif
             let cmd = item_ctx.lnum.'gg0'.(item_ctx.cnum-1 > 0? item_ctx.cnum-1.'l' : '').
-                \   'd'.strchars(item_ctx.match_val).'l'.
-                \   'i'.item_ctx.repl_val.''
+                        \   'd'.strchars(item_ctx.match_val).'l'.
+                        \   'i'.item_ctx.repl_val.''
             call s:log('cmd: '.cmd)
             call add(cmds, cmd)
         endfor
 
         if empty(cmds)
-            call s:log('no commands for buffer '.ctx.bufnr)
+            call s:log('no commands for buffer '.buf_ctx.bufnr)
         else
             let cmd = join(cmds, '')
-            call s:log('argdo: '.cmd)
+            call s:log('argdo: '.s:repl_do_pre_cmd.cmd)
 
             try
-                exec 'argadd '.ctx.bufname
-                exec 'silent! argdo! norm! zR'.cmd
-                exec 'argdelete '.ctx.bufname
+                exec 'argadd '.buf_ctx.bufname
+                exec 'silent! argdo! norm! '.s:repl_do_pre_cmd.cmd
+                exec 'argdelete '.buf_ctx.bufname
+
+                "flag in set in argdo commands
+                if g:far#__readonlytest__
+                    let repl_skipped += 1
+                else
+                    let repl_files += 1
+                    let repl_matches += len(cmds)
+                endif
             catch /.*/
-                call s:log('failed to replace in buffer '.ctx.bufnr.', error: '.v:exception)
-                let repl_errors += 1
+                call s:log('failed to replace in buffer '.buf_ctx.bufnr.', error: '.v:exception)
+                let repl_skipped += 1
                 continue
             endtry
 
-            let repl_files += 1
-            let repl_matches += len(cmds)
             if g:far#auth_write_replaced_buffers
-                call s:log('writing buffer: '.ctx.bufnr)
+                call s:log('writing buffer: '.buf_ctx.bufnr)
                 exec 'silent w'
             endif
             if g:far#auth_close_replaced_buffers && g:far#auth_write_replaced_buffers &&
-                        \   !bufloaded(ctx.bufnr)
-                call add(close_buffs, ctx.bufnr)
+                        \   !bufloaded(buf_ctx.bufnr)
+                call add(close_buffs, buf_ctx.bufnr)
             endif
         endif
     endfor
@@ -352,7 +365,7 @@ function! s:do_replece(far_ctx) abort "{{{
     endif
 
     return {'files': repl_files, 'matches': repl_matches,
-        \   'errors': repl_errors, 'time': (localtime()-ts)}
+                \   'skipped': repl_skipped, 'time': (localtime()-ts)}
 endfunction "}}}
 
 
@@ -390,7 +403,7 @@ function! s:assemble_context(pattern, replace_with, files_mask) abort "{{{
             let buf_ctx.bufnr = item.bufnr
             let buf_ctx.bufname = bufname(item.bufnr)
             let buf_ctx.expanded = 1
-            let buf_ctx.readonly = 0
+            let buf_ctx.ftime = getftime(item.bufnr)
             let buf_ctx.items = []
             let far_ctx.items[item.bufnr] = buf_ctx
         endif
@@ -418,73 +431,68 @@ function! s:build_buffer_content(far_ctx) abort "{{{
     let syntaxs = []
     let line_num = 0
     for ctx_key in keys(a:far_ctx.items)
-        let ctx = a:far_ctx.items[ctx_key]
+        let buf_ctx = a:far_ctx.items[ctx_key]
+        let expand_sign = buf_ctx.expanded ? '-' : '+'
         let line_num += 1
-
-        let num_excluded = 0
-        for item_ctx in ctx.items
+        let num_matches = 0
+        for item_ctx in buf_ctx.items
             if item_ctx.excluded
-                let num_excluded += 1
+                let num_matches += 1
             endif
         endfor
 
-        if num_excluded < len(ctx.items)
+        if num_matches < len(buf_ctx.items)
             let bname_syn = 'syn region FarFilePath start="\%'.line_num.
-                        \   'l^.."hs=s+2 end=".\{'.(strchars(ctx.bufname)).'\}"'
+                        \   'l^.."hs=s+2 end=".\{'.(strchars(buf_ctx.bufname)).'\}"'
             call add(syntaxs, bname_syn)
             let bstats_syn = 'syn region FarFileStats start="\%'.line_num.'l^.\{'.
-                \   (strchars(ctx.bufname)+3).'\}"hs=e end="$" contains=FarFilePath keepend'
+                        \   (strchars(buf_ctx.bufname)+3).'\}"hs=e end="$" contains=FarFilePath keepend'
             call add(syntaxs, bstats_syn)
         else
             let excl_syn = 'syn region FarExcludedItem start="\%'.line_num.'l^" end="$"'
             call add(syntaxs, excl_syn)
         endif
 
-        if ctx.expanded
-            let expand_sign = '-'
-        else
-            let expand_sign = '+'
-        endif
-
-        let out = expand_sign.' '.ctx.bufname.' ['.ctx.bufnr.'] ('.(len(ctx.items)-num_excluded).' matches)'
+        let out = expand_sign.' '.buf_ctx.bufname.' ['.buf_ctx.bufnr.'] ('.(len(buf_ctx.items)-num_matches).' matches)'
         call add(content, out)
 
-        if ctx.expanded == 0
-            continue
+        if buf_ctx.expanded == 1
+            for item_ctx in buf_ctx.items
+                let line_num += 1
+                let line_num_text = item_ctx.lnum.':'.item_ctx.cnum
+                let line_num_col_text = '  '.line_num_text.repeat(' ', 8-strchars(line_num_text))
+                let max_text_len = g:far#window_width / 2 - strchars(line_num_col_text) - 1
+                let max_repl_len = g:far#window_width / 2 - strchars(g:far#repl_devider) - 4
+                let match_text = s:cetrify_text(item_ctx.text, max_text_len, item_ctx.cnum)
+                let repl_text = s:cetrify_text(((item_ctx.cnum == 1? '': item_ctx.text[0:item_ctx.cnum-2]).
+                            \   item_ctx.repl_val.item_ctx.text[item_ctx.cnum+len(item_ctx.match_val)-1:]),
+                            \   max_repl_len, item_ctx.cnum)
+                let out = line_num_col_text.match_text.text.g:far#repl_devider.repl_text.text
+                call add(content, out)
+
+                " Syntax
+                if get(item_ctx, 'broken', 0)
+                    let excl_syn = 'syn region Error start="\%'.line_num.'l^" end="$"'
+                    call add(syntaxs, excl_syn)
+                elseif item_ctx.excluded
+                    let excl_syn = 'syn region FarExcludedItem start="\%'.line_num.'l^" end="$"'
+                    call add(syntaxs, excl_syn)
+                else
+                    let match_col = match_text.val_col
+                    let repl_col = strchars(match_text.text) + strchars(g:far#repl_devider) + repl_text.val_col -
+                                \    match_col - strchars(item_ctx.match_val)
+                    let repl_col_wtf = len(match_text.text) + len(g:far#repl_devider) + repl_text.val_col -
+                                \    match_col - len(item_ctx.match_val)
+                    let line_syn = 'syn region FarItem matchgroup=FarSearchVal '.
+                                \   'start="\%'.line_num.'l\%'.strchars(line_num_col_text).'c"rs=s+'.
+                                \   (match_col+strchars(item_ctx.match_val)).
+                                \   ',hs=s+'.match_col.' matchgroup=FarReplaceVal end=".*$"re=s+'.
+                                \   repl_col_wtf.',he=s+'.(repl_col+strchars(item_ctx.repl_val)-1).
+                                \   ' oneline'
+                    call add(syntaxs, line_syn)
+                endif
+            endfor
         endif
-
-        for item_ctx in ctx.items
-            let line_num += 1
-            let line_num_text = item_ctx.lnum.':'.item_ctx.cnum
-            let line_num_col_text = '  '.line_num_text.repeat(' ', 8-strchars(line_num_text))
-            let max_text_len = g:far#window_width / 2 - strchars(line_num_col_text) - 1
-            let max_repl_len = g:far#window_width / 2 - strchars(g:far#repl_devider) - 4
-            let match_text = s:cetrify_text(item_ctx.text, max_text_len, item_ctx.cnum)
-            let repl_text = s:cetrify_text(((item_ctx.cnum == 1? '': item_ctx.text[0:item_ctx.cnum-2]).
-                \   item_ctx.repl_val.item_ctx.text[item_ctx.cnum+len(item_ctx.match_val)-1:]),
-                \   max_repl_len, item_ctx.cnum)
-            let out = line_num_col_text.match_text.text.g:far#repl_devider.repl_text.text
-            call add(content, out)
-
-            " Syntax
-            if item_ctx.excluded
-                let excl_syn = 'syn region FarExcludedItem start="\%'.line_num.'l^" end="$"'
-                call add(syntaxs, excl_syn)
-            else
-                let match_col = match_text.val_col
-                let repl_col = strchars(match_text.text) + strchars(g:far#repl_devider) + repl_text.val_col -
-                            \    match_col - strchars(item_ctx.match_val)
-                let repl_col_wtf = len(match_text.text) + len(g:far#repl_devider) + repl_text.val_col -
-                            \    match_col - len(item_ctx.match_val)
-                let line_syn = 'syn region FarItem matchgroup=FarSearchVal '.
-                            \   'start="\%'.line_num.'l\%'.strchars(line_num_col_text).'c"rs=s+'.
-                            \   (match_col+strchars(item_ctx.match_val)).
-                            \   ',hs=s+'.match_col.' matchgroup=FarReplaceVal end=".*$"re=s+'.
-                            \   repl_col_wtf.',he=s+'.(repl_col+strchars(item_ctx.repl_val)-1).
-                            \   ' oneline'
-                call add(syntaxs, line_syn)
-            endif
-        endfor
     endfor
 
     return {'content': content, 'syntaxs': syntaxs}
@@ -614,5 +622,18 @@ endfunction "}}}
 if !s:debug "{{{
     let g:loaded_far = 0
 endif "}}}
+
+" TODO: check badd command to load a buffer
+" if g:far#check_buff_consistency && !item_ctx.excluded
+"     let actual_text = getbufline(buf_ctx.bufnr, item_ctx.lnum)
+"     if empty(actual_text) || actual_text[0] != item_ctx.text
+"         call s:log('broken line, actual: '.(empty(actual_text)?
+"             \   'empty' : actual_text[0]).', ctx:'.item_ctx.text)
+"         let item_ctx.excluded = 1
+"         let item_ctx.broken = 1
+"     else
+"         let item_ctx.broken = 0
+"     endif
+" endif
 
 " vim: set et fdm=marker sts=4 sw=4:
