@@ -9,8 +9,11 @@ endif "}}}
 
 
 " TODOs {{{
+"TODO folding (zc & zo for expanding)
+"TODO O - toogle expand all, zM - expand all, zR - collapse all
 "TODO r - change item result
-"TODO % - current buffer, wildmenu for args
+"TODO wildmenu for args
+"TODO support far for visual selected lines?!?!?!
 "TODO confirm Fardo: Replace 67 matches in 5 files? (option...)
 "TODO readonly buffers? not saved buffers? modified (after search)?
 "TODO config window (top, left, right, buttom, current)
@@ -18,7 +21,6 @@ endif "}}}
 "TODO pass win args as params
 "TODO update buff on win resize
 "TODO Faredo (repeate same far in same window)
-"TODO folding (zc & zo for expanding)
 "TODO auto colaps if more than x buffers. items...
 "TODO support N[i,x,c] - do N times
 "TODO async for neovim
@@ -69,13 +71,20 @@ endfunction
 function! g:far#apply_default_mappings() abort
     call s:log('apply_default_mappings()')
 
-    nnoremap <buffer><silent> o :call g:far#toogle_expand_under_cursor()<cr>
+    nnoremap <buffer><silent> o :call g:far#change_expand_under_cursor(-1)<cr>
+    nnoremap <buffer><silent> zo :call g:far#change_expand_under_cursor(1)<cr>
+    nnoremap <buffer><silent> zc :call g:far#change_expand_under_cursor(0)<cr>
+    nnoremap <buffer><silent> O :call g:far#change_expand_all(-1)<cr>
+    nnoremap <buffer><silent> zR :call g:far#change_expand_all(1)<cr>
+    nnoremap <buffer><silent> zM :call g:far#change_expand_all(0)<cr>
+
     nnoremap <buffer><silent> x :call g:far#change_exclude_under_cursor(1)<cr>
     vnoremap <buffer><silent> x :call g:far#change_exclude_under_cursor(1)<cr>
     nnoremap <buffer><silent> i :call g:far#change_exclude_under_cursor(0)<cr>
     vnoremap <buffer><silent> i :call g:far#change_exclude_under_cursor(0)<cr>
     nnoremap <buffer><silent> t :call g:far#change_exclude_under_cursor(-1)<cr>
     vnoremap <buffer><silent> t :call g:far#change_exclude_under_cursor(-1)<cr>
+
     nnoremap <buffer><silent> X :call g:far#change_exclude_all(1)<cr>
     nnoremap <buffer><silent> I :call g:far#change_exclude_all(0)<cr>
     nnoremap <buffer><silent> T :call g:far#change_exclude_all(-1)<cr>
@@ -88,13 +97,18 @@ function! Far(pattern, replace_with, files_mask) abort "{{{
     call s:log('=============== FAR ================')
     call s:log('fargs: '.a:pattern.','. a:replace_with.', '.a:files_mask)
 
-    let far_ctx = s:assemble_context(a:pattern, a:replace_with, a:files_mask)
+    let files_mask = a:files_mask
+    if files_mask == '%'
+        let files_mask = bufname('%')
+    endif
+
+    let far_ctx = s:assemble_context(a:pattern, a:replace_with, files_mask)
     if empty(far_ctx)
         let pattern = input('No match: "'.a:pattern.'". Repeat?: ', a:pattern)
         if empty(pattern)
             return
         endif
-        return Far(pattern, a:replace_with, a:files_mask)
+        return Far(pattern, a:replace_with, files_mask)
     endif
     call s:create_far_buffer(far_ctx)
 endfunction
@@ -152,13 +166,25 @@ command! -nargs=0 Fardo call FarDo()
 "}}}
 
 
-function! g:far#toogle_expand_under_cursor() abort "{{{
+function! g:far#change_expand_all(cmode) abort "{{{
     let bufnr = bufnr('%')
-    let far_ctx = getbufvar(bufnr, 'far_ctx', {})
-    if empty(far_ctx)
-        echoerr 'far context not found for current buffer'
-        return
-    endif
+    let far_ctx = s:get_buf_far_ctx(bufnr)
+
+    for k in keys(far_ctx.items)
+        let buf_ctx = far_ctx.items[k]
+        let buf_ctx.expanded = a:cmode == -1? (buf_ctx.expanded == 0? 1 : 0) : a:cmode
+    endfor
+
+    let pos = getcurpos()[1]
+    call setbufvar('%', 'far_ctx', far_ctx)
+    call s:update_far_buffer(bufnr)
+    exec 'norm! '.pos.'gg'
+endfunction "}}}
+
+
+function! g:far#change_expand_under_cursor(cmode) abort "{{{
+    let bufnr = bufnr('%')
+    let far_ctx = s:get_buf_far_ctx(bufnr)
 
     let pos = getcurpos()[1]
     let index = 0
@@ -166,38 +192,36 @@ function! g:far#toogle_expand_under_cursor() abort "{{{
         let buf_ctx = far_ctx.items[k]
         let index += 1
         let buf_curpos = index
-        let toogle_expand = 0
+        let this_buf = 0
         if pos == index
-            let toogle_expand = 1
+            let this_buf = 1
         elseif buf_ctx.expanded
             for item_ctx in buf_ctx.items
                 let index += 1
                 if pos == index
-                    let toogle_expand = 1
+                    let this_buf = 1
                     break
                 endif
             endfor
         endif
-        if toogle_expand
-            let buf_ctx.expanded = buf_ctx.expanded == 0 ? 1 :0
-            call setbufvar('%', 'far_ctx', far_ctx)
-            call s:update_far_buffer(bufnr)
-            exec 'norm! '.buf_curpos.'gg'
+        if this_buf
+            let expanded = a:cmode == -1? (buf_ctx.expanded == 0? 1 : 0) : a:cmode
+            if buf_ctx.expanded != expanded
+                let buf_ctx.expanded = expanded
+                call setbufvar('%', 'far_ctx', far_ctx)
+                call s:update_far_buffer(bufnr)
+                exec 'norm! '.buf_curpos.'gg'
+            endif
             return
         endif
     endfor
-
     echoerr 'no far ctx item found under cursor '.pos
 endfunction "}}}
 
 
 function! g:far#change_exclude_all(cmode) abort "{{{
-    let bufnr = bufnr('%')
-    let far_ctx = getbufvar(bufnr, 'far_ctx', {})
-    if empty(far_ctx)
-        echoerr 'far context not found for current buffer'
-        return
-    endif
+    let buf_num = bufnr('%')
+    let far_ctx = s:get_buf_far_ctx(bufnr)
 
     for k in keys(far_ctx.items)
         let buf_ctx = far_ctx.items[k]
@@ -212,13 +236,8 @@ endfunction "}}}
 
 
 function! g:far#change_exclude_under_cursor(cmode) abort "{{{
-    let bufnr = bufnr('%')
-    let far_ctx = getbufvar(bufnr, 'far_ctx', {})
-    if empty(far_ctx)
-        echoerr 'far context not found for current buffer'
-        return
-    endif
-
+    let buf_num = bufnr('%')
+    let far_ctx = s:get_buf_far_ctx(bufnr)
     let pos = getcurpos()[1]
     let index = 0
     for k in keys(far_ctx.items)
@@ -281,12 +300,12 @@ function! s:do_replece(far_ctx) abort "{{{
         if empty(cmds)
             call s:log('no commands for buffer '.ctx.bufnr)
         else
-            let cmd = join(cmds)
+            let cmd = join(cmds, '')
             call s:log('argdo: '.cmd)
 
             try
                 exec 'argadd '.ctx.bufname
-                exec 'silent! argdo! norm! '.join(cmds,'')
+                exec 'silent! argdo! norm! zR'.cmd
                 exec 'argdelete '.ctx.bufname
             catch /.*/
                 call s:log('failed to replace in buffer '.ctx.bufnr.', error: '.v:exception)
@@ -518,6 +537,15 @@ function! s:update_far_buffer(bufnr) abort "{{{
         call s:log('apply syntax: '.buf_syn)
         exec buf_syn
     endfor
+endfunction "}}}
+
+
+function! s:get_buf_far_ctx(bufnr) abort "{{{
+    let far_ctx = getbufvar(a:bufnr, 'far_ctx', {})
+    if empty(far_ctx)
+        throw 'far context not found for current buffer'
+    endif
+    return far_ctx
 endfunction "}}}
 
 
