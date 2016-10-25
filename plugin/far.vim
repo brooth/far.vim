@@ -9,9 +9,8 @@ endif "}}}
 
 
 " TODOs {{{
-"TODO x - exclude, i - include, c - toogle, r - change item result
-"TODO I,C,X - do for all
-"TODO g:far#details_mappings = 1
+"TODO r - change item result
+"TODO % - current buffer, wildmenu for args
 "TODO confirm Fardo: Replace 67 matches in 5 files? (option...)
 "TODO readonly buffers? not saved buffers? modified (after search)?
 "TODO config window (top, left, right, buttom, current)
@@ -34,6 +33,7 @@ endif "}}}
 
 
 " options {{{
+let g:far#details_mappings = 1
 let g:far#window_width = 110
 let g:far#repl_devider = '  ➝  '
 let g:far#left_cut_text_sigh = '…'
@@ -65,6 +65,25 @@ endfunction
 "}}}
 
 
+"config plugin {{{
+function! g:far#apply_default_mappings() abort
+    call s:log('apply_default_mappings()')
+
+    nnoremap <buffer><silent> o :call g:far#toogle_expand_under_cursor()<cr>
+    nnoremap <buffer><silent> x :call g:far#change_exclude_under_cursor(1)<cr>
+    vnoremap <buffer><silent> x :call g:far#change_exclude_under_cursor(1)<cr>
+    nnoremap <buffer><silent> i :call g:far#change_exclude_under_cursor(0)<cr>
+    vnoremap <buffer><silent> i :call g:far#change_exclude_under_cursor(0)<cr>
+    nnoremap <buffer><silent> t :call g:far#change_exclude_under_cursor(-1)<cr>
+    vnoremap <buffer><silent> t :call g:far#change_exclude_under_cursor(-1)<cr>
+    nnoremap <buffer><silent> X :call g:far#change_exclude_all(1)<cr>
+    nnoremap <buffer><silent> I :call g:far#change_exclude_all(0)<cr>
+    nnoremap <buffer><silent> T :call g:far#change_exclude_all(-1)<cr>
+endfunction
+
+"}}}
+
+
 function! Far(pattern, replace_with, files_mask) abort "{{{
     call s:log('=============== FAR ================')
     call s:log('fargs: '.a:pattern.','. a:replace_with.', '.a:files_mask)
@@ -77,7 +96,7 @@ function! Far(pattern, replace_with, files_mask) abort "{{{
         endif
         return Far(pattern, a:replace_with, a:files_mask)
     endif
-    call s:open_far_buffer(far_ctx)
+    call s:create_far_buffer(far_ctx)
 endfunction
 command! -nargs=+ Far call Far(<f-args>)
 "}}}
@@ -172,7 +191,27 @@ function! g:far#toogle_expand_under_cursor() abort "{{{
 endfunction "}}}
 
 
-function! g:far#toogle_exclude_under_cursor() abort "{{{
+function! g:far#change_exclude_all(cmode) abort "{{{
+    let bufnr = bufnr('%')
+    let far_ctx = getbufvar(bufnr, 'far_ctx', {})
+    if empty(far_ctx)
+        echoerr 'far context not found for current buffer'
+        return
+    endif
+
+    for k in keys(far_ctx.items)
+        let buf_ctx = far_ctx.items[k]
+        for item_ctx in buf_ctx.items
+            let item_ctx.excluded = a:cmode == -1? (item_ctx.excluded == 0? 1 : 0) : a:cmode
+        endfor
+    endfor
+    call setbufvar('%', 'far_ctx', far_ctx)
+    call s:update_far_buffer(bufnr)
+    return
+endfunction "}}}
+
+
+function! g:far#change_exclude_under_cursor(cmode) abort "{{{
     let bufnr = bufnr('%')
     let far_ctx = getbufvar(bufnr, 'far_ctx', {})
     if empty(far_ctx)
@@ -181,31 +220,26 @@ function! g:far#toogle_exclude_under_cursor() abort "{{{
     endif
 
     let pos = getcurpos()[1]
-    call s:toogle_expand(far_ctx, bufnr, pos)
-endfunction "}}}
-
-
-function! s:toogle_expand(far_ctx, bufnr, pos) abort "{{{
     let index = 0
-    for k in keys(a:far_ctx.items)
-        let buf_ctx = a:far_ctx.items[k]
+    for k in keys(far_ctx.items)
+        let buf_ctx = far_ctx.items[k]
         let index += 1
-        if a:pos == index
+        if pos == index
             for item_ctx in buf_ctx.items
-                let item_ctx.excluded = item_ctx.excluded == 0 ? 1 : 0
+                let item_ctx.excluded = a:cmode == -1? (item_ctx.excluded == 0? 1 : 0) : a:cmode
             endfor
-            call setbufvar('%', 'far_ctx', a:far_ctx)
-            call s:update_far_buffer(a:bufnr)
+            call setbufvar('%', 'far_ctx', far_ctx)
+            call s:update_far_buffer(bufnr)
             return
         endif
 
         if buf_ctx.expanded
             for item_ctx in buf_ctx.items
                 let index += 1
-                if a:pos == index
-                    let item_ctx.excluded = item_ctx.excluded == 0 ? 1 : 0
-                    call setbufvar('%', 'far_ctx', a:far_ctx)
-                    call s:update_far_buffer(a:bufnr)
+                if pos == index
+                    let item_ctx.excluded = a:cmode == -1? (item_ctx.excluded == 0? 1 : 0) : a:cmode
+                    call setbufvar('%', 'far_ctx', far_ctx)
+                    call s:update_far_buffer(bufnr)
                     exec 'norm! j'
                     return
                 endif
@@ -252,7 +286,7 @@ function! s:do_replece(far_ctx) abort "{{{
 
             try
                 exec 'argadd '.ctx.bufname
-                exec 'silent! argdo! norm!'.join(cmds)
+                exec 'silent! argdo! norm! '.join(cmds,'')
                 exec 'argdelete '.ctx.bufname
             catch /.*/
                 call s:log('failed to replace in buffer '.ctx.bufnr.', error: '.v:exception)
@@ -424,12 +458,12 @@ function! s:build_buffer_content(far_ctx) abort "{{{
 endfunction "}}}
 
 
-function! s:open_far_buffer(far_ctx) abort "{{{
+function! s:create_far_buffer(far_ctx) abort "{{{
     let bufname = g:far#window_name.' '.g:far#buffer_counter
     let bufnr = bufnr(bufname)
     if bufnr != -1
         let g:far#buffer_counter += 1
-        call s:open_far_buffer(a:far_ctx)
+        call s:create_far_buffer(a:far_ctx)
         return
     endif
 
@@ -448,9 +482,9 @@ function! s:open_far_buffer(far_ctx) abort "{{{
     setlocal cursorline
     setfiletype far_vim
 
-    nnoremap <buffer><silent> x :call g:far#toogle_exclude_under_cursor()<cr>
-    nnoremap <buffer><silent> o :call g:far#toogle_expand_under_cursor()<cr>
-    vnoremap <buffer><silent> x :call g:far#toogle_exclude_under_cursor()<cr>
+    if g:far#details_mappings
+        call g:far#apply_default_mappings()
+    endif
 
     call setbufvar(bufnr, 'far_ctx', a:far_ctx)
     call s:update_far_buffer(bufnr)
