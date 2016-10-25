@@ -35,7 +35,6 @@ endif "}}}
 
 " options {{{
 let g:far#details_mappings = 1
-let g:far#window_width = 110
 let g:far#repl_devider = '  ➝  '
 let g:far#left_cut_text_sigh = '…'
 let g:far#right_cut_text_sigh = '…'
@@ -43,6 +42,11 @@ let g:far#auth_close_replaced_buffers = 0
 let g:far#auth_write_replaced_buffers = 0
 "let g:far#check_buff_consistency = 1
 let g:far#confirm_fardo = 0
+
+let g:far#window_width = 115
+let g:far#window_height = 25
+"(top, left, right, bottom, tab, current)
+let g:far#window_layout = 'right'
 "}}}
 
 
@@ -115,7 +119,7 @@ function! Far(pattern, replace_with, files_mask) abort "{{{
         endif
         return Far(pattern, a:replace_with, files_mask)
     endif
-    call s:create_far_buffer(far_ctx)
+    call s:open_far_buff(far_ctx, g:far#window_layout)
 endfunction
 command! -nargs=+ Far call Far(<f-args>)
 "}}}
@@ -461,8 +465,9 @@ function! s:build_buffer_content(far_ctx) abort "{{{
                 let line_num += 1
                 let line_num_text = item_ctx.lnum.':'.item_ctx.cnum
                 let line_num_col_text = '  '.line_num_text.repeat(' ', 8-strchars(line_num_text))
-                let max_text_len = g:far#window_width / 2 - strchars(line_num_col_text) - 1
-                let max_repl_len = g:far#window_width / 2 - strchars(g:far#repl_devider) - 4
+                let window_width = winwidth(winnr())
+                let max_text_len = window_width / 2 - strchars(line_num_col_text) - 1
+                let max_repl_len = window_width / 2 - strchars(g:far#repl_devider) - 4
                 let match_text = s:cetrify_text(item_ctx.text, max_text_len, item_ctx.cnum)
                 let repl_text = s:cetrify_text(((item_ctx.cnum == 1? '': item_ctx.text[0:item_ctx.cnum-2]).
                             \   item_ctx.repl_val.item_ctx.text[item_ctx.cnum+len(item_ctx.match_val)-1:]),
@@ -499,17 +504,17 @@ function! s:build_buffer_content(far_ctx) abort "{{{
 endfunction "}}}
 
 
-function! s:create_far_buffer(far_ctx) abort "{{{
+function! s:open_far_buff(far_ctx, wmode) abort "{{{
     let bufname = s:far_buffer_name.'-'.s:buffer_counter
     let bufnr = bufnr(bufname)
     if bufnr != -1
         let s:buffer_counter += 1
-        call s:create_far_buffer(a:far_ctx)
+        call s:open_far_buff(a:far_ctx, a:wmode)
         return
     endif
 
-    let win_layout ='botright vertical '.g:far#window_width
-    exec 'silent keepalt '.win_layout.'new '.s:far_buffer_name.'-'.s:buffer_counter
+    let win_layout = s:get_new_buf_layout(a:wmode)
+    exec 'silent keepalt '.win_layout
     let bufnr = last_buffer_nr()
     let s:buffer_counter += 1
 
@@ -529,6 +534,32 @@ function! s:create_far_buffer(far_ctx) abort "{{{
 
     call setbufvar(bufnr, 'far_ctx', a:far_ctx)
     call s:update_far_buffer(bufnr)
+endfunction "}}}
+
+
+function! s:get_new_buf_layout(wmode) abort "{{{
+    let bname = s:far_buffer_name.'-'.s:buffer_counter
+
+    if a:wmode == 'current'
+        return 'edit '.bname
+    endif
+    if a:wmode == 'tab'
+        return 'tabedit '.bname
+    endif
+
+    if a:wmode == 'top'
+        let layout = 'topleft '.g:far#window_height
+    elseif a:wmode == 'left'
+        let layout = 'leftabove vertical '.g:far#window_width
+    elseif a:wmode == 'right'
+        let layout = 'rightbelow vertical '.g:far#window_width
+    elseif a:wmode == 'bottom'
+        let layout = 'botright '.g:far#window_height
+    else
+        echoerr 'invalid window layout '.a:wmode
+        let layout = 'rightbelow vertical '.g:far#window_width
+    endif
+    return layout.' new '.bname
 endfunction "}}}
 
 
