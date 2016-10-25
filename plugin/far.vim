@@ -9,12 +9,6 @@ endif "}}}
 
 
 " TODOs {{{
-"TODO folding (zc & zo for expanding)
-"TODO O - toogle expand all, zM - expand all, zR - collapse all
-"TODO r - change item result
-"TODO wildmenu for args
-"TODO support far for visual selected lines?!?!?!
-"TODO confirm Fardo: Replace 67 matches in 5 files? (option...)
 "TODO readonly buffers? not saved buffers? modified (after search)?
 "TODO config window (top, left, right, buttom, current)
 "TODO preview window (none, top, left, right, buttom, current)
@@ -22,7 +16,10 @@ endif "}}}
 "TODO update buff on win resize
 "TODO Faredo (repeate same far in same window)
 "TODO auto colaps if more than x buffers. items...
+"TODO r - change item result
+"TODO support far for visual selected lines?!?!?!
 "TODO support N[i,x,c] - do N times
+"TODO wildmenu for args
 "TODO async for neovim
 "TODO statusline (done in Xms stat, number of matches)
 "TODO support alternative providers (not vimgrep)
@@ -42,9 +39,10 @@ let g:far#left_cut_text_sigh = '…'
 let g:far#right_cut_text_sigh = '…'
 let g:far#auth_close_replaced_buffers = 0
 let g:far#auth_write_replaced_buffers = 0
+let g:far#confirm_fardo = 1
 
-let g:far#window_name = 'FAR'
-let g:far#buffer_counter = 1
+let s:far_buffer_name = 'FAR'
+let s:buffer_counter = 1
 
 let s:debug = 1
 let s:debugfile = $HOME.'/far.vim.log'
@@ -154,13 +152,34 @@ function! FarDo() abort "{{{
         return
     endif
 
+    if g:far#confirm_fardo
+        let files = 0
+        let matches = 0
+        for bufctx in values(far_ctx.items)
+            let excludes = 0
+            for item in bufctx.items
+                if !item.excluded
+                    let excludes += 1
+                endif
+            endfor
+            if !empty(excludes)
+                let files += 1
+                let matches += excludes
+            endif
+        endfor
+        let answ = confirm('Replace '.matches.' matche(s) in '.files.' file(s)?', "&Yes\n&No")
+        if answ != 1
+            return
+        endif
+    endif
+
     let result = s:do_replece(far_ctx)
     if empty(result)
         return
     endif
 
-    echomsg result.matches.' matche(s) in '.result.files.' file(s). '.
-        \   result.errors.' error(s). time '.result.time.'s'
+    echomsg result.matches.' matche(s). '.result.files.' file(s). '.
+        \   result.errors.' error(s). time '.result.time.'s.'
 endfunction
 command! -nargs=0 Fardo call FarDo()
 "}}}
@@ -220,7 +239,7 @@ endfunction "}}}
 
 
 function! g:far#change_exclude_all(cmode) abort "{{{
-    let buf_num = bufnr('%')
+    let bufnr = bufnr('%')
     let far_ctx = s:get_buf_far_ctx(bufnr)
 
     for k in keys(far_ctx.items)
@@ -236,7 +255,7 @@ endfunction "}}}
 
 
 function! g:far#change_exclude_under_cursor(cmode) abort "{{{
-    let buf_num = bufnr('%')
+    let bufnr = bufnr('%')
     let far_ctx = s:get_buf_far_ctx(bufnr)
     let pos = getcurpos()[1]
     let index = 0
@@ -473,18 +492,18 @@ endfunction "}}}
 
 
 function! s:create_far_buffer(far_ctx) abort "{{{
-    let bufname = g:far#window_name.'-'.g:far#buffer_counter
+    let bufname = s:far_buffer_name.'-'.s:buffer_counter
     let bufnr = bufnr(bufname)
     if bufnr != -1
-        let g:far#buffer_counter += 1
+        let s:buffer_counter += 1
         call s:create_far_buffer(a:far_ctx)
         return
     endif
 
     let win_layout ='botright vertical '.g:far#window_width
-    exec 'silent keepalt '.win_layout.'new '.g:far#window_name.'-'.g:far#buffer_counter
+    exec 'silent keepalt '.win_layout.'new '.s:far_buffer_name.'-'.s:buffer_counter
     let bufnr = last_buffer_nr()
-    let g:far#buffer_counter += 1
+    let s:buffer_counter += 1
 
     setlocal noswapfile
     setlocal buftype=nowrite
