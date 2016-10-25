@@ -271,7 +271,7 @@ function! s:do_replece(far_ctx) abort "{{{
             if item_ctx.excluded
                 continue
             endif
-            let cmd = item_ctx.lnum.'gg0'.(item_ctx.col-1 > 0? item_ctx.col-1.'l' : '').
+            let cmd = item_ctx.lnum.'gg0'.(item_ctx.cnum-1 > 0? item_ctx.cnum-1.'l' : '').
                 \   'd'.strchars(item_ctx.match_val).'l'.
                 \   'i'.item_ctx.repl_val.''
             call s:log('cmd: '.cmd)
@@ -359,18 +359,11 @@ function! s:assemble_context(pattern, replace_with, files_mask) abort "{{{
 
         let item_ctx = {}
         let item_ctx.lnum = item.lnum
-        let item_ctx.col = item.col
-        let item_ctx.excluded = 0
+        let item_ctx.cnum = item.col
+        let item_ctx.text = item.text
         let item_ctx.match_val = matchstr(item.text, a:pattern, item.col-1)
         let item_ctx.repl_val = substitute(item_ctx.match_val, a:pattern, a:replace_with, "")
-        let item_ctx.match_text = item.text
-        if item.col == 1
-            let front = ''
-        else
-            let front = item.text[0:item.col-2]
-        endif
-        let item_ctx.repl_text = front.substitute(item.text[item.col-1:],
-            \    item_ctx.match_val, item_ctx.repl_val, '')
+        let item_ctx.excluded = 0
         call add(buf_ctx.items, item_ctx)
     endfor
     return far_ctx
@@ -424,12 +417,14 @@ function! s:build_buffer_content(far_ctx) abort "{{{
 
         for item_ctx in ctx.items
             let line_num += 1
-            let line_num_text = item_ctx.lnum.':'.item_ctx.col
+            let line_num_text = item_ctx.lnum.':'.item_ctx.cnum
             let line_num_col_text = '  '.line_num_text.repeat(' ', 8-strchars(line_num_text))
             let max_text_len = g:far#window_width / 2 - strchars(line_num_col_text) - 1
             let max_repl_len = g:far#window_width / 2 - strchars(g:far#repl_devider) - 4
-            let match_text = s:cetrify_text(item_ctx.match_text, max_text_len, item_ctx.col)
-            let repl_text = s:cetrify_text(item_ctx.repl_text, max_repl_len, item_ctx.col)
+            let match_text = s:cetrify_text(item_ctx.text, max_text_len, item_ctx.cnum)
+            let repl_text = s:cetrify_text(((item_ctx.cnum == 1? '': item_ctx.text[0:item_ctx.cnum-2]).
+                \   item_ctx.repl_val.item_ctx.text[item_ctx.cnum+len(item_ctx.match_val)-1:]),
+                \   max_repl_len, item_ctx.cnum)
             let out = line_num_col_text.match_text.text.g:far#repl_devider.repl_text.text
             call add(content, out)
 
@@ -459,7 +454,7 @@ endfunction "}}}
 
 
 function! s:create_far_buffer(far_ctx) abort "{{{
-    let bufname = g:far#window_name.' '.g:far#buffer_counter
+    let bufname = g:far#window_name.'-'.g:far#buffer_counter
     let bufnr = bufnr(bufname)
     if bufnr != -1
         let g:far#buffer_counter += 1
@@ -468,7 +463,7 @@ function! s:create_far_buffer(far_ctx) abort "{{{
     endif
 
     let win_layout ='botright vertical '.g:far#window_width
-    exec 'silent keepalt '.win_layout.'new '.g:far#window_name.'\ '.g:far#buffer_counter
+    exec 'silent keepalt '.win_layout.'new '.g:far#window_name.'-'.g:far#buffer_counter
     let bufnr = last_buffer_nr()
     let g:far#buffer_counter += 1
 
