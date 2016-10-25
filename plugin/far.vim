@@ -49,17 +49,26 @@ let g:far#window_layout = 'right'
 
 let g:far#jump_window_width = 60
 let g:far#jump_window_height = 15
+"(top, left, right, bottom, tab, current)
 let g:far#jump_window_layout = 'bottom'
+
+let g:far#preview_window_width = 60
+let g:far#preview_window_height = 15
+"(none, top, left, right, buttom)
+let g:far#preview_window_layout = 'top'
+let g:far#auto_preview = 1
 "}}}
 
 
 " vars {{{
 let s:far_buffer_name = 'FAR'
+let s:far_preview_buffer_name = 'Preview'
 let s:buffer_counter = 1
 
 let s:debug = 1
 let s:debugfile = $HOME.'/far.vim.log'
 let s:repl_do_pre_cmd = 'zR :let g:far#__readonlytest__ = &readonly || !&modifiable'
+let s:preview_winnr= -1
 "}}}
 
 
@@ -199,51 +208,91 @@ command! -nargs=0 Fardo call FarDo()
 "}}}
 
 
-function! g:far#jump_buffer_under_cursor() abort "{{{
+function! s:get_contexts_under_cursor() abort "{{{
     let bufnr = bufnr('%')
     let far_ctx = s:get_buf_far_ctx(bufnr)
     let pos = getcurpos()[1]
     let index = 0
-    let jump_ctx = {}
-    let jump_pos = []
     for k in keys(far_ctx.items)
         let buf_ctx = far_ctx.items[k]
         let index += 1
         if pos == index
-            let jump_ctx = buf_ctx
-            break
+            return [far_ctx, buf_ctx]
         endif
 
         if buf_ctx.expanded
             for item_ctx in buf_ctx.items
                 let index += 1
                 if pos == index
-                    let jump_ctx = buf_ctx
-                    let jump_pos = [item_ctx.lnum, item_ctx.cnum]
-                    break
+                    return [far_ctx, buf_ctx, item_ctx]
                 endif
             endfor
-            if jump_ctx != {}
-                break
-            endif
         endif
     endfor
+    return [far_ctx]
+endfunction "}}}
 
-    if jump_ctx != {}
-        let winnr = bufwinnr(jump_ctx.bufnr)
+
+function! s:get_new_split_layout(smode, bname, width, height) abort "{{{
+    if a:smode == 'top'
+        return 'aboveleft '.height.'split '.bname
+    elseif a:smode == 'left'
+        return 'leftabove '.width.'vsplit '.bname
+    elseif a:smode == 'right'
+        return 'rightbelow '.width.'vsplit '.bname
+    elseif a:smode == 'bottom'
+        return 'belowright '.height.'split '.bname
+    else
+        echoerr 'invalid window layout '.a:smode
+        return 'aboveleft '.height.'split '.bname
+    endif
+endfunction "}}}
+
+
+function! g:far#open_preview_buffer_under_cursor() abort "{{{
+    let ctxs = s:get_contexts_under_cursor()
+
+    if len(ctxs) > 1
+        if s:preview_winnr == -1
+            exec s:get_new_buf_layout(g:far#preview_window_layout, s:far_preview_buffer_name,
+                \   g:far#preview_window_width, g:far#preview_window_height)
+        endif
+
+        let s:preview_winnr = winnr()
         if winnr == -1
-            exec s:get_new_buf_layout(g:far#jump_window_layout, jump_ctx.bufname,
+            exec s:get_new_buf_layout(g:far#jump_window_layout, ctxs[1].bufname,
                 \   g:far#jump_window_width, g:far#jump_window_height)
         else
             exec 'norm! '.winnr.''
         endif
-        if !empty(jump_pos)
-            exec 'norm! '.jump_pos[0].'gg0'.(jump_pos[1]-1).'lzv'
+        if len(ctxs) == 2
+            exec 'norm! '.ctxs[2].lnum.'gg0'.(ctxs[2].cnum-1).'lzv'
         endif
         return
     endif
 
-    echoerr 'no far ctx item found under cursor '.pos
+    echoerr 'no far ctx item found under cursor '
+endfunction "}}}
+
+
+function! g:far#jump_buffer_under_cursor() abort "{{{
+    let ctxs = s:get_contexts_under_cursor()
+
+    if len(ctxs) > 1
+        let winnr = bufwinnr(ctxs[1].bufnr)
+        if winnr == -1
+            exec s:get_new_buf_layout(g:far#jump_window_layout, ctxs[1].bufname,
+                \   g:far#jump_window_width, g:far#jump_window_height)
+        else
+            exec 'norm! '.winnr.''
+        endif
+        if len(ctxs) == 3
+            exec 'norm! '.ctxs[2].lnum.'gg0'.(ctxs[2].cnum-1).'lzv'
+        endif
+        return
+    endif
+
+    echoerr 'no far ctx item found under cursor '
 endfunction "}}}
 
 
@@ -564,8 +613,7 @@ function! s:open_far_buff(far_ctx, wmode) abort "{{{
         return
     endif
 
-    let win_layout = s:get_new_buf_layout(a:wmode, bufname, g:far#window_width, g:far#window_height)
-    exec 'silent keepalt '.win_layout
+    exec s:get_new_buf_layout(a:wmode, bufname, g:far#window_width, g:far#window_height)
     let bufnr = last_buffer_nr()
     let s:buffer_counter += 1
 
