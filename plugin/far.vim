@@ -42,10 +42,13 @@ let g:far#auth_write_replaced_buffers = 0
 "let g:far#check_buff_consistency = 1
 let g:far#confirm_fardo = 0
 
-let g:far#window_width = 115
-let g:far#window_height = 25
+let g:far#window_width = exists('g:far#window_width')?
+    \   g:far#window_width : 100
+let g:far#window_height = exists('g:far#window_height')?
+    \   g:far#window_height : 25
 "(top, left, right, bottom, tab, current)
-let g:far#window_layout = 'right'
+let g:far#window_layout = exists('g:far#window_layout')?
+    \   g:far#window_layout : 'right'
 
 let g:far#jump_window_width = 60
 let g:far#jump_window_height = 15
@@ -644,14 +647,14 @@ function! s:get_new_buf_layout(wmode, bname, width, height) abort "{{{
     elseif a:wmode == 'top'
         let layout = 'topleft '.a:height
     elseif a:wmode == 'left'
-        let layout = 'leftabove vertical '.a:width
+        let layout = 'topleft vertical '.a:width
     elseif a:wmode == 'right'
-        let layout = 'rightbelow vertical '.a:width
+        let layout = 'botright vertical '.a:width
     elseif a:wmode == 'bottom'
         let layout = 'botright '.a:height
     else
         echoerr 'invalid window layout '.a:wmode
-        let layout = 'rightbelow vertical '.a:width
+        let layout = 'botright vertical '.a:width
     endif
     return layout.' new '.a:bname
 endfunction "}}}
