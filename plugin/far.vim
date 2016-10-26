@@ -10,25 +10,24 @@ endif "}}}
 
 " TODOs {{{
 "TODO preview window (none, top, left, right, buttom, current)
-"TODO pass win args as params
 "TODO update buff on win resize
+"TODO pass win args as params
+"TODO wildmenu for args
 "TODO Faredo (repeate same far in same window)
 "TODO auto colaps if more than x buffers. items...
-"TODO keep file highlight? change bg color to highlight?
 "TODO r - change item result
-"TODO support far for visual selected lines?!?!?!
+"TODO support far for visual selected lines?!?!?! multi line pattern?
 "TODO support N[i,x,c] - do N times
 "TODO readonly buffers? not saved buffers? modified (after search)?
 "TODO check consistancy timer
-"TODO wildmenu for args
-"TODO async for neovim
 "TODO statusline (done in Xms stat, number of matches)
+"TODO async for neovim
 "TODO support alternative providers (not vimgrep)
-"TODO support alternative replacers
+"TODO multiple providers, excluder (dublicates..)
+"TODO support alternative replacers?
 "TODO pass providers as params (Farp as well)
-"TODO python rename provider (tags? rope? jedi?)
-"TODO nested ctxs? for dirs? for python package/module/class/method
-"TODO u - undo excluded items (redo, multiple (after visual select))
+"TODO nodes: nested ctxs? for dirs? for python package/module/class/method
+"TODO python rename provider (tags? rope? jedi? all of them!)
 "}}}
 
 
@@ -50,14 +49,14 @@ let g:far#window_height = exists('g:far#window_height')?
 let g:far#window_layout = exists('g:far#window_layout')?
     \   g:far#window_layout : 'right'
 
-let g:far#jump_window_width = 60
+let g:far#jump_window_width = 100
 let g:far#jump_window_height = 15
 "(top, left, right, bottom, tab, current)
-let g:far#jump_window_layout = 'bottom'
+let g:far#jump_window_layout = 'left'
 
 let g:far#preview_window_width = 60
-let g:far#preview_window_height = 15
-"(none, top, left, right, buttom)
+let g:far#preview_window_height = 9
+"(top, left, right, buttom)
 let g:far#preview_window_layout = 'top'
 let g:far#auto_preview = 1
 "}}}
@@ -71,7 +70,6 @@ let s:buffer_counter = 1
 let s:debug = 1
 let s:debugfile = $HOME.'/far.vim.log'
 let s:repl_do_pre_cmd = 'zR :let g:far#__readonlytest__ = &readonly || !&modifiable'
-let s:preview_winnr= -1
 "}}}
 
 
@@ -94,12 +92,13 @@ endfunction
 function! g:far#apply_default_mappings() abort "{{{
     call s:log('apply_default_mappings()')
 
-    nnoremap <buffer><silent> o :call g:far#change_expand_under_cursor(-1)<cr>
-    nnoremap <buffer><silent> zo :call g:far#change_expand_under_cursor(1)<cr>
-    nnoremap <buffer><silent> zc :call g:far#change_expand_under_cursor(0)<cr>
-    nnoremap <buffer><silent> O :call g:far#change_expand_all(-1)<cr>
+    nnoremap <buffer><silent> zA :call g:far#change_expand_all(-1)<cr>
     nnoremap <buffer><silent> zR :call g:far#change_expand_all(1)<cr>
     nnoremap <buffer><silent> zM :call g:far#change_expand_all(0)<cr>
+
+    nnoremap <buffer><silent> za :call g:far#change_expand_under_cursor(-1)<cr>
+    nnoremap <buffer><silent> zo :call g:far#change_expand_under_cursor(1)<cr>
+    nnoremap <buffer><silent> zc :call g:far#change_expand_under_cursor(0)<cr>
 
     nnoremap <buffer><silent> x :call g:far#change_exclude_under_cursor(1)<cr>
     vnoremap <buffer><silent> x :call g:far#change_exclude_under_cursor(1)<cr>
@@ -114,8 +113,26 @@ function! g:far#apply_default_mappings() abort "{{{
 
     nnoremap <buffer><silent> <cr> :call g:far#jump_buffer_under_cursor()<cr>
 
+    nnoremap <buffer><silent> p :call g:far#open_preview_buffer_under_cursor()<cr>
+    if g:far#auto_preview
+        nnoremap <buffer><silent> <up> <up>:call g:far#open_preview_buffer_under_cursor()<cr>
+        nnoremap <buffer><silent> <down> <down>:call g:far#open_preview_buffer_under_cursor()<cr>
+        nnoremap <buffer><silent> j j:call g:far#open_preview_buffer_under_cursor()<cr>
+        nnoremap <buffer><silent> k k:call g:far#open_preview_buffer_under_cursor()<cr>
+    endif
+
 endfunction "}}}
 
+
+function! g:far#close_preview_window() abort "{{{
+    exec 'bd! '.b:far_preview_bufrn
+    unlet b:far_preview_bufrn = -1
+endfunction "}}}
+
+augroup FarVimClose
+    autocmd!
+    au WinLeave if exists('b:far_preview_bufrn') | :call g:far#close_preview_window()
+augroup END
 
 function! Far(pattern, replace_with, files_mask) abort "{{{
     call s:log('=============== FAR ================')
@@ -238,43 +255,97 @@ endfunction "}}}
 
 function! s:get_new_split_layout(smode, bname, width, height) abort "{{{
     if a:smode == 'top'
-        return 'aboveleft '.height.'split '.bname
+        return 'aboveleft '.a:height.'split '.a:bname
     elseif a:smode == 'left'
-        return 'leftabove '.width.'vsplit '.bname
+        return 'leftabove '.a:width.'vsplit '.a:bname
     elseif a:smode == 'right'
-        return 'rightbelow '.width.'vsplit '.bname
+        return 'rightbelow '.a:width.'vsplit '.a:bname
     elseif a:smode == 'bottom'
-        return 'belowright '.height.'split '.bname
+        return 'belowright '.a:height.'split '.a:bname
     else
         echoerr 'invalid window layout '.a:smode
-        return 'aboveleft '.height.'split '.bname
+        return 'aboveleft '.a:height.'split '.a:bname
     endif
 endfunction "}}}
 
 
 function! g:far#open_preview_buffer_under_cursor() abort "{{{
     let ctxs = s:get_contexts_under_cursor()
-
-    if len(ctxs) > 1
-        if s:preview_winnr == -1
-            exec s:get_new_buf_layout(g:far#preview_window_layout, s:far_preview_buffer_name,
-                \   g:far#preview_window_width, g:far#preview_window_height)
-        endif
-
-        let s:preview_winnr = winnr()
-        if winnr == -1
-            exec s:get_new_buf_layout(g:far#jump_window_layout, ctxs[1].bufname,
-                \   g:far#jump_window_width, g:far#jump_window_height)
-        else
-            exec 'norm! '.winnr.''
-        endif
-        if len(ctxs) == 2
-            exec 'norm! '.ctxs[2].lnum.'gg0'.(ctxs[2].cnum-1).'lzv'
-        endif
+    if len(ctxs) < 3
         return
     endif
 
-    echoerr 'no far ctx item found under cursor '
+    let far_bufnr = bufnr('%')
+    let far_winid = win_getid(winnr())
+    let preview_winnr = -1
+
+    if exists('b:far_preview_bufrn') && !bufexists(b:far_preview_bufrn)
+        unlet b:far_preview_bufrn
+    endif
+    if !exists('b:far_preview_bufrn')
+        exec 'badd '.s:far_preview_buffer_name
+        let b:far_preview_bufrn = bufnr(s:far_preview_buffer_name)
+    endif
+    let preview_bufnr = b:far_preview_bufrn
+
+    if exists('b:far_preview_winid')
+        let preview_winnr = win_id2win(b:far_preview_winid)
+        if preview_winnr == 0
+            unlet b:far_preview_winid
+        endif
+    endif
+    if !exists('b:far_preview_winid')
+        exec s:get_new_split_layout(g:far#preview_window_layout, '| b'.preview_bufnr,
+            \   g:far#preview_window_width, g:far#preview_window_height)
+        let preview_winnr = winnr()
+        call setbufvar(far_bufnr, 'far_preview_winid', win_getid(preview_winnr))
+    else
+        call win_gotoid(b:far_preview_winid)
+    endif
+
+    if preview_bufnr != winbufnr(preview_winnr)
+        exec 'buffer '.preview_bufnr
+    endif
+
+    let cont_buf = ctxs[1].bufnr
+    let load_cont_buf = !bufloaded(cont_buf) || get(ctxs[1], 'filetype', 1)
+    if load_cont_buf
+        exec 'buffer '.ctxs[1].bufname
+        let ctxs[1].filetype = &filetype
+    endif
+
+    let start = ctxs[2].lnum - 4
+    let content = getbufline(cont_buf, (start < 0? ctxs[2].lnum : start), ctxs[2].lnum+5)
+    if start < 0
+        let content = repeat([''], (-start)+1) + content
+    endif
+    if len(content) < 10
+        let content += repeat([''], 9-len(content)+1)
+    endif
+    if load_cont_buf
+        exec 'buffer '.preview_bufnr
+    endif
+
+    setlocal noswapfile
+    setlocal buftype=nowrite
+    setlocal bufhidden=delete
+    setlocal nowrap
+    setlocal foldcolumn=0
+    setlocal nobuflisted
+    setlocal nospell
+    setlocal nonumber
+    setlocal norelativenumber
+    exec 'setfiletype '.ctxs[1].filetype
+
+    setlocal modifiable
+    let lnum = 0
+    for line in content
+        call setline(lnum, line)
+        let lnum += 1
+    endfor
+    setlocal nomodifiable
+
+    call win_gotoid(far_winid)
 endfunction "}}}
 
 
