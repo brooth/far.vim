@@ -13,6 +13,7 @@ endif "}}}
 "TODO update buff on win resize
 "TODO pass win args as params
 "TODO wildmenu for args
+"TODO no highlighting for big searchs (g:far#nohighligth_amount = 300)
 "TODO Faredo (repeate same far in same window)
 "TODO auto colaps if more than x buffers. items...
 "TODO r - change item result
@@ -55,7 +56,7 @@ let g:far#jump_window_height = 15
 let g:far#jump_window_layout = 'left'
 
 let g:far#preview_window_width = 60
-let g:far#preview_window_height = 9
+let g:far#preview_window_height = 11
 "(top, left, right, buttom)
 let g:far#preview_window_layout = 'top'
 let g:far#auto_preview = 1
@@ -112,27 +113,26 @@ function! g:far#apply_default_mappings() abort "{{{
     nnoremap <buffer><silent> T :call g:far#change_exclude_all(-1)<cr>
 
     nnoremap <buffer><silent> <cr> :call g:far#jump_buffer_under_cursor()<cr>
-
-    nnoremap <buffer><silent> p :call g:far#open_preview_buffer_under_cursor()<cr>
-    if g:far#auto_preview
-        nnoremap <buffer><silent> <up> <up>:call g:far#open_preview_buffer_under_cursor()<cr>
-        nnoremap <buffer><silent> <down> <down>:call g:far#open_preview_buffer_under_cursor()<cr>
-        nnoremap <buffer><silent> j j:call g:far#open_preview_buffer_under_cursor()<cr>
-        nnoremap <buffer><silent> k k:call g:far#open_preview_buffer_under_cursor()<cr>
-    endif
+    nnoremap <buffer><silent> p :call g:far#open_preview_window_under_cursor()<cr>
 
 endfunction "}}}
 
 
-function! g:far#close_preview_window() abort "{{{
-    exec 'bd! '.b:far_preview_bufrn
-    unlet b:far_preview_bufrn = -1
-endfunction "}}}
-
-augroup FarVimClose
+augroup faraugroup "{{{
     autocmd!
-    au WinLeave if exists('b:far_preview_bufrn') | :call g:far#close_preview_window()
-augroup END
+
+    au BufDelete * if exists('b:far_preview_winid') |
+                \   exec 'norm :'.win_id2win(b:far_preview_winid).'q' | endif
+
+    au BufWinLeave * if exists('w:far_preview_winid') |
+                \   exec 'norm :'.win_id2win(w:far_preview_winid).'q' | endif
+
+    if g:far#auto_preview && v:version >= 704
+        au CursorMoved * if &ft ==# 'far_vim' |
+                    \   :call g:far#open_preview_window_under_cursor() | endif
+    endif
+augroup END "}}}
+
 
 function! Far(pattern, replace_with, files_mask) abort "{{{
     call s:log('=============== FAR ================')
@@ -269,7 +269,7 @@ function! s:get_new_split_layout(smode, bname, width, height) abort "{{{
 endfunction "}}}
 
 
-function! g:far#open_preview_buffer_under_cursor() abort "{{{
+function! g:far#open_preview_window_under_cursor() abort "{{{
     let ctxs = s:get_contexts_under_cursor()
     if len(ctxs) < 3
         return
@@ -279,15 +279,6 @@ function! g:far#open_preview_buffer_under_cursor() abort "{{{
     let far_winid = win_getid(winnr())
     let preview_winnr = -1
 
-    if exists('b:far_preview_bufrn') && !bufexists(b:far_preview_bufrn)
-        unlet b:far_preview_bufrn
-    endif
-    if !exists('b:far_preview_bufrn')
-        exec 'badd '.s:far_preview_buffer_name
-        let b:far_preview_bufrn = bufnr(s:far_preview_buffer_name)
-    endif
-    let preview_bufnr = b:far_preview_bufrn
-
     if exists('b:far_preview_winid')
         let preview_winnr = win_id2win(b:far_preview_winid)
         if preview_winnr == 0
@@ -295,55 +286,22 @@ function! g:far#open_preview_buffer_under_cursor() abort "{{{
         endif
     endif
     if !exists('b:far_preview_winid')
-        exec s:get_new_split_layout(g:far#preview_window_layout, '| b'.preview_bufnr,
+        exec s:get_new_split_layout(g:far#preview_window_layout, '| b'.ctxs[1].bufnr,
             \   g:far#preview_window_width, g:far#preview_window_height)
         let preview_winnr = winnr()
         call setbufvar(far_bufnr, 'far_preview_winid', win_getid(preview_winnr))
+        call setwinvar(win_id2win(far_winid), 'far_preview_winid', win_getid(preview_winnr))
     else
         call win_gotoid(b:far_preview_winid)
     endif
 
-    if preview_bufnr != winbufnr(preview_winnr)
-        exec 'buffer '.preview_bufnr
+    if winbufnr(preview_winnr) != ctxs[1].bufnr
+        exec 'buffer '.ctxs[1].bufnr
     endif
 
-    let cont_buf = ctxs[1].bufnr
-    let load_cont_buf = !bufloaded(cont_buf) || get(ctxs[1], 'filetype', 1)
-    if load_cont_buf
-        exec 'buffer '.ctxs[1].bufname
-        let ctxs[1].filetype = &filetype
-    endif
-
-    let start = ctxs[2].lnum - 4
-    let content = getbufline(cont_buf, (start < 0? ctxs[2].lnum : start), ctxs[2].lnum+5)
-    if start < 0
-        let content = repeat([''], (-start)+1) + content
-    endif
-    if len(content) < 10
-        let content += repeat([''], 9-len(content)+1)
-    endif
-    if load_cont_buf
-        exec 'buffer '.preview_bufnr
-    endif
-
-    setlocal noswapfile
-    setlocal buftype=nowrite
-    setlocal bufhidden=delete
-    setlocal nowrap
-    setlocal foldcolumn=0
-    setlocal nobuflisted
-    setlocal nospell
-    setlocal nonumber
-    setlocal norelativenumber
-    exec 'setfiletype '.ctxs[1].filetype
-
-    setlocal modifiable
-    let lnum = 0
-    for line in content
-        call setline(lnum, line)
-        let lnum += 1
-    endfor
-    setlocal nomodifiable
+    exec 'norm! '.ctxs[2].lnum.'ggzz'
+    exec 'match Search "\%'.ctxs[2].lnum.'l\%'.ctxs[2].cnum.'c.\{'.strchars(ctxs[2].match_val).'\}"'
+    set nofoldenable
 
     call win_gotoid(far_winid)
 endfunction "}}}
@@ -637,11 +595,11 @@ function! s:build_buffer_content(far_ctx) abort "{{{
         if buf_ctx.expanded == 1
             for item_ctx in buf_ctx.items
                 let line_num += 1
-                let line_num_text = item_ctx.lnum.':'.item_ctx.cnum
-                let line_num_col_text = '  '.line_num_text.repeat(' ', 8-strchars(line_num_text))
+                let line_num_text = '  '.item_ctx.lnum
+                let line_num_col_text = line_num_text.repeat(' ', 10-strchars(line_num_text))
                 let window_width = winwidth(winnr())
-                let max_text_len = window_width / 2 - strchars(line_num_col_text) - 1
-                let max_repl_len = window_width / 2 - strchars(g:far#repl_devider) - 4
+                let max_text_len = window_width / 2 - strchars(line_num_col_text)
+                let max_repl_len = window_width / 2 - strchars(g:far#repl_devider)
                 let match_text = s:cetrify_text(item_ctx.text, max_text_len, item_ctx.cnum)
                 let repl_text = s:cetrify_text(((item_ctx.cnum == 1? '': item_ctx.text[0:item_ctx.cnum-2]).
                             \   item_ctx.repl_val.item_ctx.text[item_ctx.cnum+len(item_ctx.match_val)-1:]),
@@ -698,6 +656,7 @@ function! s:open_far_buff(far_ctx, wmode) abort "{{{
     setlocal foldcolumn=0
     setlocal nospell
     setlocal norelativenumber
+    setlocal nonumber
     setlocal cursorline
     setfiletype far_vim
 
