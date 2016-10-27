@@ -58,8 +58,9 @@ let g:far#jump_window_layout = 'left'
 let g:far#preview_window_width = 60
 let g:far#preview_window_height = 11
 "(top, left, right, buttom)
-let g:far#preview_window_layout = 'top'
+let g:far#preview_window_layout = 'bottom'
 let g:far#auto_preview = 1
+let g:far#preview_window_scroll_steps = 2
 "}}}
 
 
@@ -114,6 +115,9 @@ function! g:far#apply_default_mappings() abort "{{{
 
     nnoremap <buffer><silent> <cr> :call g:far#jump_buffer_under_cursor()<cr>
     nnoremap <buffer><silent> p :call g:far#open_preview_window_under_cursor()<cr>
+
+    nnoremap <buffer><silent> <c-p> :call g:far#scroll_preview_window(-g:far#preview_window_scroll_steps)<cr>
+    nnoremap <buffer><silent> <c-n> :call g:far#scroll_preview_window(g:far#preview_window_scroll_steps)<cr>
 
 endfunction "}}}
 
@@ -266,6 +270,24 @@ function! s:get_new_split_layout(smode, bname, width, height) abort "{{{
         echoerr 'invalid window layout '.a:smode
         return 'aboveleft '.a:height.'split '.a:bname
     endif
+endfunction "}}}
+
+
+function! g:far#scroll_preview_window(steps) abort "{{{
+    if !exists('b:far_preview_winid') || win_id2win(b:far_preview_winid) == 0
+        call s:echo_err('No preview window for curren buffer')
+        return
+    endif
+
+    let far_winid = win_getid(winnr())
+    call win_gotoid(b:far_preview_winid)
+    if a:steps > 0
+        exec 'norm '.a:steps.''
+    else
+        exec 'norm '.(-a:steps).''
+    endif
+    call win_gotoid(far_winid)
+
 endfunction "}}}
 
 
