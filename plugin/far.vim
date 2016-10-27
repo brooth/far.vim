@@ -9,7 +9,6 @@ endif "}}}
 
 
 " TODOs {{{
-"TODO preview window (none, top, left, right, buttom, current)
 "TODO update buff on win resize
 "TODO pass win args as params
 "TODO wildmenu for args
@@ -42,10 +41,11 @@ let g:far#auth_write_replaced_buffers = 0
 "let g:far#check_buff_consistency = 1
 let g:far#confirm_fardo = 0
 
+let g:far#window_min_content_width = 60
 let g:far#window_width = exists('g:far#window_width')?
     \   g:far#window_width : 100
 let g:far#window_height = exists('g:far#window_height')?
-    \   g:far#window_height : 25
+    \   g:far#window_height : 20
 "(top, left, right, bottom, tab, current)
 let g:far#window_layout = exists('g:far#window_layout')?
     \   g:far#window_layout : 'right'
@@ -55,12 +55,14 @@ let g:far#jump_window_height = 15
 "(top, left, right, bottom, tab, current)
 let g:far#jump_window_layout = 'left'
 
-let g:far#preview_window_width = 60
+let g:far#preview_window_width = 100
 let g:far#preview_window_height = 11
 "(top, left, right, buttom)
 let g:far#preview_window_layout = 'bottom'
 let g:far#auto_preview = 1
 let g:far#preview_window_scroll_steps = 2
+
+let g:far#check_window_resize_period = 2000
 "}}}
 
 
@@ -119,6 +121,8 @@ function! g:far#apply_default_mappings() abort "{{{
     nnoremap <buffer><silent> <c-p> :call g:far#scroll_preview_window(-g:far#preview_window_scroll_steps)<cr>
     nnoremap <buffer><silent> <c-n> :call g:far#scroll_preview_window(g:far#preview_window_scroll_steps)<cr>
 
+    nnoremap <buffer><silent> r :call g:far#check_far_window_to_resize()<cr>
+
 endfunction "}}}
 
 
@@ -127,7 +131,6 @@ augroup faraugroup "{{{
 
     au BufDelete * if exists('b:far_preview_winid') |
                 \   exec 'norm :'.win_id2win(b:far_preview_winid).'q' | endif
-
     au BufWinLeave * if exists('w:far_preview_winid') |
                 \   exec 'norm :'.win_id2win(w:far_preview_winid).'q' | endif
 
@@ -232,6 +235,49 @@ command! -nargs=0 Fardo call FarDo()
 "}}}
 
 
+ " resize timer {{{
+func! FarCheckFarWindowsToResizeHandler(timer) abort
+    let n = bufnr('$')
+    let no_far_bufs = 1
+    while n > 0
+        if !empty(getbufvar(n, 'far_ctx', {})) && bufwinid(n) != -1
+            call g:far#check_far_window_to_resize(n)
+            let no_far_bufs = 0
+        endif
+        let n -= 1
+    endwhile
+
+    if no_far_bufs
+        call timer_stop(a:timer)
+        unlet g:far#check_windows_to_resize_timer
+    endif
+endfun
+
+function! s:start_resize_timer() abort
+    if !has('timers') || exists('g:far#check_windows_to_resize_timer')
+        return
+    endif
+    let g:far#check_windows_to_resize_timer =
+        \    timer_start(g:far#check_window_resize_period,
+        \    'FarCheckFarWindowsToResizeHandler', {'repeat': -1})
+endfunction
+"}}}
+
+
+function! g:far#check_far_window_to_resize(bufnr) abort "{{{
+    let width = getbufvar(a:bufnr, 'far_window_width', -1)
+    if width == -1
+        call s:echo_err('Not a FAR buffer')
+        return
+    endif
+    if width != winwidth(bufwinnr(a:bufnr))
+        let cur_winid = win_getid(winnr())
+        call s:update_far_buffer(a:bufnr)
+        call win_gotoid(cur_winid)
+    endif
+endfunction "}}}
+
+
 function! s:get_contexts_under_cursor() abort "{{{
     let bufnr = bufnr('%')
     let far_ctx = s:get_buf_far_ctx(bufnr)
@@ -326,6 +372,7 @@ function! g:far#open_preview_window_under_cursor() abort "{{{
     set nofoldenable
 
     call win_gotoid(far_winid)
+    call g:far#check_far_window_to_resize(far_bufnr)
 endfunction "}}}
 
 
@@ -471,7 +518,7 @@ function! s:do_replece(far_ctx) abort "{{{
 
         let cmds = []
         for item_ctx in buf_ctx.items
-            if item_ctx.excluded
+            if item_ctx.excluded || item_ctx.replaced
                 continue
             endif
             let cmd = item_ctx.lnum.'gg0'.(item_ctx.cnum-1 > 0? item_ctx.cnum-1.'l' : '').
@@ -479,6 +526,7 @@ function! s:do_replece(far_ctx) abort "{{{
                         \   'i'.item_ctx.repl_val.''
             call s:log('cmd: '.cmd)
             call add(cmds, cmd)
+            let item_ctx.replaced = 1
         endfor
 
         if empty(cmds)
@@ -521,6 +569,10 @@ function! s:do_replece(far_ctx) abort "{{{
         call s:log('closing buffers: '.cbufs)
         exec 'bd '.cbufs
     endif
+
+    exec 'b '.bufnr
+    call setbufvar('%', 'far_ctx', a:far_ctx)
+    call s:update_far_buffer(bufnr)
 
     return {'files': repl_files, 'matches': repl_matches,
                 \   'skipped': repl_skipped, 'time': (localtime()-ts)}
@@ -573,13 +625,14 @@ function! s:assemble_context(pattern, replace_with, files_mask) abort "{{{
         let item_ctx.match_val = matchstr(item.text, a:pattern, item.col-1)
         let item_ctx.repl_val = substitute(item_ctx.match_val, a:pattern, a:replace_with, "")
         let item_ctx.excluded = 0
+        let item_ctx.replaced = 0
         call add(buf_ctx.items, item_ctx)
     endfor
     return far_ctx
 endfunction "}}}
 
 
-function! s:build_buffer_content(far_ctx) abort "{{{
+function! s:build_buffer_content(far_ctx, bufnr) abort "{{{
     if len(a:far_ctx.items) == 0
         call s:log('empty context result')
         return
@@ -594,12 +647,12 @@ function! s:build_buffer_content(far_ctx) abort "{{{
         let line_num += 1
         let num_matches = 0
         for item_ctx in buf_ctx.items
-            if item_ctx.excluded
+            if !item_ctx.excluded && !item_ctx.replaced
                 let num_matches += 1
             endif
         endfor
 
-        if num_matches < len(buf_ctx.items)
+        if num_matches > 0
             let bname_syn = 'syn region FarFilePath start="\%'.line_num.
                         \   'l^.."hs=s+2 end=".\{'.(strchars(buf_ctx.bufname)).'\}"'
             call add(syntaxs, bname_syn)
@@ -611,7 +664,7 @@ function! s:build_buffer_content(far_ctx) abort "{{{
             call add(syntaxs, excl_syn)
         endif
 
-        let out = expand_sign.' '.buf_ctx.bufname.' ['.buf_ctx.bufnr.'] ('.(len(buf_ctx.items)-num_matches).' matches)'
+        let out = expand_sign.' '.buf_ctx.bufname.' ['.buf_ctx.bufnr.'] ('.num_matches.' matches)'
         call add(content, out)
 
         if buf_ctx.expanded == 1
@@ -619,9 +672,13 @@ function! s:build_buffer_content(far_ctx) abort "{{{
                 let line_num += 1
                 let line_num_text = '  '.item_ctx.lnum
                 let line_num_col_text = line_num_text.repeat(' ', 10-strchars(line_num_text))
-                let window_width = winwidth(winnr())
-                let max_text_len = window_width / 2 - strchars(line_num_col_text)
-                let max_repl_len = window_width / 2 - strchars(g:far#repl_devider)
+                let far_window_width = winwidth(bufwinnr(a:bufnr))
+                if far_window_width < g:far#window_min_content_width
+                    far_window_width = g:far#window_min_content_width
+                endif
+                call setbufvar(a:bufnr, 'far_window_width', far_window_width)
+                let max_text_len = far_window_width / 2 - strchars(line_num_col_text)
+                let max_repl_len = far_window_width / 2 - strchars(g:far#repl_devider)
                 let match_text = s:cetrify_text(item_ctx.text, max_text_len, item_ctx.cnum)
                 let repl_text = s:cetrify_text(((item_ctx.cnum == 1? '': item_ctx.text[0:item_ctx.cnum-2]).
                             \   item_ctx.repl_val.item_ctx.text[item_ctx.cnum+len(item_ctx.match_val)-1:]),
@@ -632,6 +689,9 @@ function! s:build_buffer_content(far_ctx) abort "{{{
                 " Syntax
                 if get(item_ctx, 'broken', 0)
                     let excl_syn = 'syn region Error start="\%'.line_num.'l^" end="$"'
+                    call add(syntaxs, excl_syn)
+                elseif item_ctx.replaced
+                    let excl_syn = 'syn region FarReplacedItem start="\%'.line_num.'l^" end="$"'
                     call add(syntaxs, excl_syn)
                 elseif item_ctx.excluded
                     let excl_syn = 'syn region FarExcludedItem start="\%'.line_num.'l^" end="$"'
@@ -688,6 +748,7 @@ function! s:open_far_buff(far_ctx, wmode) abort "{{{
 
     call setbufvar(bufnr, 'far_ctx', a:far_ctx)
     call s:update_far_buffer(bufnr)
+    call s:start_resize_timer()
 endfunction "}}}
 
 
@@ -721,10 +782,10 @@ function! s:update_far_buffer(bufnr) abort "{{{
 
     let far_ctx = getbufvar(a:bufnr, 'far_ctx', {})
     if empty(far_ctx)
-        echoerr 'far context not found for current buffer'
+        echoerr 'far context not found for '.a:bufnr.' buffer'
         return
     endif
-    let buff_content = s:build_buffer_content(far_ctx)
+    let buff_content = s:build_buffer_content(far_ctx, a:bufnr)
 
     if winnr != winnr()
         exec 'norm! '.winnr.''
