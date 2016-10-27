@@ -12,7 +12,7 @@ endif "}}}
 "TODO pass win args as params
 "TODO wildmenu for args
 "TODO no highlighting for big searchs (g:far#nohighligth_amount = 300)
-"TODO Faredo (repeate same far in same window)
+"TODO Faredo/Refar/Farep (repeate same far in same window)
 "TODO auto colaps if more than x buffers. items...
 "TODO r - change item result
 "TODO support far for visual selected lines?!?!?! multi line pattern?
@@ -35,7 +35,6 @@ let g:far#details_mappings = 1
 let g:far#repl_devider = '  ➝  '
 let g:far#left_cut_text_sigh = '…'
 let g:far#right_cut_text_sigh = '…'
-let g:far#auth_close_replaced_buffers = 0
 let g:far#auth_write_replaced_buffers = 0
 "let g:far#check_buff_consistency = 1
 let g:far#confirm_fardo = 0
@@ -387,6 +386,9 @@ function! g:far#show_preview_window_under_cursor() abort "{{{
     endif
 
     exec 'norm! '.ctxs[2].lnum.'ggzz'
+    " TODO: if replaced take data from undo_ctx
+    " exec 'match Search "\%'.contexts[2].lnum.'lcontextsctxs[2].cnum.'c.\{'.
+    "     \   strchars(contexts[2].replaccontextsctxs[2].repcontextsl : ctxs[2].match_val).'\}"'
     exec 'match Search "\%'.ctxs[2].lnum.'l\%'.ctxs[2].cnum.'c.\{'.strchars(ctxs[2].match_val).'\}"'
     set nofoldenable
 
@@ -530,75 +532,49 @@ endfunction "}}}
 
 
 function! s:do_replece(far_ctx) abort "{{{
-    call s:log('do_replece('.a:far_ctx.pattern.', '.a:far_ctx.replace_with.
-                \   ', '.a:far_ctx.files_mask.')')
-    call s:log(' -far#auth_close_replaced_buffers: '.g:far#auth_close_replaced_buffers)
-    call s:log(' -far#auth_write_replaced_buffers: '.g:far#auth_write_replaced_buffers)
-
+    call s:log('do_replece('.a:far_ctx.pattern.', '.a:far_ctx.replace_with.', '.a:far_ctx.files_mask.')')
     let bufnr = bufnr('%')
     let repl_files = 0
     let repl_skipped = 0
     let repl_matches = 0
-    let close_buffs = []
     let ts = localtime()
-    arglocal
     for k in keys(a:far_ctx.items)
         let buf_ctx = a:far_ctx.items[k]
         call s:log('replacing buffer '.buf_ctx.bufnr.' '.buf_ctx.bufname)
 
-        let cmds = []
+        let buf_active = 0
+        let buf_repls = 0
         for item_ctx in buf_ctx.items
             if item_ctx.excluded || item_ctx.replaced
                 continue
             endif
-            let cmd = item_ctx.lnum.'gg0'.(item_ctx.cnum-1 > 0? item_ctx.cnum-1.'l' : '').
-                        \   'd'.strchars(item_ctx.match_val).'l'.
-                        \   'i'.item_ctx.repl_val.''
-            call s:log('cmd: '.cmd)
-            call add(cmds, cmd)
-            let item_ctx.replaced = 1
+
+            if !buf_active
+                exec 'buffer '.buf_ctx.bufnr
+                let buf_active = 1
+            endif
+
+            if setline(item_ctx.lnum, item_ctx.repl_text) == 0
+                let buf_repls += 1
+                let item_ctx.replaced = 1
+            else
+                repl_skipped += 1
+            endif
         endfor
 
-        if empty(cmds)
-            call s:log('no commands for buffer '.buf_ctx.bufnr)
-        else
-            let cmd = join(cmds, '')
-            call s:log('argdo: '.s:repl_do_pre_cmd.cmd)
+        if empty(buf_repls)
+            call s:log('buffer '.buf_ctx.bufnr.' not replaced (readonly?)')
+            continue
+        endif
 
-            try
-                exec 'argadd '.buf_ctx.bufname
-                exec 'silent! argdo! norm! '.s:repl_do_pre_cmd.cmd
-                exec 'argdelete '.buf_ctx.bufname
+        let repl_matches += buf_repls
+        let repl_files += 1
 
-                "flag in set in argdo commands
-                if g:far#__readonlytest__
-                    let repl_skipped += 1
-                else
-                    let repl_files += 1
-                    let repl_matches += len(cmds)
-                endif
-            catch /.*/
-                call s:log('failed to replace in buffer '.buf_ctx.bufnr.', error: '.v:exception)
-                let repl_skipped += 1
-                continue
-            endtry
-
-            if g:far#auth_write_replaced_buffers
-                call s:log('writing buffer: '.buf_ctx.bufnr)
-                exec 'silent w'
-            endif
-            if g:far#auth_close_replaced_buffers && g:far#auth_write_replaced_buffers &&
-                        \   !bufloaded(buf_ctx.bufnr)
-                call add(close_buffs, buf_ctx.bufnr)
-            endif
+        if g:far#auth_write_replaced_buffers
+            call s:log('writing buffer: '.buf_ctx.bufnr)
+            exec 'silent w'
         endif
     endfor
-
-    if !empty(close_buffs)
-        let cbufs = join(close_buffs)
-        call s:log('closing buffers: '.cbufs)
-        exec 'bd '.cbufs
-    endif
 
     exec 'b '.bufnr
     call setbufvar('%', 'far_ctx', a:far_ctx)
@@ -651,11 +627,14 @@ function! s:assemble_context(pattern, replace_with, files_mask) abort "{{{
         let item_ctx = {}
         let item_ctx.lnum = item.lnum
         let item_ctx.cnum = item.col
-        let item_ctx.text = item.text
         let item_ctx.match_val = matchstr(item.text, a:pattern, item.col-1)
         let item_ctx.repl_val = substitute(item_ctx.match_val, a:pattern, a:replace_with, "")
+        let item_ctx.match_text = item.text
+        let item_ctx.repl_text = (item.col == 1? '' : item.text[0:item.col-2]).item_ctx.repl_val.
+            \   item.text[item.col+strchars(item_ctx.match_val)-1:]
         let item_ctx.excluded = 0
         let item_ctx.replaced = 0
+        call s:log('repl_text:'.item_ctx.repl_text)
         call add(buf_ctx.items, item_ctx)
     endfor
     return far_ctx
@@ -709,10 +688,8 @@ function! s:build_buffer_content(far_ctx, bufnr) abort "{{{
                 call setbufvar(a:bufnr, 'far_window_width', far_window_width)
                 let max_text_len = far_window_width / 2 - strchars(line_num_col_text)
                 let max_repl_len = far_window_width / 2 - strchars(g:far#repl_devider)
-                let match_text = s:cetrify_text(item_ctx.text, max_text_len, item_ctx.cnum)
-                let repl_text = s:cetrify_text(((item_ctx.cnum == 1? '': item_ctx.text[0:item_ctx.cnum-2]).
-                            \   item_ctx.repl_val.item_ctx.text[item_ctx.cnum+len(item_ctx.match_val)-1:]),
-                            \   max_repl_len, item_ctx.cnum)
+                let match_text = s:cetrify_text(item_ctx.match_text, max_text_len, item_ctx.cnum)
+                let repl_text = s:cetrify_text(item_ctx.repl_text, max_repl_len, item_ctx.cnum)
                 let out = line_num_col_text.match_text.text.g:far#repl_devider.repl_text.text
                 call add(content, out)
 
