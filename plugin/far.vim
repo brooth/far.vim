@@ -41,7 +41,6 @@ let g:far#auth_write_replaced_buffers = 0
 let g:far#confirm_fardo = 0
 
 let g:far#window_min_content_width = 60
-let g:far#auto_preview = 1
 let g:far#preview_window_scroll_steps = 2
 let g:far#check_window_resize_period = 2000
 
@@ -65,6 +64,7 @@ let s:repl_do_pre_cmd = 'zR :let g:far#__readonlytest__ = &readonly || !&modifia
 "g:far#preview_window_layout = (top, left, right, buttom)
 
 let s:win_params = {
+    \   'auto_preview': exists('g:far#auto_preview')? g:far#auto_preview : 1,
     \   'layout': exists('g:far#window_layout')? g:far#window_layout : 'right',
     \   'width': exists('g:far#window_width')? g:far#window_width : 100,
     \   'height': exists('g:far#window_height')? g:far#window_height : 20,
@@ -114,12 +114,11 @@ function! g:far#apply_default_mappings() abort "{{{
     nnoremap <buffer><silent> T :call g:far#change_exclude_all(-1)<cr>
 
     nnoremap <buffer><silent> <cr> :call g:far#jump_buffer_under_cursor()<cr>
-    nnoremap <buffer><silent> p :call g:far#open_preview_window_under_cursor()<cr>
+    nnoremap <buffer><silent> p :call g:far#show_preview_window_under_cursor()<cr>
+    nnoremap <buffer><silent> P :call g:far#close_preview_window()<cr>
 
     nnoremap <buffer><silent> <c-p> :call g:far#scroll_preview_window(-g:far#preview_window_scroll_steps)<cr>
     nnoremap <buffer><silent> <c-n> :call g:far#scroll_preview_window(g:far#preview_window_scroll_steps)<cr>
-
-    nnoremap <buffer><silent> r :call g:far#check_far_window_to_resize()<cr>
 
 endfunction "}}}
 
@@ -129,13 +128,8 @@ augroup faraugroup "{{{
 
     au BufDelete * if exists('b:far_preview_winid') |
                 \   exec 'norm :'.win_id2win(b:far_preview_winid).'q' | endif
-    au BufWinLeave * if exists('w:far_preview_winid') |
-                \   exec 'norm :'.win_id2win(w:far_preview_winid).'q' | endif
-
-    if g:far#auto_preview && v:version >= 704
-        au CursorMoved * if &ft ==# 'far_vim' |
-                    \   :call g:far#open_preview_window_under_cursor() | endif
-    endif
+    au BufWinLeave * if exists('b:far_preview_winid') |
+                \   exec 'norm :'.win_id2win(b:far_preview_winid).'q' | endif
 augroup END "}}}
 
 
@@ -149,16 +143,20 @@ function! Far(pattern, replace_with, files_mask, ...) abort "{{{
 
         if match(xarg, '--win-layout=') == 0
             let win_params.layout = xarg[13:]
-        elseif match(xarg, '--win-width=') == 0
+        elseif match(xarg, '^--win-width=') == 0
             let win_params.width = xarg[12:]
-        elseif match(xarg, '--win-height=') == 0
+        elseif match(xarg, '^--win-height=') == 0
             let win_params.height = xarg[13:]
-        elseif match(xarg, '--preview-win-layout=') == 0
+        elseif match(xarg, '^--preview-win-layout=') == 0
             let win_params.preview_layout = xarg[21:]
-        elseif match(xarg, '--preview-win-width=') == 0
+        elseif match(xarg, '^--preview-win-width=') == 0
             let win_params.preview_width = xarg[20:]
-        elseif match(xarg, '--preview-win-height=') == 0
+        elseif match(xarg, '^--preview-win-height=') == 0
             let win_params.preview_height = xarg[21:]
+        elseif match(xarg, '^--auto-preview$') == 0
+            let win_params.auto_preview = 1
+        elseif match(xarg, '^--noauto-preview$') == 0
+            let win_params.auto_preview = 0
         else
             call s:echo_err('invalid arg '.xarg)
         endif
@@ -356,7 +354,7 @@ function! g:far#scroll_preview_window(steps) abort "{{{
 endfunction "}}}
 
 
-function! g:far#open_preview_window_under_cursor() abort "{{{
+function! g:far#show_preview_window_under_cursor() abort "{{{
     let ctxs = s:get_contexts_under_cursor()
     if len(ctxs) < 3
         return
@@ -379,6 +377,7 @@ function! g:far#open_preview_window_under_cursor() abort "{{{
         let preview_winnr = winnr()
         call setbufvar(far_bufnr, 'far_preview_winid', win_getid(preview_winnr))
         call setwinvar(win_id2win(far_winid), 'far_preview_winid', win_getid(preview_winnr))
+        call g:far#check_far_window_to_resize(far_bufnr)
     else
         call win_gotoid(b:far_preview_winid)
     endif
@@ -392,7 +391,18 @@ function! g:far#open_preview_window_under_cursor() abort "{{{
     set nofoldenable
 
     call win_gotoid(far_winid)
-    call g:far#check_far_window_to_resize(far_bufnr)
+endfunction "}}}
+
+
+function! g:far#close_preview_window() abort "{{{
+    if !exists('b:far_preview_winid')
+        call s:echo_err('Not preview window for current buffer')
+        return
+    endif
+
+    autocmd! FarAutoPreview CursorMoved <buffer>
+    exec 'quit '.win_id2win(b:far_preview_winid)
+    unlet b:far_preview_winid
 endfunction "}}}
 
 
@@ -770,6 +780,17 @@ function! s:open_far_buff(far_ctx, win_params) abort "{{{
     call setbufvar(bufnr, 'win_params', a:win_params)
     call s:update_far_buffer(bufnr)
     call s:start_resize_timer()
+
+    if a:win_params.auto_preview
+        if v:version >= 704
+            augroup FarAutoPreview
+                autocmd! * <buffer>
+                autocmd CursorMoved <buffer> :call g:far#show_preview_window_under_cursor()
+            augroup END
+        else
+            call s:echo_err('auto preview is available on vim 7.4+')
+        endif
+    endif
 endfunction "}}}
 
 
