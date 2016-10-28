@@ -9,9 +9,7 @@ endif "}}}
 
 
 " TODOs {{{
-"TODO wildmenu for args
-"TODO no highlighting for big searchs (g:far#nohighligth_amount = 300)
-"TODO Faredo/Refar/Farep (repeate same far in same window)
+"TODO Refar/Farep (repeate same far in same window)
 "TODO auto colaps if more than x buffers. items...
 "TODO r - change item result
 "TODO support far for visual selected lines?!?!?! multi line pattern?
@@ -41,6 +39,8 @@ let g:far#preview_window_scroll_steps = exists('g:far#preview_window_scroll_step
     \   g:far#preview_window_scroll_steps : 2
 let g:far#check_window_resize_period = exists('g:far#check_window_resize_period ')?
     \   g:far#check_window_resize_period : 2000
+let g:far#file_mask_favorits = exists('g:far#file_mask_favorits ')?
+    \   g:far#file_mask_favorits : ['%', '**/*.*', '**/*.py', '**/*.html', '**/*.js', '**/*.css']
 
 "g:far#window_layout = (top, left, right, buttom, tab, current)
 "g:far#preview_window_layout = (top, left, right, buttom)
@@ -75,6 +75,28 @@ let s:buffer_counter = 1
 let s:debug = exists('g:far#debug')? g:far#debug : 0
 let s:debugfile = $HOME.'/far.vim.log'
 let s:repl_do_pre_cmd = 'zR :let g:far#__readonlytest__ = &readonly || !&modifiable'
+
+let g:far#search_history = []
+let g:far#repl_history = []
+let g:far#file_mask_history = []
+
+let s:win_args = {
+    \   '--win-layout=': 'layout',
+    \   '--win-width=': 'width',
+    \   '--win-height=': 'height',
+    \   '--preview-win-layout=': 'preview_layout',
+    \   '--preview-win-width=': 'preview_width',
+    \   '--preview-win-height=': 'preview_height',
+    \   '--jump-win-layout=': 'jump_win_layout',
+    \   '--jump-win-width=': 'jump_win_width',
+    \   '--jump-win-height=': 'jump_win_height',
+    \   '--auto-preview=': 'auto_preview',
+    \   '--hl-match=': 'highlight_match',
+    \   }
+
+let s:repl_args = {
+    \   '--auto-write=': 'auth_write',
+    \   }
 "}}}
 
 
@@ -168,37 +190,30 @@ command! -nargs=+ Farp call FarPrompt()
 
 function! Far(pattern, replace_with, files_mask, ...) abort "{{{
     call s:log('=============== FAR ================')
-    call s:log('fargs: '.a:pattern.','. a:replace_with.', '.a:files_mask)
+    call s:log('fargs: '.a:pattern.','. a:replace_with.','.a:files_mask)
 
     let win_params = copy(s:win_params)
     for xarg in a:000
         call s:log('xarg: '.xarg)
-        if match(xarg, '--win-layout=') == 0
-            let win_params.layout = xarg[13:]
-        elseif match(xarg, '^--win-width=') == 0
-            let win_params.width = xarg[12:]
-        elseif match(xarg, '^--win-height=') == 0
-            let win_params.height = xarg[13:]
-        elseif match(xarg, '^--preview-win-layout=') == 0
-            let win_params.preview_layout = xarg[21:]
-        elseif match(xarg, '^--preview-win-width=') == 0
-            let win_params.preview_width = xarg[20:]
-        elseif match(xarg, '^--preview-win-height=') == 0
-            let win_params.preview_height = xarg[21:]
-        elseif match(xarg, '^--jump-win-layout=') == 0
-            let win_params.jump_win_layout = xarg[18:]
-        elseif match(xarg, '^--jump-win-width=') == 0
-            let win_params.jump_win_width = xarg[17:]
-        elseif match(xarg, '^--jump-win-height=') == 0
-            let win_params.jump_win_height = xarg[18:]
-        elseif match(xarg, '^--auto-preview=') == 0
-            let win_params.auto_preview = xarg[15:]
-        elseif match(xarg, '^--hl-match=') == 0
-            let win_params.highlight_match = xarg[11:]
-        else
-            call s:echo_err('invalid arg '.xarg)
-        endif
+        for k in keys(s:win_args)
+            if match(xarg, k) == 0
+                let val = xarg[len(k):]
+                call s:log('win_param:'.s:win_args[k]. '='.val)
+                let win_params[s:win_args[k]] = val
+                break
+            endif
+        endfor
     endfor
+
+    if index(g:far#search_history, a:pattern) == -1
+        call add(g:far#search_history, a:pattern)
+    endif
+    if index(g:far#repl_history, a:replace_with) == -1
+        call add(g:far#repl_history, a:replace_with)
+    endif
+    if index(g:far#file_mask_history, a:files_mask) == -1
+        call add(g:far#file_mask_history, a:files_mask)
+    endif
 
     let files_mask = a:files_mask
     if files_mask == '%'
@@ -215,7 +230,7 @@ function! Far(pattern, replace_with, files_mask, ...) abort "{{{
     endif
     call s:open_far_buff(far_ctx, win_params)
 endfunction
-command! -nargs=+ Far call Far(<f-args>)
+command! -complete=customlist,FarComplete -nargs=+ Far call Far(<f-args>)
 "}}}
 
 
@@ -225,11 +240,14 @@ function! FarDo(...) abort "{{{
     let repl_params = copy(s:repl_params)
     for xarg in a:000
         call s:log('xarg: '.xarg)
-        if match(xarg, '^--auto-write=') == 0
-            let repl_params.auto_write = xarg[13:]
-        else
-            call s:echo_err('invalid arg '.xarg)
-        endif
+        for k in keys(s:repl_args)
+            if match(xarg, k) == 0
+                let val = xarg[len(k):]
+                call s:log('repl_param:'.s:repl_args[k]. '='.val)
+                let repl_params[s:repl_args[k]] = val
+                break
+            endif
+        endfor
     endfor
 
     let bufnr = bufnr('%')
@@ -268,7 +286,73 @@ function! FarDo(...) abort "{{{
     echomsg 'Done in '.result.time.'sec. '.result.matches.' replacements in '.result.files.' file(s). '.
                 \   (empty(result.skipped)? '' : result.skipped.' file(s) skipped!')
 endfunction
-command! -nargs=+ Fardo call FarDo(<f-args>)
+command! -complete=customlist,FardoComplete -nargs=* Fardo call FarDo(<f-args>)
+"}}}
+
+
+"command complete functions {{{
+function! s:find_matches(items, key) abort
+    if empty(a:key)
+        return a:items
+    else
+        let matches = []
+        for item in a:items
+            if match(item, a:key) != -1
+                call add(matches, item)
+            endif
+        endfor
+        return matches
+    endif
+endfunction
+
+function! FarComplete(arglead, cmdline, cursorpos) abort
+    call s:log('far-complete:'.a:arglead.','.a:cmdline.','.a:cursorpos)
+    let items = split(a:cmdline, '\(.*\\\)\@!\s')
+    let argnr = len(items) - !empty(a:arglead)
+
+    if argnr == 1
+        return s:find_matches(g:far#search_history, a:arglead)
+    elseif argnr == 2
+        return s:find_matches(g:far#repl_history, a:arglead)
+    elseif argnr == 3
+        return s:find_matches(g:far#file_mask_favorits + g:far#file_mask_history, a:arglead)
+    else
+        let wargs = []
+        for win_arg in keys(s:win_args)
+            let incl = 1
+            for item in items
+                if match(item, win_arg) == 0
+                    let incl = 0
+                    break
+                endif
+            endfor
+            if incl
+                call add(wargs, win_arg)
+            endif
+        endfor
+        return s:find_matches(wargs, a:arglead)
+    endif
+endfunction
+
+function! FardoComplete(arglead, cmdline, cursorpos) abort
+    call s:log('fardo-complete:'.a:arglead.','.a:cmdline.','.a:cursorpos)
+    let items = split(a:cmdline, '\(.*\\\)\@!\s')
+
+    let wargs = []
+    for repl_arg in keys(s:repl_args)
+        let incl = 1
+        for item in items
+            if match(item, repl_arg) == 0
+                let incl = 0
+                break
+            endif
+        endfor
+        if incl
+            call add(wargs, repl_arg)
+        endif
+    endfor
+    return s:find_matches(wargs, a:arglead)
+endfunction
 "}}}
 
 
