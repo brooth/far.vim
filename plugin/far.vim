@@ -61,6 +61,7 @@ let s:win_params = {
 
 let s:repl_params = {
     \   'auto_write': exists('far#auto_write_replaced_buffers')? g:far#auto_write_replaced_buffers : 1,
+    \   'auto_delete': exists('far#auto_delete_replaced_buffers')? g:far#auto_delete_replaced_buffers : 1,
     \   'check_consist': exists('far#check_consistency')? g:far#check_consistency : 1,
     \   }
 "}}}
@@ -96,7 +97,8 @@ let s:win_args = {
     \   }
 
 let s:repl_args = {
-    \   '--auto-write=': 'auth_write',
+    \   '--auto-write-bufs=': 'auto_write',
+    \   '--auto-delete-bufs=': 'auto_delete',
     \   }
 "}}}
 
@@ -192,7 +194,7 @@ function! Far(pattern, replace_with, files_mask, ...) range abort "{{{
         for k in keys(s:win_args)
             if match(xarg, k) == 0
                 let val = xarg[len(k):]
-                call s:log('win_param:'.s:win_args[k]. '='.val)
+                call s:log('win_param.'.s:win_args[k]. '='.val)
                 let win_params[s:win_args[k]] = val
                 break
             endif
@@ -260,7 +262,7 @@ function! FarDo(...) abort "{{{
         for k in keys(s:repl_args)
             if match(xarg, k) == 0
                 let val = xarg[len(k):]
-                call s:log('repl_param:'.s:repl_args[k]. '='.val)
+                call s:log('repl_param.'.s:repl_args[k]. '='.val)
                 let repl_params[s:repl_args[k]] = val
                 break
             endif
@@ -653,52 +655,62 @@ endfunction "}}}
 
 
 function! s:do_replece(far_ctx, repl_params) abort "{{{
-    call s:log('do_replece('.a:far_ctx.pattern.', '.a:far_ctx.replace_with.', '.a:far_ctx.files_mask.')')
+    call s:log('do_replece:'.a:far_ctx.replace_with.', '.string(a:repl_params))
+    let ts = localtime()
     let bufnr = bufnr('%')
     let repl_files = 0
     let repl_skipped = 0
     let repl_matches = 0
-    let ts = localtime()
-
+    let del_bufs = []
     arglocal
     for k in keys(a:far_ctx.items)
         let buf_ctx = a:far_ctx.items[k]
         call s:log('replacing buffer '.buf_ctx.bufnr.' '.buf_ctx.bufname)
 
-        let buf_active = 0
         let buf_repls = 0
         let idx = len(buf_ctx.items)-1
+        let buf_added = 0
         while idx >= 0
             let item_ctx = buf_ctx.items[idx]
             let idx -= 1
-            if item_ctx.excluded || item_ctx.replaced
-                continue
-            endif
+            if !item_ctx.excluded && !item_ctx.replaced
+                let cmd = item_ctx.lnum.'s/\%'.item_ctx.cnum.'c'.a:far_ctx.pattern.'/'
+                    \   .a:far_ctx.replace_with.'/'
+                call s:log('argdo:'.cmd)
 
-            if !buf_active
-                exec 'argadd '.buf_ctx.bufname
-                let buf_active = 1
-            endif
+                if !buf_added
+                    exec 'argadd '.buf_ctx.bufname
+                    let buf_added = 1
+                endif
 
-            let cmd = item_ctx.lnum.'s/\%'.item_ctx.cnum.'c'.a:far_ctx.pattern.'/'.a:far_ctx.replace_with.'/'
-            call s:log('argdo:'.cmd)
-            exec 'silent! argdo! '.cmd
-            let buf_repls += 1
+                exec 'silent! argdo! '.cmd
+                let buf_repls += 1
+            endif
         endwhile
+        if buf_added
+            exec 'argdelete '.buf_ctx.bufname
+        endif
 
         if !empty(buf_repls)
-            exec 'argdelete '.buf_ctx.bufname
             let repl_matches += buf_repls
             let repl_files += 1
 
             if a:repl_params.auto_write
                 call s:log('writing buffer: '.buf_ctx.bufnr)
                 exec 'silent w'
+                if a:repl_params.auto_delete
+                    call add(del_bufs, buf_ctx.bufnr)
+                endif
             endif
         endif
     endfor
 
     exec 'b '.bufnr
+    if !empty(del_bufs)
+        call s:log('delete buffers: '.join(del_bufs, ' '))
+        exec 'bd '.join(del_bufs, ' ')
+    endif
+
     call setbufvar('%', 'far_ctx', a:far_ctx)
     call s:update_far_buffer(bufnr)
 
