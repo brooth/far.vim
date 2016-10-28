@@ -25,11 +25,22 @@ endif "}}}
 
 
 " options {{{
-let g:far#default_mappings = exists('g:far#default_mappings')? g:far#default_mappings : 1
-let g:far#repl_devider = exists('g:far#repl_devider ')? g:far#repl_devider : '  ➝  '
-let g:far#left_cut_text_sigh = exists('g:far#left_cut_text_sigh ')? g:far#left_cut_text_sigh : '…'
-let g:far#right_cut_text_sigh = exists('g:far#right_cut_text_sigh ')? g:far#right_cut_text_sigh : '…'
-let g:far#confirm_fardo = exists('g:far#confirm_fardo ')? g:far#confirm_fardo : 1
+let g:far#default_mappings = exists('g:far#default_mappings')?
+    \   g:far#default_mappings : 1
+let g:far#multiline_sign = exists('g:far#multiline_sign ')?
+    \   g:far#multiline_sign : '⤦'
+let g:far#repl_devider = exists('g:far#repl_devider ')?
+    \   g:far#repl_devider : '  ➝  '
+let g:far#left_cut_text_sign = exists('g:far#left_cut_text_sign ')?
+    \   g:far#left_cut_text_sign : '…'
+let g:far#right_cut_text_sign = exists('g:far#right_cut_text_sign ')?
+    \   g:far#right_cut_text_sign : '…'
+let g:far#collapse_sign = exists('g:far#collapse_sign ')?
+    \   g:far#collapse_sign : '-'
+let g:far#expand_sign = exists('g:far#expand_sign ')?
+    \   g:far#expand_sign : '+'
+let g:far#confirm_fardo = exists('g:far#confirm_fardo ')?
+    \   g:far#confirm_fardo : 1
 let g:far#window_min_content_width = exists('g:far#window_min_content_width ')?
     \   g:far#window_min_content_width : 60
 let g:far#preview_window_scroll_steps = exists('g:far#preview_window_scroll_steps ')?
@@ -37,7 +48,7 @@ let g:far#preview_window_scroll_steps = exists('g:far#preview_window_scroll_step
 let g:far#check_window_resize_period = exists('g:far#check_window_resize_period ')?
     \   g:far#check_window_resize_period : 2000
 let g:far#file_mask_favorits = exists('g:far#file_mask_favorits ')?
-    \   g:far#file_mask_favorits : ['%', '**/*.*', '**/*.py', '**/*.html', '**/*.js', '**/*.css']
+    \   g:far#file_mask_favorits : ['%', '**/*.*', '**/*.html', '**/*.js', '**/*.css']
 
 "g:far#window_layout = (top, left, right, buttom, tab, current)
 "g:far#preview_window_layout = (top, left, right, buttom)
@@ -790,45 +801,6 @@ function! s:assemble_context(pattern, replace_with, files_mask, win_params) abor
 endfunction "}}}
 
 
-"         if get(item, 'bufnr') == 0
-"             call s:log('item '.item.text.' has no bufnr')
-"             continue
-"         endif
-
-"         let buf_ctx = get(far_ctx.items, item.bufnr, {})
-"         if empty(buf_ctx)
-"             let buf_ctx.bufnr = item.bufnr
-"             let buf_ctx.bufname = bufname(item.bufnr)
-"             let buf_ctx.collapsed = a:win_params.collapse_result
-"             let buf_ctx.items = []
-"             let far_ctx.items[item.bufnr] = buf_ctx
-"         endif
-
-"         let item_ctx = {}
-"         let item_ctx.lnum = item.lnum
-"         let item_ctx.cnum = item.col
-
-"         "TODO: move this all to build method
-"         let item_ctx.match_val = matchstr(item.text, a:pattern, item.col-1)
-"         if empty(item_ctx.match_val)
-"             let item_ctx.match_val = item.text[item.col+1:]
-"             let item_ctx.repl_val = '...' "TODO: no show -> for multiline...
-"             let item_ctx.match_text = item.text.'⤦'
-"         else
-"             let item_ctx.match_text = item.text
-"             let item_ctx.repl_val = substitute(item_ctx.match_val, a:pattern, a:replace_with, "")
-"         endif
-
-"         let item_ctx.repl_text = (item.col == 1? '' : item.text[0:item.col-2]).item_ctx.repl_val.
-"             \   item.text[item.col+strchars(item_ctx.match_val)-1:]
-"         let item_ctx.excluded = 0
-"         let item_ctx.replaced = 0
-"         call add(buf_ctx.items, item_ctx)
-"     endfor
-"     return far_ctx
-" endfunction "}}}
-
-
 function! s:build_buffer_content(bufnr) abort "{{{
     let far_ctx = getbufvar(a:bufnr, 'far_ctx', {})
     if empty(far_ctx)
@@ -846,7 +818,7 @@ function! s:build_buffer_content(bufnr) abort "{{{
     let line_num = 0
     for ctx_key in keys(far_ctx.items)
         let buf_ctx = far_ctx.items[ctx_key]
-        let collapse_sign = buf_ctx.collapsed ? '+' : '-'
+        let collapse_sign = buf_ctx.collapsed? g:far#expand_sign : g:far#collapse_sign
         let line_num += 1
         let num_matches = 0
         for item_ctx in buf_ctx.items
@@ -877,6 +849,7 @@ function! s:build_buffer_content(bufnr) abort "{{{
                 let line_num += 1
                 let line_num_text = '  '.item_ctx.lnum
                 let line_num_col_text = line_num_text.repeat(' ', 10-strchars(line_num_text))
+                let match_val = matchstr(item_ctx.text, far_ctx.pattern, item_ctx.cnum-1)
 
                 let far_window_width = winwidth(bufwinnr(a:bufnr))
                 if far_window_width < g:far#window_min_content_width
@@ -884,21 +857,29 @@ function! s:build_buffer_content(bufnr) abort "{{{
                 endif
                 call setbufvar(a:bufnr, 'far_window_width', far_window_width)
 
+                let multiline = match(far_ctx.pattern, '\\n') >= 0
+                if multiline
+                    let win_params.result_preview = 0
+                    let match_val = item_ctx.text[item_ctx.cnum:]
+                    let match_val = match_val.g:far#multiline_sign
+                endif
+
                 if win_params.result_preview
                     let max_text_len = far_window_width / 2 - strchars(line_num_col_text)
                     let max_repl_len = far_window_width / 2 - strchars(g:far#repl_devider)
-
-                    let match_val = matchstr(item_ctx.text, far_ctx.pattern, item_ctx.cnum-1)
                     let repl_val = substitute(match_val, far_ctx.pattern, far_ctx.replace_with, "")
                     let repl_text = (item_ctx.cnum == 1? '' : item_ctx.text[0:item_ctx.cnum-2]).
                         \   repl_val.item_ctx.text[item_ctx.cnum+strchars(match_val)-1:]
-                    let match_text = s:cetrify_text(item_ctx.text, max_text_len, item_ctx.cnum)
-                    let repl_text = s:cetrify_text(repl_text, max_repl_len, item_ctx.cnum)
+                    let match_text = s:centrify_text(item_ctx.text, max_text_len, item_ctx.cnum, 1)
+                    let repl_text = s:centrify_text(repl_text, max_repl_len, item_ctx.cnum, 0)
                     let out = line_num_col_text.match_text.text.g:far#repl_devider.repl_text.text
                 else
                     let max_text_len = far_window_width - strchars(line_num_col_text)
-                    let match_val = matchstr(item_ctx.text, far_ctx.pattern, item_ctx.cnum-1)
-                    let match_text = s:cetrify_text(item_ctx.text, max_text_len, item_ctx.cnum)
+                    let match_text = s:centrify_text(item_ctx.text, max_text_len, item_ctx.cnum, 0)
+                    if multiline
+                        let match_text.text = match_text.text[:strchars(match_text.text)-
+                            \   strchars(g:far#multiline_sign)-1].g:far#multiline_sign
+                    endif
                     let out = line_num_col_text.match_text.text
                 endif
 
@@ -1060,19 +1041,19 @@ function! s:get_buf_far_ctx(bufnr) abort "{{{
 endfunction "}}}
 
 
-function! s:cetrify_text(text, width, val_col) abort "{{{
+function! s:centrify_text(text, width, val_col, expand) abort "{{{
     let text = copy(a:text)
     let val_col = a:val_col
     if strchars(text) > a:width && a:val_col > a:width/2 - 7
         let left_start = a:val_col - a:width/2 + 7
-        let val_col = a:val_col - left_start + strchars(g:far#left_cut_text_sigh)
-        let text = g:far#left_cut_text_sigh.text[left_start:]
+        let val_col = a:val_col - left_start + strchars(g:far#left_cut_text_sign)
+        let text = g:far#left_cut_text_sign.text[left_start:]
     endif
     if strchars(text) > a:width
         let wtf = -1-(len(text)-strchars(text))
-        let text = text[0:a:width-len(g:far#right_cut_text_sigh)-wtf].g:far#right_cut_text_sigh
+        let text = text[0:a:width-len(g:far#right_cut_text_sign)-wtf].g:far#right_cut_text_sign
     endif
-    if strchars(text) < a:width
+    if a:expand && strchars(text) < a:width
         let text = text.repeat(' ', a:width - strchars(text))
     endif
 
