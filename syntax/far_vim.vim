@@ -11,6 +11,7 @@ hi def link FarReplaceVal Title
 hi def link FarExcludedItem NonText
 hi def link FarReplacedItem Conceal
 hi def link FarLineCol LineNr
+hi def link FarPreviewMatch Search
 
 syn match FarNone ".*" contains=FarSearchVal,FarReplaceVal,FarItem
 syn match FarLineCol "^..\d*" contains=FarSearchVal,FarReplaceVal,FarItem

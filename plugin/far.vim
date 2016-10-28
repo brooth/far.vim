@@ -28,7 +28,7 @@ endif "}}}
 let g:far#default_mappings = exists('g:far#default_mappings')?
     \   g:far#default_mappings : 1
 let g:far#multiline_sign = exists('g:far#multiline_sign ')?
-    \   g:far#multiline_sign : '⤦'
+    \   g:far#multiline_sign : '⬎'
 let g:far#repl_devider = exists('g:far#repl_devider ')?
     \   g:far#repl_devider : '  ➝  '
 let g:far#left_cut_text_sign = exists('g:far#left_cut_text_sign ')?
@@ -334,7 +334,11 @@ function! FarComplete(arglead, cmdline, cursorpos) abort
     let argnr = len(items) - !empty(a:arglead)
 
     if argnr == 1
-        return s:find_matches(['*'] + g:far#search_history, a:arglead)
+        let search_hist = g:far#search_history
+        if match(a:cmdline, "'<,'>") == 0
+            let search_hist = ['*'] + search_hist
+        endif
+        return s:find_matches(search_hist, a:arglead)
     elseif argnr == 2
         return s:find_matches(g:far#repl_history, a:arglead)
     elseif argnr == 3
@@ -518,7 +522,7 @@ function! g:far#show_preview_window_under_cursor() abort "{{{
     " TODO: if replaced take data from undo_ctx
     " exec 'match Search "\%'.contexts[2].lnum.'lcontextsctxs[2].cnum.'c.\{'.
     "     \   strchars(contexts[2].replaccontextsctxs[2].repcontextsl : ctxs[2].match_val).'\}"'
-    exec 'match Search "\%'.ctxs[2].lnum.'l\%'.ctxs[2].cnum.'c'.ctxs[0].pattern.'"'
+    exec 'match FarPreviewMatch "\%'.ctxs[2].lnum.'l\%'.ctxs[2].cnum.'c'.escape(ctxs[0].pattern, '"').'"'
     set nofoldenable
 
     call win_gotoid(far_winid)
