@@ -13,4 +13,4 @@ hi def link FarReplacedItem Conceal
 hi def link FarLineCol LineNr
 
 syn match FarNone ".*" contains=FarSearchVal,FarReplaceVal,FarItem
-syn match FarLineCol "^\ \ \d*" contains=FarSearchVal,FarReplaceVal,FarItem
+syn match FarLineCol "^..\d*" contains=FarSearchVal,FarReplaceVal,FarItem

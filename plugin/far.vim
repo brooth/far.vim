@@ -57,6 +57,7 @@ let s:win_params = {
     \   'jump_win_height': exists('g:far#jump_window_height')? g:far#jump_window_height : 15,
     \   'auto_preview': exists('g:far#auto_preview')? g:far#auto_preview : 1,
     \   'check_consist': exists('far#check_consistency')? g:far#check_consistency : 1,
+    \   'highlight_match': exists('far#highlight_match')? g:far#highlight_match : 1,
     \   }
 
 let s:repl_params = {
@@ -192,6 +193,8 @@ function! Far(pattern, replace_with, files_mask, ...) abort "{{{
             let win_params.jump_win_height = xarg[18:]
         elseif match(xarg, '^--auto-preview=') == 0
             let win_params.auto_preview = xarg[15:]
+        elseif match(xarg, '^--hl-match=') == 0
+            let win_params.highlight_match = xarg[11:]
         else
             call s:echo_err('invalid arg '.xarg)
         endif
@@ -665,17 +668,23 @@ function! s:assemble_context(pattern, replace_with, files_mask) abort "{{{
 endfunction "}}}
 
 
-function! s:build_buffer_content(far_ctx, bufnr) abort "{{{
-    if len(a:far_ctx.items) == 0
+function! s:build_buffer_content(bufnr) abort "{{{
+    let far_ctx = getbufvar(a:bufnr, 'far_ctx', {})
+    if empty(far_ctx)
+        echoerr 'far context not found for '.a:bufnr.' buffer'
+        return
+    endif
+    if len(far_ctx.items) == 0
         call s:log('empty context result')
         return
     endif
+    let win_params = getbufvar(a:bufnr, 'win_params')
 
     let content = []
     let syntaxs = []
     let line_num = 0
-    for ctx_key in keys(a:far_ctx.items)
-        let buf_ctx = a:far_ctx.items[ctx_key]
+    for ctx_key in keys(far_ctx.items)
+        let buf_ctx = far_ctx.items[ctx_key]
         let expand_sign = buf_ctx.expanded ? '-' : '+'
         let line_num += 1
         let num_matches = 0
@@ -685,16 +694,18 @@ function! s:build_buffer_content(far_ctx, bufnr) abort "{{{
             endif
         endfor
 
-        if num_matches > 0
-            let bname_syn = 'syn region FarFilePath start="\%'.line_num.
-                        \   'l^.."hs=s+2 end=".\{'.(strchars(buf_ctx.bufname)).'\}"'
-            call add(syntaxs, bname_syn)
-            let bstats_syn = 'syn region FarFileStats start="\%'.line_num.'l^.\{'.
-                        \   (strchars(buf_ctx.bufname)+3).'\}"hs=e end="$" contains=FarFilePath keepend'
-            call add(syntaxs, bstats_syn)
-        else
-            let excl_syn = 'syn region FarExcludedItem start="\%'.line_num.'l^" end="$"'
-            call add(syntaxs, excl_syn)
+        if win_params.highlight_match
+            if num_matches > 0
+                let bname_syn = 'syn region FarFilePath start="\%'.line_num.
+                            \   'l^.."hs=s+2 end=".\{'.(strchars(buf_ctx.bufname)).'\}"'
+                call add(syntaxs, bname_syn)
+                let bstats_syn = 'syn region FarFileStats start="\%'.line_num.'l^.\{'.
+                            \   (strchars(buf_ctx.bufname)+3).'\}"hs=e end="$" contains=FarFilePath keepend'
+                call add(syntaxs, bstats_syn)
+            else
+                let excl_syn = 'syn region FarExcludedItem start="\%'.line_num.'l^" end="$"'
+                call add(syntaxs, excl_syn)
+            endif
         endif
 
         let out = expand_sign.' '.buf_ctx.bufname.' ['.buf_ctx.bufnr.'] ('.num_matches.' matches)'
@@ -715,32 +726,42 @@ function! s:build_buffer_content(far_ctx, bufnr) abort "{{{
                 let match_text = s:cetrify_text(item_ctx.match_text, max_text_len, item_ctx.cnum)
                 let repl_text = s:cetrify_text(item_ctx.repl_text, max_repl_len, item_ctx.cnum)
                 let out = line_num_col_text.match_text.text.g:far#repl_devider.repl_text.text
-                call add(content, out)
 
                 " Syntax
-                if get(item_ctx, 'broken', 0)
-                    let excl_syn = 'syn region Error start="\%'.line_num.'l^" end="$"'
-                    call add(syntaxs, excl_syn)
-                elseif item_ctx.replaced
-                    let excl_syn = 'syn region FarReplacedItem start="\%'.line_num.'l^" end="$"'
-                    call add(syntaxs, excl_syn)
-                elseif item_ctx.excluded
-                    let excl_syn = 'syn region FarExcludedItem start="\%'.line_num.'l^" end="$"'
-                    call add(syntaxs, excl_syn)
+                if win_params.highlight_match
+                    if get(item_ctx, 'broken', 0)
+                        let excl_syn = 'syn region Error start="\%'.line_num.'l^" end="$"'
+                        call add(syntaxs, excl_syn)
+                    elseif item_ctx.replaced
+                        let excl_syn = 'syn region FarReplacedItem start="\%'.line_num.'l^" end="$"'
+                        call add(syntaxs, excl_syn)
+                    elseif item_ctx.excluded
+                        let excl_syn = 'syn region FarExcludedItem start="\%'.line_num.'l^" end="$"'
+                        call add(syntaxs, excl_syn)
+                    else
+                        let match_col = match_text.val_col
+                        let repl_col = strchars(match_text.text) + strchars(g:far#repl_devider) + repl_text.val_col -
+                                    \    match_col - strchars(item_ctx.match_val)
+                        let repl_col_wtf = len(match_text.text) + len(g:far#repl_devider) + repl_text.val_col -
+                                    \    match_col - len(item_ctx.match_val)
+                        let line_syn = 'syn region FarItem matchgroup=FarSearchVal '.
+                                    \   'start="\%'.line_num.'l\%'.strchars(line_num_col_text).'c"rs=s+'.
+                                    \   (match_col+strchars(item_ctx.match_val)).
+                                    \   ',hs=s+'.match_col.' matchgroup=FarReplaceVal end=".*$"re=s+'.
+                                    \   repl_col_wtf.',he=s+'.(repl_col+strchars(item_ctx.repl_val)-1).
+                                    \   ' oneline'
+                        call add(syntaxs, line_syn)
+                    endif
                 else
-                    let match_col = match_text.val_col
-                    let repl_col = strchars(match_text.text) + strchars(g:far#repl_devider) + repl_text.val_col -
-                                \    match_col - strchars(item_ctx.match_val)
-                    let repl_col_wtf = len(match_text.text) + len(g:far#repl_devider) + repl_text.val_col -
-                                \    match_col - len(item_ctx.match_val)
-                    let line_syn = 'syn region FarItem matchgroup=FarSearchVal '.
-                                \   'start="\%'.line_num.'l\%'.strchars(line_num_col_text).'c"rs=s+'.
-                                \   (match_col+strchars(item_ctx.match_val)).
-                                \   ',hs=s+'.match_col.' matchgroup=FarReplaceVal end=".*$"re=s+'.
-                                \   repl_col_wtf.',he=s+'.(repl_col+strchars(item_ctx.repl_val)-1).
-                                \   ' oneline'
-                    call add(syntaxs, line_syn)
+                    if get(item_ctx, 'broken', 0)
+                        let out = 'b'.out[1:]
+                    elseif item_ctx.replaced
+                        let out = 'r'.out[1:]
+                    elseif item_ctx.excluded
+                        let out = 'x'.out[1:]
+                    endif
                 endif
+                call add(content, out)
             endfor
         endif
     endfor
@@ -823,12 +844,7 @@ function! s:update_far_buffer(bufnr) abort "{{{
         return
     endif
 
-    let far_ctx = getbufvar(a:bufnr, 'far_ctx', {})
-    if empty(far_ctx)
-        echoerr 'far context not found for '.a:bufnr.' buffer'
-        return
-    endif
-    let buff_content = s:build_buffer_content(far_ctx, a:bufnr)
+    let buff_content = s:build_buffer_content(a:bufnr)
 
     if winnr != winnr()
         exec 'norm! '.winnr.''
