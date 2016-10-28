@@ -9,7 +9,6 @@ endif "}}}
 
 
 " TODOs {{{
-"TODO auto colaps if more than x buffers. items...
 "TODO r - change item result
 "TODO support far for visual selected lines?!?!?! multi line pattern?
 "TODO support N[i,x,c] - do N times
@@ -57,6 +56,7 @@ let s:win_params = {
     \   'auto_preview': exists('g:far#auto_preview')? g:far#auto_preview : 1,
     \   'check_consist': exists('far#check_consistency')? g:far#check_consistency : 1,
     \   'highlight_match': exists('far#highlight_match')? g:far#highlight_match : 1,
+    \   'collapse_result': exists('far#collapse_result')? g:far#collapse_result : 0,
     \   }
 
 let s:repl_params = {
@@ -91,6 +91,7 @@ let s:win_args = {
     \   '--jump-win-height=': 'jump_win_height',
     \   '--auto-preview=': 'auto_preview',
     \   '--hl-match=': 'highlight_match',
+    \   '--collapse=': 'collapse_result',
     \   }
 
 let s:repl_args = {
@@ -118,13 +119,13 @@ endfunction
 function! g:far#apply_default_mappings() abort "{{{
     call s:log('apply_default_mappings()')
 
-    nnoremap <buffer><silent> zA :call g:far#change_expand_all(-1)<cr>
-    nnoremap <buffer><silent> zR :call g:far#change_expand_all(1)<cr>
-    nnoremap <buffer><silent> zM :call g:far#change_expand_all(0)<cr>
+    nnoremap <buffer><silent> zA :call g:far#change_collapse_all(-1)<cr>
+    nnoremap <buffer><silent> zM :call g:far#change_collapse_all(1)<cr>
+    nnoremap <buffer><silent> zR :call g:far#change_collapse_all(0)<cr>
 
-    nnoremap <buffer><silent> za :call g:far#change_expand_under_cursor(-1)<cr>
-    nnoremap <buffer><silent> zo :call g:far#change_expand_under_cursor(1)<cr>
-    nnoremap <buffer><silent> zc :call g:far#change_expand_under_cursor(0)<cr>
+    nnoremap <buffer><silent> za :call g:far#change_collapse_under_cursor(-1)<cr>
+    nnoremap <buffer><silent> zc :call g:far#change_collapse_under_cursor(1)<cr>
+    nnoremap <buffer><silent> zo :call g:far#change_collapse_under_cursor(0)<cr>
 
     nnoremap <buffer><silent> x :call g:far#change_exclude_under_cursor(1)<cr>
     vnoremap <buffer><silent> x :call g:far#change_exclude_under_cursor(1)<cr>
@@ -190,7 +191,7 @@ function! Far(pattern, replace_with, files_mask, ...) abort "{{{
         let files_mask = bufname('%')
     endif
 
-    let far_ctx = s:assemble_context(a:pattern, a:replace_with, files_mask)
+    let far_ctx = s:assemble_context(a:pattern, a:replace_with, files_mask, win_params)
     if empty(far_ctx)
         let pattern = input('No match: "'.a:pattern.'". Repeat?: ', a:pattern)
         if empty(pattern)
@@ -213,8 +214,9 @@ function! FarRepeat() abort "{{{
         call s:echo_err('Not a FAR buffer!')
         return
     endif
+    let win_params = getbufvar(far_bufnr, 'win_params')
 
-    let far_ctx = s:assemble_context(far_ctx.pattern, far_ctx.replace_with, far_ctx.files_mask)
+    let far_ctx = s:assemble_context(far_ctx.pattern, far_ctx.replace_with, far_ctx.files_mask, win_params)
     call setbufvar(bufnr, 'far_ctx', far_ctx)
     call s:update_far_buffer(bufnr)
 endfunction
@@ -399,7 +401,7 @@ function! s:get_contexts_under_cursor() abort "{{{
             return [far_ctx, buf_ctx]
         endif
 
-        if buf_ctx.expanded
+        if !buf_ctx.collapsed
             for item_ctx in buf_ctx.items
                 let index += 1
                 if pos == index
@@ -528,13 +530,13 @@ function! g:far#jump_buffer_under_cursor() abort "{{{
 endfunction "}}}
 
 
-function! g:far#change_expand_all(cmode) abort "{{{
+function! g:far#change_collapse_all(cmode) abort "{{{
     let bufnr = bufnr('%')
     let far_ctx = s:get_buf_far_ctx(bufnr)
 
     for k in keys(far_ctx.items)
         let buf_ctx = far_ctx.items[k]
-        let buf_ctx.expanded = a:cmode == -1? (buf_ctx.expanded == 0? 1 : 0) : a:cmode
+        let buf_ctx.collapsed = a:cmode == -1? !buf_ctx.collapsed : a:cmode
     endfor
 
     let pos = getcurpos()[1]
@@ -544,7 +546,7 @@ function! g:far#change_expand_all(cmode) abort "{{{
 endfunction "}}}
 
 
-function! g:far#change_expand_under_cursor(cmode) abort "{{{
+function! g:far#change_collapse_under_cursor(cmode) abort "{{{
     let bufnr = bufnr('%')
     let far_ctx = s:get_buf_far_ctx(bufnr)
 
@@ -557,7 +559,7 @@ function! g:far#change_expand_under_cursor(cmode) abort "{{{
         let this_buf = 0
         if pos == index
             let this_buf = 1
-        elseif buf_ctx.expanded
+        elseif !buf_ctx.collapsed
             for item_ctx in buf_ctx.items
                 let index += 1
                 if pos == index
@@ -567,9 +569,9 @@ function! g:far#change_expand_under_cursor(cmode) abort "{{{
             endfor
         endif
         if this_buf
-            let expanded = a:cmode == -1? (buf_ctx.expanded == 0? 1 : 0) : a:cmode
-            if buf_ctx.expanded != expanded
-                let buf_ctx.expanded = expanded
+            let collapsed = a:cmode == -1? !buf_ctx.collapsed : a:cmode
+            if buf_ctx.collapsed != collapsed
+                let buf_ctx.collapsed = collapsed
                 call setbufvar('%', 'far_ctx', far_ctx)
                 call s:update_far_buffer(bufnr)
                 exec 'norm! '.buf_curpos.'gg'
@@ -614,7 +616,7 @@ function! g:far#change_exclude_under_cursor(cmode) abort "{{{
             return
         endif
 
-        if buf_ctx.expanded
+        if !buf_ctx.collapsed
             for item_ctx in buf_ctx.items
                 let index += 1
                 if pos == index
@@ -684,7 +686,7 @@ function! s:do_replece(far_ctx, repl_params) abort "{{{
 endfunction "}}}
 
 
-function! s:assemble_context(pattern, replace_with, files_mask) abort "{{{
+function! s:assemble_context(pattern, replace_with, files_mask, win_params) abort "{{{
     call s:log('assemble_context(): '.string([a:pattern, a:replace_with, a:files_mask]))
 
     let qfitems = getqflist()
@@ -717,8 +719,7 @@ function! s:assemble_context(pattern, replace_with, files_mask) abort "{{{
         if empty(buf_ctx)
             let buf_ctx.bufnr = item.bufnr
             let buf_ctx.bufname = bufname(item.bufnr)
-            let buf_ctx.expanded = 1
-            let buf_ctx.ftime = getftime(item.bufnr)
+            let buf_ctx.collapsed = a:win_params.collapse_result
             let buf_ctx.items = []
             let far_ctx.items[item.bufnr] = buf_ctx
         endif
@@ -757,7 +758,7 @@ function! s:build_buffer_content(bufnr) abort "{{{
     let line_num = 0
     for ctx_key in keys(far_ctx.items)
         let buf_ctx = far_ctx.items[ctx_key]
-        let expand_sign = buf_ctx.expanded ? '-' : '+'
+        let collapse_sign = buf_ctx.collapsed ? '+' : '-'
         let line_num += 1
         let num_matches = 0
         for item_ctx in buf_ctx.items
@@ -780,10 +781,10 @@ function! s:build_buffer_content(bufnr) abort "{{{
             endif
         endif
 
-        let out = expand_sign.' '.buf_ctx.bufname.' ['.buf_ctx.bufnr.'] ('.num_matches.' matches)'
+        let out = collapse_sign.' '.buf_ctx.bufname.' ['.buf_ctx.bufnr.'] ('.num_matches.' matches)'
         call add(content, out)
 
-        if buf_ctx.expanded == 1
+        if !buf_ctx.collapsed
             for item_ctx in buf_ctx.items
                 let line_num += 1
                 let line_num_text = '  '.item_ctx.lnum
