@@ -1,7 +1,7 @@
-" File: far.vim"{{{"}}}
+" File: far.vim
 " Description: Find And Replace
 " Author: Oleg Khalidov <brooth@gmail.com>
-" License: MIT
+" License: MIT license
 
 if exists('g:loaded_far') "{{{
     finish
@@ -9,7 +9,6 @@ endif "}}}
 
 
 " TODOs {{{
-"TODO pass win args as params
 "TODO wildmenu for args
 "TODO no highlighting for big searchs (g:far#nohighligth_amount = 300)
 "TODO Faredo/Refar/Farep (repeate same far in same window)
@@ -31,22 +30,39 @@ endif "}}}
 
 
 " options {{{
-let g:far#details_mappings = 1
-let g:far#repl_devider = '  ➝  '
-let g:far#left_cut_text_sigh = '…'
-let g:far#right_cut_text_sigh = '…'
-let g:far#auth_write_replaced_buffers = 0
-"let g:far#check_buff_consistency = 1
-let g:far#confirm_fardo = 0
+let g:far#default_mappings = exists('g:far#default_mappings')? g:far#default_mappings : 1
+let g:far#repl_devider = exists('g:far#repl_devider ')? g:far#repl_devider : '  ➝  '
+let g:far#left_cut_text_sigh = exists('g:far#left_cut_text_sigh ')? g:far#left_cut_text_sigh : '…'
+let g:far#right_cut_text_sigh = exists('g:far#right_cut_text_sigh ')? g:far#right_cut_text_sigh : '…'
+let g:far#confirm_fardo = exists('g:far#confirm_fardo ')? g:far#confirm_fardo : 1
+let g:far#window_min_content_width = exists('g:far#window_min_content_width ')?
+    \   g:far#window_min_content_width : 60
+let g:far#preview_window_scroll_steps = exists('g:far#preview_window_scroll_steps ')?
+    \   g:far#preview_window_scroll_steps : 2
+let g:far#check_window_resize_period = exists('g:far#check_window_resize_period ')?
+    \   g:far#check_window_resize_period : 2000
 
-let g:far#window_min_content_width = 60
-let g:far#preview_window_scroll_steps = 2
-let g:far#check_window_resize_period = 2000
+"g:far#window_layout = (top, left, right, buttom, tab, current)
+"g:far#preview_window_layout = (top, left, right, buttom)
+"g:far#jump_window_layout (top, left, right, bottom, tab, current)
+let s:win_params = {
+    \   'layout': exists('g:far#window_layout')? g:far#window_layout : 'right',
+    \   'width': exists('g:far#window_width')? g:far#window_width : 100,
+    \   'height': exists('g:far#window_height')? g:far#window_height : 20,
+    \   'preview_layout': exists('g:far#preview_window_layout')? g:far#preview_window_layout : 'bottom',
+    \   'preview_width': exists('g:far#preview_window_width')? g:far#preview_window_width : 100,
+    \   'preview_height': exists('g:far#preview_window_height')? g:far#preview_window_height : 11,
+    \   'jump_win_layout': exists('g:far#jump_window_layout')? g:far#jump_window_layout : 'current',
+    \   'jump_win_width': exists('g:far#jump_window_width')? g:far#jump_window_width : 100,
+    \   'jump_win_height': exists('g:far#jump_window_height')? g:far#jump_window_height : 15,
+    \   'auto_preview': exists('g:far#auto_preview')? g:far#auto_preview : 1,
+    \   'check_consist': exists('far#check_consistency')? g:far#check_consistency : 1,
+    \   }
 
-let g:far#jump_window_width = 100
-let g:far#jump_window_height = 15
-"(top, left, right, bottom, tab, current)
-let g:far#jump_window_layout = 'left'
+let s:repl_params = {
+    \   'auto_write': exists('far#auto_write_replaced_buffers')? g:far#auto_write_replaced_buffers : 1,
+    \   'check_consist': exists('far#check_consistency')? g:far#check_consistency : 1,
+    \   }
 "}}}
 
 
@@ -55,22 +71,9 @@ let s:far_buffer_name = 'FAR'
 let s:far_preview_buffer_name = 'Preview'
 let s:buffer_counter = 1
 
-let s:debug = 1
+let s:debug = exists('g:far#debug')? g:far#debug : 0
 let s:debugfile = $HOME.'/far.vim.log'
 let s:repl_do_pre_cmd = 'zR :let g:far#__readonlytest__ = &readonly || !&modifiable'
-
-"g:far#window_layout = (top, left, right, buttom, tab, current)
-"g:far#preview_window_layout = (top, left, right, buttom)
-
-let s:win_params = {
-    \   'auto_preview': exists('g:far#auto_preview')? g:far#auto_preview : 1,
-    \   'layout': exists('g:far#window_layout')? g:far#window_layout : 'right',
-    \   'width': exists('g:far#window_width')? g:far#window_width : 100,
-    \   'height': exists('g:far#window_height')? g:far#window_height : 20,
-    \   'preview_layout': exists('g:far#preview_window_layout')? g:far#preview_window_layout : 'bottom',
-    \   'preview_width': exists('g:far#preview_window_width')? g:far#preview_window_width : 100,
-    \   'preview_height': exists('g:far#preview_window_height')? g:far#preview_window_height : 11,
-    \   }
 "}}}
 
 
@@ -125,11 +128,41 @@ endfunction "}}}
 augroup faraugroup "{{{
     autocmd!
 
+    " close preview on far buffer/window close
     au BufDelete * if exists('b:far_preview_winid') |
                 \   exec 'norm :'.win_id2win(b:far_preview_winid).'q' | endif
     au BufWinLeave * if exists('b:far_preview_winid') |
                 \   exec 'norm :'.win_id2win(b:far_preview_winid).'q' | endif
 augroup END "}}}
+
+
+function! FarPrompt(...) abort "{{{
+    call s:log('============ FAR PROMPT ================')
+    let g:far_prompt_pattern = input('Search (pattern): ',
+                \   (exists('g:far_prompt_pattern')? g:far_prompt_pattern : ''))
+    if g:far_prompt_pattern == ''
+        call s:echo_err('Empty search pattern')
+        return []
+    endif
+
+    let g:far_prompt_replace_with = input('Replace with: ',
+                \   (exists('g:far_prompt_replace_with')? g:far_prompt_replace_with : ''))
+    if g:far_prompt_replace_with == ''
+        call s:echo_err('Empty replace pattern')
+        return []
+    endif
+
+    let g:far_prompt_files_mask = input('File mask: ',
+                \   (exists('g:far_prompt_files_mask')? g:far_prompt_files_mask : '**/*.*'))
+    if g:far_prompt_files_mask == ''
+        call s:echo_err('Empty files mask')
+        return []
+    endif
+
+    call Far(g:far_prompt_pattern, g:far_prompt_replace_with, g:far_prompt_files_mask, a:000)
+endfunction
+command! -nargs=+ Farp call FarPrompt()
+"}}}
 
 
 function! Far(pattern, replace_with, files_mask, ...) abort "{{{
@@ -139,7 +172,6 @@ function! Far(pattern, replace_with, files_mask, ...) abort "{{{
     let win_params = copy(s:win_params)
     for xarg in a:000
         call s:log('xarg: '.xarg)
-
         if match(xarg, '--win-layout=') == 0
             let win_params.layout = xarg[13:]
         elseif match(xarg, '^--win-width=') == 0
@@ -152,10 +184,14 @@ function! Far(pattern, replace_with, files_mask, ...) abort "{{{
             let win_params.preview_width = xarg[20:]
         elseif match(xarg, '^--preview-win-height=') == 0
             let win_params.preview_height = xarg[21:]
-        elseif match(xarg, '^--auto-preview$') == 0
-            let win_params.auto_preview = 1
-        elseif match(xarg, '^--noauto-preview$') == 0
-            let win_params.auto_preview = 0
+        elseif match(xarg, '^--jump-win-layout=') == 0
+            let win_params.jump_win_layout = xarg[18:]
+        elseif match(xarg, '^--jump-win-width=') == 0
+            let win_params.jump_win_width = xarg[17:]
+        elseif match(xarg, '^--jump-win-height=') == 0
+            let win_params.jump_win_height = xarg[18:]
+        elseif match(xarg, '^--auto-preview=') == 0
+            let win_params.auto_preview = xarg[15:]
         else
             call s:echo_err('invalid arg '.xarg)
         endif
@@ -180,37 +216,19 @@ command! -nargs=+ Far call Far(<f-args>)
 "}}}
 
 
-function! FarPrompt() abort "{{{
-    call s:log('============ FAR PROMPT ================')
-    let g:far_prompt_pattern = input('Search (pattern): ',
-                \   (exists('g:far_prompt_pattern')? g:far_prompt_pattern : ''))
-    if g:far_prompt_pattern == ''
-        call s:echo_err('Empty search pattern')
-        return []
-    endif
-
-    let g:far_prompt_replace_with = input('Replace with: ',
-                \   (exists('g:far_prompt_replace_with')? g:far_prompt_replace_with : ''))
-    if g:far_prompt_replace_with == ''
-        call s:echo_err('Empty replace pattern')
-        return []
-    endif
-
-    let g:far_prompt_files_mask = input('File mask: ',
-                \   (exists('g:far_prompt_files_mask')? g:far_prompt_files_mask : '**/*.*'))
-    if g:far_prompt_files_mask == ''
-        call s:echo_err('Empty files mask')
-        return []
-    endif
-
-    call Far(g:far_prompt_pattern, g:far_prompt_replace_with, g:far_prompt_files_mask)
-endfunction
-command! -nargs=0 Farp call FarPrompt()
-"}}}
-
-
-function! FarDo() abort "{{{
+function! FarDo(...) abort "{{{
     call s:log('============= FAR DO ================')
+
+    let repl_params = copy(s:repl_params)
+    for xarg in a:000
+        call s:log('xarg: '.xarg)
+        if match(xarg, '^--auto-write=') == 0
+            let repl_params.auto_write = xarg[13:]
+        else
+            call s:echo_err('invalid arg '.xarg)
+        endif
+    endfor
+
     let bufnr = bufnr('%')
     let far_ctx = getbufvar(bufnr, 'far_ctx', {})
     if empty(far_ctx)
@@ -239,7 +257,7 @@ function! FarDo() abort "{{{
         endif
     endif
 
-    let result = s:do_replece(far_ctx)
+    let result = s:do_replece(far_ctx, repl_params)
     if empty(result)
         return
     endif
@@ -247,7 +265,7 @@ function! FarDo() abort "{{{
     echomsg 'Done in '.result.time.'sec. '.result.matches.' replacements in '.result.files.' file(s). '.
                 \   (empty(result.skipped)? '' : result.skipped.' file(s) skipped!')
 endfunction
-command! -nargs=0 Fardo call FarDo()
+command! -nargs=+ Fardo call FarDo(<f-args>)
 "}}}
 
 
@@ -374,6 +392,7 @@ function! g:far#show_preview_window_under_cursor() abort "{{{
         exec s:get_new_split_layout(win_params.preview_layout, '| b'.ctxs[1].bufnr,
             \   win_params.preview_width, win_params.preview_height)
         let preview_winnr = winnr()
+        let w:far_preview_win = 1
         call setbufvar(far_bufnr, 'far_preview_winid', win_getid(preview_winnr))
         call setwinvar(win_id2win(far_winid), 'far_preview_winid', win_getid(preview_winnr))
         call g:far#check_far_window_to_resize(far_bufnr)
@@ -410,14 +429,19 @@ endfunction "}}}
 
 function! g:far#jump_buffer_under_cursor() abort "{{{
     let ctxs = s:get_contexts_under_cursor()
+    let win_params = getbufvar('%', 'win_params')
 
     if len(ctxs) > 1
-        let winnr = bufwinnr(ctxs[1].bufnr)
-        if winnr == -1
-            exec s:get_new_buf_layout(g:far#jump_window_layout, ctxs[1].bufname,
-                \   g:far#jump_window_width, g:far#jump_window_height)
-        else
-            exec 'norm! '.winnr.''
+        let new_win = 1
+        for winnr in range(1, winnr('$'))
+            if winbufnr(winnr) == ctxs[1].bufnr && !getwinvar(winnr, 'far_preview_win', 0)
+                call win_gotoid(win_getid(winnr))
+                let new_win = 0
+                break
+            endif
+        endfor
+        if new_win
+            exec s:get_new_buf_layout(win_params, 'jump_win_', ctxs[1].bufname)
         endif
         if len(ctxs) == 3
             exec 'norm! '.ctxs[2].lnum.'gg0'.(ctxs[2].cnum-1).'lzv'
@@ -531,7 +555,7 @@ function! g:far#change_exclude_under_cursor(cmode) abort "{{{
 endfunction "}}}
 
 
-function! s:do_replece(far_ctx) abort "{{{
+function! s:do_replece(far_ctx, repl_params) abort "{{{
     call s:log('do_replece('.a:far_ctx.pattern.', '.a:far_ctx.replace_with.', '.a:far_ctx.files_mask.')')
     let bufnr = bufnr('%')
     let repl_files = 0
@@ -570,7 +594,7 @@ function! s:do_replece(far_ctx) abort "{{{
         let repl_matches += buf_repls
         let repl_files += 1
 
-        if g:far#auth_write_replaced_buffers
+        if a:repl_params.auto_write
             call s:log('writing buffer: '.buf_ctx.bufnr)
             exec 'silent w'
         endif
@@ -734,7 +758,7 @@ function! s:open_far_buff(far_ctx, win_params) abort "{{{
         return
     endif
 
-    exec s:get_new_buf_layout(a:win_params, bufname)
+    exec s:get_new_buf_layout(a:win_params, '', bufname)
     let bufnr = last_buffer_nr()
     let s:buffer_counter += 1
 
@@ -749,7 +773,7 @@ function! s:open_far_buff(far_ctx, win_params) abort "{{{
     setlocal cursorline
     setfiletype far_vim
 
-    if g:far#details_mappings
+    if g:far#default_mappings
         call g:far#apply_default_mappings()
     endif
 
@@ -771,21 +795,21 @@ function! s:open_far_buff(far_ctx, win_params) abort "{{{
 endfunction "}}}
 
 
-function! s:get_new_buf_layout(win_params, bname) abort "{{{
-    if a:win_params.layout == 'current'
+function! s:get_new_buf_layout(win_params, param_prefix, bname) abort "{{{
+    if get(a:win_params, a:param_prefix.'layout') == 'current'
         return 'edit '.a:bname
-    elseif a:win_params.layout == 'tab'
+    elseif get(a:win_params, a:param_prefix.'layout') == 'tab'
         return 'tabedit '.a:bname
-    elseif a:win_params.layout == 'top'
-        let layout = 'topleft '.a:win_params.height
-    elseif a:win_params.layout == 'left'
-        let layout = 'topleft vertical '.a:win_params.width
-    elseif a:win_params.layout == 'right'
-        let layout = 'botright vertical '.a:win_params.width
-    elseif a:win_params.layout == 'bottom'
-        let layout = 'botright '.a:win_params.height
+    elseif get(a:win_params, a:param_prefix.'layout') == 'top'
+        let layout = 'topleft '.get(a:win_params, a:param_prefix.'height')
+    elseif get(a:win_params, a:param_prefix.'layout') == 'left'
+        let layout = 'topleft vertical '.get(a:win_params, a:param_prefix.'width')
+    elseif get(a:win_params, a:param_prefix.'layout') == 'right'
+        let layout = 'botright vertical '.get(a:win_params, a:param_prefix.'width')
+    elseif get(a:win_params, a:param_prefix.'layout') == 'bottom'
+        let layout = 'botright '.get(a:win_params, a:param_prefix.'height')
     else
-        echoerr 'invalid window layout '.a:win_params.layout
+        echoerr 'invalid window layout '.get(a:win_params, a:param_prefix.'layout')
         let layout = 'botright vertical '.a:width
     endif
     return layout.' new '.a:bname
