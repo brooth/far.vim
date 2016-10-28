@@ -9,9 +9,8 @@ endif "}}}
 
 
 " TODOs {{{
-"TODO r - change item result
 "TODO support far for visual selected lines?!?!?! multi line pattern?
-"TODO support N[i,x,c] - do N times
+"TODO nodes: nested ctxs? for dirs? for python package/module/class/method
 "TODO readonly buffers? not saved buffers? modified (after search)?
 "TODO check consistancy timer
 "TODO statusline (done in Xms stat, number of matches)
@@ -20,8 +19,8 @@ endif "}}}
 "TODO multiple providers, excluder (dublicates..)
 "TODO support alternative replacers?
 "TODO pass providers as params (Farp as well)
-"TODO nodes: nested ctxs? for dirs? for python package/module/class/method
 "TODO python rename provider (tags? rope? jedi? all of them!)
+"TODO r - change item result
 "}}}
 
 
@@ -159,9 +158,31 @@ augroup faraugroup "{{{
 augroup END "}}}
 
 
-function! Far(pattern, replace_with, files_mask, ...) abort "{{{
+function! Far(pattern, replace_with, files_mask, ...) range abort "{{{
     call s:log('=============== FAR ================')
-    call s:log('fargs: '.a:pattern.','. a:replace_with.','.a:files_mask)
+    call s:log('fargs:'.a:pattern.','. a:replace_with.','.a:files_mask)
+
+    let pattern = a:pattern
+    if a:pattern == '*'
+        let pattern = ''
+        let p1 = getpos("'<")[1:2]
+        let p2 = getpos("'>")[1:2]
+        let lnum = a:firstline
+        while lnum <= a:lastline
+            let line = getline(lnum)
+            if lnum == a:firstline
+                let line = line[p1[1]-1:]
+            elseif lnum == a:lastline
+                let line = line[:p2[1]-1]
+            endif
+            let pattern = pattern.escape(line, '\ /[]*')
+            if lnum != a:lastline
+                let pattern = pattern.'\n'
+            endif
+            let lnum += 1
+        endwhile
+        call s:log('*pattern:'.pattern)
+    endif
 
     let win_params = copy(s:win_params)
     for xarg in a:000
@@ -176,8 +197,8 @@ function! Far(pattern, replace_with, files_mask, ...) abort "{{{
         endfor
     endfor
 
-    if index(g:far#search_history, a:pattern) == -1
-        call add(g:far#search_history, a:pattern)
+    if index(g:far#search_history, pattern) == -1
+        call add(g:far#search_history, pattern)
     endif
     if index(g:far#repl_history, a:replace_with) == -1
         call add(g:far#repl_history, a:replace_with)
@@ -191,17 +212,14 @@ function! Far(pattern, replace_with, files_mask, ...) abort "{{{
         let files_mask = bufname('%')
     endif
 
-    let far_ctx = s:assemble_context(a:pattern, a:replace_with, files_mask, win_params)
+    let far_ctx = s:assemble_context(pattern, a:replace_with, files_mask, win_params)
     if empty(far_ctx)
-        let pattern = input('No match: "'.a:pattern.'". Repeat?: ', a:pattern)
-        if empty(pattern)
-            return
-        endif
-        return Far(pattern, a:replace_with, files_mask)
+        call s:echo_err('No match:'.pattern)
+        return
     endif
     call s:open_far_buff(far_ctx, win_params)
 endfunction
-command! -complete=customlist,FarComplete -nargs=+ Far call Far(<f-args>)
+command! -complete=customlist,FarComplete -nargs=+ -range Far <line1>,<line2>call Far(<f-args>)
 "}}}
 
 
@@ -301,7 +319,7 @@ function! FarComplete(arglead, cmdline, cursorpos) abort
     let argnr = len(items) - !empty(a:arglead)
 
     if argnr == 1
-        return s:find_matches(g:far#search_history, a:arglead)
+        return s:find_matches(['*'] + g:far#search_history, a:arglead)
     elseif argnr == 2
         return s:find_matches(g:far#repl_history, a:arglead)
     elseif argnr == 3
@@ -485,7 +503,7 @@ function! g:far#show_preview_window_under_cursor() abort "{{{
     " TODO: if replaced take data from undo_ctx
     " exec 'match Search "\%'.contexts[2].lnum.'lcontextsctxs[2].cnum.'c.\{'.
     "     \   strchars(contexts[2].replaccontextsctxs[2].repcontextsl : ctxs[2].match_val).'\}"'
-    exec 'match Search "\%'.ctxs[2].lnum.'l\%'.ctxs[2].cnum.'c.\{'.strchars(ctxs[2].match_val).'\}"'
+    exec 'match Search "\%'.ctxs[2].lnum.'l\%'.ctxs[2].cnum.'c'.ctxs[0].pattern.'"'
     set nofoldenable
 
     call win_gotoid(far_winid)
@@ -727,14 +745,22 @@ function! s:assemble_context(pattern, replace_with, files_mask, win_params) abor
         let item_ctx = {}
         let item_ctx.lnum = item.lnum
         let item_ctx.cnum = item.col
+
+        "TODO: move this all to build method
         let item_ctx.match_val = matchstr(item.text, a:pattern, item.col-1)
-        let item_ctx.repl_val = substitute(item_ctx.match_val, a:pattern, a:replace_with, "")
-        let item_ctx.match_text = item.text
+        if empty(item_ctx.match_val)
+            let item_ctx.match_val = item.text[item.col+1:]
+            let item_ctx.repl_val = '...' "TODO: no show -> for multiline...
+            let item_ctx.match_text = item.text.'⤦'
+        else
+            let item_ctx.match_text = item.text
+            let item_ctx.repl_val = substitute(item_ctx.match_val, a:pattern, a:replace_with, "")
+        endif
+
         let item_ctx.repl_text = (item.col == 1? '' : item.text[0:item.col-2]).item_ctx.repl_val.
             \   item.text[item.col+strchars(item_ctx.match_val)-1:]
         let item_ctx.excluded = 0
         let item_ctx.replaced = 0
-        call s:log('repl_text:'.item_ctx.repl_text)
         call add(buf_ctx.items, item_ctx)
     endfor
     return far_ctx
