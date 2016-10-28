@@ -657,41 +657,42 @@ function! s:do_replece(far_ctx, repl_params) abort "{{{
     let repl_skipped = 0
     let repl_matches = 0
     let ts = localtime()
+
+    arglocal
     for k in keys(a:far_ctx.items)
         let buf_ctx = a:far_ctx.items[k]
         call s:log('replacing buffer '.buf_ctx.bufnr.' '.buf_ctx.bufname)
 
         let buf_active = 0
         let buf_repls = 0
-        for item_ctx in buf_ctx.items
+        let idx = len(buf_ctx.items)-1
+        while idx >= 0
+            let item_ctx = buf_ctx.items[idx]
+            let idx -= 1
             if item_ctx.excluded || item_ctx.replaced
                 continue
             endif
 
             if !buf_active
-                exec 'buffer '.buf_ctx.bufnr
+                exec 'argadd '.buf_ctx.bufname
                 let buf_active = 1
             endif
 
-            if setline(item_ctx.lnum, item_ctx.repl_text) == 0
-                let buf_repls += 1
-                let item_ctx.replaced = 1
-            else
-                repl_skipped += 1
+            let cmd = item_ctx.lnum.'s/\%'.item_ctx.cnum.'c'.a:far_ctx.pattern.'/'.a:far_ctx.replace_with.'/'
+            call s:log('argdo:'.cmd)
+            exec 'silent! argdo! '.cmd
+            let buf_repls += 1
+        endwhile
+
+        if !empty(buf_repls)
+            exec 'argdelete '.buf_ctx.bufname
+            let repl_matches += buf_repls
+            let repl_files += 1
+
+            if a:repl_params.auto_write
+                call s:log('writing buffer: '.buf_ctx.bufnr)
+                exec 'silent w'
             endif
-        endfor
-
-        if empty(buf_repls)
-            call s:log('buffer '.buf_ctx.bufnr.' not replaced (readonly?)')
-            continue
-        endif
-
-        let repl_matches += buf_repls
-        let repl_files += 1
-
-        if a:repl_params.auto_write
-            call s:log('writing buffer: '.buf_ctx.bufnr)
-            exec 'silent w'
         endif
     endfor
 
@@ -704,12 +705,15 @@ function! s:do_replece(far_ctx, repl_params) abort "{{{
 endfunction "}}}
 
 
-function! s:assemble_context(pattern, replace_with, files_mask, win_params) abort "{{{
-    call s:log('assemble_context(): '.string([a:pattern, a:replace_with, a:files_mask]))
+function! s:vimgrep_source(pattern, file_mask) abort "{{{
 
+endfunction "}}}
+
+
+function! s:vimgrep_finder(pattern, file_mask) abort "{{{
     let qfitems = getqflist()
     try
-        silent exec 'vimgrep/'.a:pattern.'/gj '.a:files_mask
+        silent exec 'vimgrep/'.a:pattern.'/gj '.a:file_mask
     catch /.*/
         call s:log('vimgrep error:'.v:exception)
     endtry
@@ -718,6 +722,39 @@ function! s:assemble_context(pattern, replace_with, files_mask, win_params) abor
     call setqflist(qfitems, 'r')
 
     if empty(items)
+        return []
+    endif
+
+    let result = {}
+    for item in items
+        if get(item, 'bufnr') == 0
+            call s:log('item '.item.text.' has no bufnr')
+            continue
+        endif
+
+        let buf_ctx = get(result, item.bufnr, {})
+        if empty(buf_ctx)
+            let buf_ctx.bufnr = item.bufnr
+            let buf_ctx.bufname = bufname(item.bufnr)
+            let buf_ctx.items = []
+            let result[item.bufnr] = buf_ctx
+        endif
+
+        let item_ctx = {}
+        let item_ctx.lnum = item.lnum
+        let item_ctx.cnum = item.col
+        let item_ctx.text = item.text
+        call add(buf_ctx.items, item_ctx)
+    endfor
+    return result
+endfunction "}}}
+
+
+function! s:assemble_context(pattern, replace_with, files_mask, win_params) abort "{{{
+    call s:log('assemble_context(): '.string([a:pattern, a:replace_with, a:files_mask]))
+
+    let items = s:vimgrep_finder(a:pattern, a:files_mask)
+    if empty(items)
         return {}
     endif
 
@@ -725,46 +762,57 @@ function! s:assemble_context(pattern, replace_with, files_mask, win_params) abor
                 \ 'pattern': a:pattern,
                 \ 'files_mask': a:files_mask,
                 \ 'replace_with': a:replace_with,
-                \ 'items': {}}
+                \ 'items': items}
 
-    for item in items
-        if get(item, 'bufnr') == 0
-            call s:log('item '.item.text.' has no bufnr')
-            continue
-        endif
+    for buf_ctx in values(far_ctx.items)
+        let buf_ctx.collapsed = a:win_params.collapse_result
 
-        let buf_ctx = get(far_ctx.items, item.bufnr, {})
-        if empty(buf_ctx)
-            let buf_ctx.bufnr = item.bufnr
-            let buf_ctx.bufname = bufname(item.bufnr)
-            let buf_ctx.collapsed = a:win_params.collapse_result
-            let buf_ctx.items = []
-            let far_ctx.items[item.bufnr] = buf_ctx
-        endif
-
-        let item_ctx = {}
-        let item_ctx.lnum = item.lnum
-        let item_ctx.cnum = item.col
-
-        "TODO: move this all to build method
-        let item_ctx.match_val = matchstr(item.text, a:pattern, item.col-1)
-        if empty(item_ctx.match_val)
-            let item_ctx.match_val = item.text[item.col+1:]
-            let item_ctx.repl_val = '...' "TODO: no show -> for multiline...
-            let item_ctx.match_text = item.text.'⤦'
-        else
-            let item_ctx.match_text = item.text
-            let item_ctx.repl_val = substitute(item_ctx.match_val, a:pattern, a:replace_with, "")
-        endif
-
-        let item_ctx.repl_text = (item.col == 1? '' : item.text[0:item.col-2]).item_ctx.repl_val.
-            \   item.text[item.col+strchars(item_ctx.match_val)-1:]
-        let item_ctx.excluded = 0
-        let item_ctx.replaced = 0
-        call add(buf_ctx.items, item_ctx)
+        for item_ctx in buf_ctx.items
+            let item_ctx.excluded = 0
+            let item_ctx.replaced = 0
+        endfor
     endfor
     return far_ctx
 endfunction "}}}
+
+
+"         if get(item, 'bufnr') == 0
+"             call s:log('item '.item.text.' has no bufnr')
+"             continue
+"         endif
+
+"         let buf_ctx = get(far_ctx.items, item.bufnr, {})
+"         if empty(buf_ctx)
+"             let buf_ctx.bufnr = item.bufnr
+"             let buf_ctx.bufname = bufname(item.bufnr)
+"             let buf_ctx.collapsed = a:win_params.collapse_result
+"             let buf_ctx.items = []
+"             let far_ctx.items[item.bufnr] = buf_ctx
+"         endif
+
+"         let item_ctx = {}
+"         let item_ctx.lnum = item.lnum
+"         let item_ctx.cnum = item.col
+
+"         "TODO: move this all to build method
+"         let item_ctx.match_val = matchstr(item.text, a:pattern, item.col-1)
+"         if empty(item_ctx.match_val)
+"             let item_ctx.match_val = item.text[item.col+1:]
+"             let item_ctx.repl_val = '...' "TODO: no show -> for multiline...
+"             let item_ctx.match_text = item.text.'⤦'
+"         else
+"             let item_ctx.match_text = item.text
+"             let item_ctx.repl_val = substitute(item_ctx.match_val, a:pattern, a:replace_with, "")
+"         endif
+
+"         let item_ctx.repl_text = (item.col == 1? '' : item.text[0:item.col-2]).item_ctx.repl_val.
+"             \   item.text[item.col+strchars(item_ctx.match_val)-1:]
+"         let item_ctx.excluded = 0
+"         let item_ctx.replaced = 0
+"         call add(buf_ctx.items, item_ctx)
+"     endfor
+"     return far_ctx
+" endfunction "}}}
 
 
 function! s:build_buffer_content(bufnr) abort "{{{
@@ -815,15 +863,22 @@ function! s:build_buffer_content(bufnr) abort "{{{
                 let line_num += 1
                 let line_num_text = '  '.item_ctx.lnum
                 let line_num_col_text = line_num_text.repeat(' ', 10-strchars(line_num_text))
+
                 let far_window_width = winwidth(bufwinnr(a:bufnr))
                 if far_window_width < g:far#window_min_content_width
                     let far_window_width = g:far#window_min_content_width
                 endif
                 call setbufvar(a:bufnr, 'far_window_width', far_window_width)
+
                 let max_text_len = far_window_width / 2 - strchars(line_num_col_text)
                 let max_repl_len = far_window_width / 2 - strchars(g:far#repl_devider)
-                let match_text = s:cetrify_text(item_ctx.match_text, max_text_len, item_ctx.cnum)
-                let repl_text = s:cetrify_text(item_ctx.repl_text, max_repl_len, item_ctx.cnum)
+
+                let match_val = matchstr(item_ctx.text, far_ctx.pattern, item_ctx.cnum-1)
+                let repl_val = substitute(match_val, far_ctx.pattern, far_ctx.replace_with, "")
+                let repl_text = (item_ctx.cnum == 1? '' : item_ctx.text[0:item_ctx.cnum-2]).
+                    \   repl_val.item_ctx.text[item_ctx.cnum+strchars(match_val)-1:]
+                let match_text = s:cetrify_text(item_ctx.text, max_text_len, item_ctx.cnum)
+                let repl_text = s:cetrify_text(repl_text, max_repl_len, item_ctx.cnum)
                 let out = line_num_col_text.match_text.text.g:far#repl_devider.repl_text.text
 
                 " Syntax
@@ -840,14 +895,14 @@ function! s:build_buffer_content(bufnr) abort "{{{
                     else
                         let match_col = match_text.val_col
                         let repl_col = strchars(match_text.text) + strchars(g:far#repl_devider) + repl_text.val_col -
-                                    \    match_col - strchars(item_ctx.match_val)
+                                    \    match_col - strchars(match_val)
                         let repl_col_wtf = len(match_text.text) + len(g:far#repl_devider) + repl_text.val_col -
-                                    \    match_col - len(item_ctx.match_val)
+                                    \    match_col - len(match_val)
                         let line_syn = 'syn region FarItem matchgroup=FarSearchVal '.
                                     \   'start="\%'.line_num.'l\%'.strchars(line_num_col_text).'c"rs=s+'.
-                                    \   (match_col+strchars(item_ctx.match_val)).
+                                    \   (match_col+strchars(match_val)).
                                     \   ',hs=s+'.match_col.' matchgroup=FarReplaceVal end=".*$"re=s+'.
-                                    \   repl_col_wtf.',he=s+'.(repl_col+strchars(item_ctx.repl_val)-1).
+                                    \   repl_col_wtf.',he=s+'.(repl_col+strchars(repl_val)-1).
                                     \   ' oneline'
                         call add(syntaxs, line_syn)
                     endif
