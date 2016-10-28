@@ -9,7 +9,6 @@ endif "}}}
 
 
 " TODOs {{{
-"TODO Refar/Farep (repeate same far in same window)
 "TODO auto colaps if more than x buffers. items...
 "TODO r - change item result
 "TODO support far for visual selected lines?!?!?! multi line pattern?
@@ -159,35 +158,6 @@ augroup faraugroup "{{{
 augroup END "}}}
 
 
-function! FarPrompt(...) abort "{{{
-    call s:log('============ FAR PROMPT ================')
-    let g:far_prompt_pattern = input('Search (pattern): ',
-                \   (exists('g:far_prompt_pattern')? g:far_prompt_pattern : ''))
-    if g:far_prompt_pattern == ''
-        call s:echo_err('Empty search pattern')
-        return []
-    endif
-
-    let g:far_prompt_replace_with = input('Replace with: ',
-                \   (exists('g:far_prompt_replace_with')? g:far_prompt_replace_with : ''))
-    if g:far_prompt_replace_with == ''
-        call s:echo_err('Empty replace pattern')
-        return []
-    endif
-
-    let g:far_prompt_files_mask = input('File mask: ',
-                \   (exists('g:far_prompt_files_mask')? g:far_prompt_files_mask : '**/*.*'))
-    if g:far_prompt_files_mask == ''
-        call s:echo_err('Empty files mask')
-        return []
-    endif
-
-    call Far(g:far_prompt_pattern, g:far_prompt_replace_with, g:far_prompt_files_mask, a:000)
-endfunction
-command! -nargs=+ Farp call FarPrompt()
-"}}}
-
-
 function! Far(pattern, replace_with, files_mask, ...) abort "{{{
     call s:log('=============== FAR ================')
     call s:log('fargs: '.a:pattern.','. a:replace_with.','.a:files_mask)
@@ -234,8 +204,33 @@ command! -complete=customlist,FarComplete -nargs=+ Far call Far(<f-args>)
 "}}}
 
 
+function! FarRepeat() abort "{{{
+    call s:log('=========== FAR REPEAT ==============')
+
+    let bufnr = bufnr('%')
+    let far_ctx = getbufvar(bufnr, 'far_ctx', {})
+    if empty(far_ctx)
+        call s:echo_err('Not a FAR buffer!')
+        return
+    endif
+
+    let far_ctx = s:assemble_context(far_ctx.pattern, far_ctx.replace_with, far_ctx.files_mask)
+    call setbufvar(bufnr, 'far_ctx', far_ctx)
+    call s:update_far_buffer(bufnr)
+endfunction
+command! -nargs=0 Farep call FarRepeat()
+"}}}
+
+
 function! FarDo(...) abort "{{{
     call s:log('============= FAR DO ================')
+
+    let bufnr = bufnr('%')
+    let far_ctx = getbufvar(bufnr, 'far_ctx', {})
+    if empty(far_ctx)
+        call s:echo_err('Not a FAR buffer!')
+        return
+    endif
 
     let repl_params = copy(s:repl_params)
     for xarg in a:000
@@ -249,13 +244,6 @@ function! FarDo(...) abort "{{{
             endif
         endfor
     endfor
-
-    let bufnr = bufnr('%')
-    let far_ctx = getbufvar(bufnr, 'far_ctx', {})
-    if empty(far_ctx)
-        call s:echo_err('Not a FAR buffer!')
-        return
-    endif
 
     if g:far#confirm_fardo
         let files = 0
