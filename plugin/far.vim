@@ -56,6 +56,7 @@ let s:win_params = {
     \   'check_consist': exists('far#check_consistency')? g:far#check_consistency : 1,
     \   'highlight_match': exists('far#highlight_match')? g:far#highlight_match : 1,
     \   'collapse_result': exists('far#collapse_result')? g:far#collapse_result : 0,
+    \   'result_preview': exists('far#result_preview')? g:far#result_preview : 1,
     \   }
 
 let s:repl_params = {
@@ -91,6 +92,7 @@ let s:win_args = {
     \   '--auto-preview=': 'auto_preview',
     \   '--hl-match=': 'highlight_match',
     \   '--collapse=': 'collapse_result',
+    \   '--result-preview=': 'result_preview',
     \   }
 
 let s:repl_args = {
@@ -870,16 +872,23 @@ function! s:build_buffer_content(bufnr) abort "{{{
                 endif
                 call setbufvar(a:bufnr, 'far_window_width', far_window_width)
 
-                let max_text_len = far_window_width / 2 - strchars(line_num_col_text)
-                let max_repl_len = far_window_width / 2 - strchars(g:far#repl_devider)
+                if win_params.result_preview
+                    let max_text_len = far_window_width / 2 - strchars(line_num_col_text)
+                    let max_repl_len = far_window_width / 2 - strchars(g:far#repl_devider)
 
-                let match_val = matchstr(item_ctx.text, far_ctx.pattern, item_ctx.cnum-1)
-                let repl_val = substitute(match_val, far_ctx.pattern, far_ctx.replace_with, "")
-                let repl_text = (item_ctx.cnum == 1? '' : item_ctx.text[0:item_ctx.cnum-2]).
-                    \   repl_val.item_ctx.text[item_ctx.cnum+strchars(match_val)-1:]
-                let match_text = s:cetrify_text(item_ctx.text, max_text_len, item_ctx.cnum)
-                let repl_text = s:cetrify_text(repl_text, max_repl_len, item_ctx.cnum)
-                let out = line_num_col_text.match_text.text.g:far#repl_devider.repl_text.text
+                    let match_val = matchstr(item_ctx.text, far_ctx.pattern, item_ctx.cnum-1)
+                    let repl_val = substitute(match_val, far_ctx.pattern, far_ctx.replace_with, "")
+                    let repl_text = (item_ctx.cnum == 1? '' : item_ctx.text[0:item_ctx.cnum-2]).
+                        \   repl_val.item_ctx.text[item_ctx.cnum+strchars(match_val)-1:]
+                    let match_text = s:cetrify_text(item_ctx.text, max_text_len, item_ctx.cnum)
+                    let repl_text = s:cetrify_text(repl_text, max_repl_len, item_ctx.cnum)
+                    let out = line_num_col_text.match_text.text.g:far#repl_devider.repl_text.text
+                else
+                    let max_text_len = far_window_width - strchars(line_num_col_text)
+                    let match_val = matchstr(item_ctx.text, far_ctx.pattern, item_ctx.cnum-1)
+                    let match_text = s:cetrify_text(item_ctx.text, max_text_len, item_ctx.cnum)
+                    let out = line_num_col_text.match_text.text
+                endif
 
                 " Syntax
                 if win_params.highlight_match
@@ -893,18 +902,27 @@ function! s:build_buffer_content(bufnr) abort "{{{
                         let excl_syn = 'syn region FarExcludedItem start="\%'.line_num.'l^" end="$"'
                         call add(syntaxs, excl_syn)
                     else
-                        let match_col = match_text.val_col
-                        let repl_col = strchars(match_text.text) + strchars(g:far#repl_devider) + repl_text.val_col -
-                                    \    match_col - strchars(match_val)
-                        let repl_col_wtf = len(match_text.text) + len(g:far#repl_devider) + repl_text.val_col -
-                                    \    match_col - len(match_val)
-                        let line_syn = 'syn region FarItem matchgroup=FarSearchVal '.
-                                    \   'start="\%'.line_num.'l\%'.strchars(line_num_col_text).'c"rs=s+'.
-                                    \   (match_col+strchars(match_val)).
-                                    \   ',hs=s+'.match_col.' matchgroup=FarReplaceVal end=".*$"re=s+'.
-                                    \   repl_col_wtf.',he=s+'.(repl_col+strchars(repl_val)-1).
-                                    \   ' oneline'
-                        call add(syntaxs, line_syn)
+                        if win_params.result_preview
+                            let match_col = match_text.val_col
+                            let repl_col = strchars(match_text.text) + strchars(g:far#repl_devider) + repl_text.val_col -
+                                        \    match_col - strchars(match_val)
+                            let repl_col_wtf = len(match_text.text) + len(g:far#repl_devider) + repl_text.val_col -
+                                        \    match_col - len(match_val)
+                            let line_syn = 'syn region FarItem matchgroup=FarSearchVal '.
+                                        \   'start="\%'.line_num.'l\%'.strchars(line_num_col_text).'c"rs=s+'.
+                                        \   (match_col+strchars(match_val)).
+                                        \   ',hs=s+'.match_col.' matchgroup=FarReplaceVal end=".*$"re=s+'.
+                                        \   repl_col_wtf.',he=s+'.(repl_col+strchars(repl_val)-1).
+                                        \   ' oneline'
+                            call add(syntaxs, line_syn)
+                        else
+                            let match_col = match_text.val_col
+                            let line_syn = 'syn region FarItem matchgroup=FarSearchVal '.
+                                        \   'start="\%'.line_num.'l\%'.strchars(line_num_col_text).'c"rs=s+'.
+                                        \   (match_col+strchars(match_val)).
+                                        \   ',hs=s+'.match_col.' matchgroup=FarReplaceVal end="" oneline'
+                            call add(syntaxs, line_syn)
+                        endif
                     endif
                 else
                     if get(item_ctx, 'broken', 0)
