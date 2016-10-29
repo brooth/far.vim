@@ -9,10 +9,9 @@ endif "}}}
 
 
 " TODOs {{{
-"TODO support far for visual selected lines?!?!?! multi line pattern?
+"TODO back Farp, useful for visual+paste from register. +complete?
 "TODO nodes: nested ctxs? for dirs? for python package/module/class/method
 "TODO readonly buffers? not saved buffers? modified (after search)?
-"TODO check consistancy timer
 "TODO statusline (done in Xms stat, number of matches)
 "TODO async for neovim
 "TODO support alternative providers (not vimgrep)
@@ -20,7 +19,7 @@ endif "}}}
 "TODO support alternative replacers?
 "TODO pass providers as params (Farp as well)
 "TODO python rename provider (tags? rope? jedi? all of them!)
-"TODO r - change item result
+"TODO check consistancy timer
 "}}}
 
 
@@ -388,7 +387,7 @@ func! FarCheckFarWindowsToResizeHandler(timer) abort
     let n = bufnr('$')
     let no_far_bufs = 1
     while n > 0
-        if !empty(getbufvar(n, 'far_ctx', {})) && bufwinid(n) != -1
+        if !empty(getbufvar(n, 'far_ctx', {})) && bufwinnr(n) != -1
             call g:far#check_far_window_to_resize(n)
             let no_far_bufs = 0
         endif
@@ -396,18 +395,24 @@ func! FarCheckFarWindowsToResizeHandler(timer) abort
     endwhile
 
     if no_far_bufs
+        call s:log('no far bufs, stopping resize timer #'.a:timer)
         call timer_stop(a:timer)
-        unlet g:far#check_windows_to_resize_timer
     endif
 endfun
 
 function! s:start_resize_timer() abort
-    if !has('timers') || exists('g:far#check_windows_to_resize_timer')
+    if !has('timers')
+        call s:log('cant start resize timer. not supported')
+        return
+    endif
+    if exists('g:far#check_windows_to_resize_timer')
+        call s:log('cant start resize timer. already started')
         return
     endif
     let g:far#check_windows_to_resize_timer =
         \    timer_start(g:far#check_window_resize_period,
         \    'FarCheckFarWindowsToResizeHandler', {'repeat': -1})
+    call s:log('resize timer started #'.g:far#check_windows_to_resize_timer)
 endfunction
 "}}}
 
@@ -419,6 +424,7 @@ function! g:far#check_far_window_to_resize(bufnr) abort "{{{
         return
     endif
     if width != winwidth(bufwinnr(a:bufnr))
+        call s:log('resizing buf '.a:bufnr.' '.winwidth(bufwinnr(a:bufnr)).'->'.width)
         let cur_winid = win_getid(winnr())
         call s:update_far_buffer(a:bufnr)
         call win_gotoid(cur_winid)
@@ -682,48 +688,39 @@ function! s:do_replece(far_ctx, repl_params) abort "{{{
         let buf_ctx = a:far_ctx.items[k]
         call s:log('replacing buffer '.buf_ctx.bufnr.' '.buf_ctx.bufname)
 
-        let buf_repls = 0
-        let idx = len(buf_ctx.items)-1
-        let buf_added = 0
-        while idx >= 0
-            let item_ctx = buf_ctx.items[idx]
-            let idx -= 1
+        let cmds = []
+        for item_ctx in buf_ctx.items
             if !item_ctx.excluded && !item_ctx.replaced
                 let cmd = item_ctx.lnum.'s/\%'.item_ctx.cnum.'c'.a:far_ctx.pattern.'/'
                     \   .a:far_ctx.replace_with.'/'
                 call s:log('argdo:'.cmd)
-
-                if !buf_added
-                    exec 'argadd '.buf_ctx.bufname
-                    let buf_added = 1
-                endif
-
-                exec 'silent! argdo! '.cmd
-                let buf_repls += 1
+                call add(cmds, cmd)
             endif
-        endwhile
-        if buf_added
-            exec 'argdelete '.buf_ctx.bufname
-        endif
+        endfor
 
-        if !empty(buf_repls)
-            let repl_matches += buf_repls
-            let repl_files += 1
+        if !empty(cmds)
+            exec 'argadd '.buf_ctx.bufname
+            exec 'silent! argdo! '.join(cmds, '|')
 
             if a:repl_params.auto_write
                 call s:log('writing buffer: '.buf_ctx.bufnr)
-                exec 'silent w'
-                if a:repl_params.auto_delete
+                exec 'silent! argdo! w!'
+                if a:repl_params.auto_delete && !buflisted(buf_ctx.bufnr)
                     call add(del_bufs, buf_ctx.bufnr)
                 endif
             endif
+
+            exec 'argdelete! '.buf_ctx.bufname
+
+            let repl_matches += len(cmds)
+            let repl_files += 1
         endif
     endfor
 
-    exec 'b '.bufnr
+    exec 'b! '.bufnr
     if !empty(del_bufs)
         call s:log('delete buffers: '.join(del_bufs, ' '))
-        exec 'bd '.join(del_bufs, ' ')
+        exec 'bd! '.join(del_bufs, ' ')
     endif
 
     call setbufvar('%', 'far_ctx', a:far_ctx)
@@ -901,16 +898,13 @@ function! s:build_buffer_content(bufnr) abort "{{{
                     else
                         if win_params.result_preview
                             let match_col = match_text.val_col
-                            let repl_col = strchars(match_text.text) + strchars(g:far#repl_devider) + repl_text.val_col -
-                                        \    match_col - strchars(match_val)
-                            let repl_col_wtf = len(match_text.text) + len(g:far#repl_devider) + repl_text.val_col -
-                                        \    match_col - len(match_val)
+                            let repl_col_h = strchars(repl_text.text) - repl_text.val_col - strchars(repl_val) + 1
+                            let repl_col_e = len(repl_text.text) - repl_text.val_idx + 1
                             let line_syn = 'syn region FarItem matchgroup=FarSearchVal '.
                                         \   'start="\%'.line_num.'l\%'.strchars(line_num_col_text).'c"rs=s+'.
                                         \   (match_col+strchars(match_val)).
-                                        \   ',hs=s+'.match_col.' matchgroup=FarReplaceVal end=".*$"re=s+'.
-                                        \   repl_col_wtf.',he=s+'.(repl_col+strchars(repl_val)-1).
-                                        \   ' oneline'
+                                        \   ',hs=s+'.match_col.' matchgroup=FarReplaceVal end=".*$"re=e-'.
+                                        \   repl_col_e.',he=e-'.repl_col_h.' oneline'
                             call add(syntaxs, line_syn)
                         else
                             let match_col = match_text.val_col
@@ -1014,6 +1008,16 @@ function! s:update_far_buffer(bufnr) abort "{{{
     endif
 
     let buff_content = s:build_buffer_content(a:bufnr)
+    if s:debug
+        call s:log('content:')
+        for line in buff_content.content
+            call s:log(line)
+        endfor
+        call s:log('syntax:')
+        for line in buff_content.syntaxs
+            call s:log(line)
+        endfor
+    endif
 
     if winnr != winnr()
         exec 'norm! '.winnr.''
@@ -1030,7 +1034,6 @@ function! s:update_far_buffer(bufnr) abort "{{{
     syntax clear
     set syntax=far_vim
     for buf_syn in buff_content.syntaxs
-        call s:log('apply syntax: '.buf_syn)
         exec buf_syn
     endfor
 endfunction "}}}
@@ -1048,9 +1051,11 @@ endfunction "}}}
 function! s:centrify_text(text, width, val_col, expand) abort "{{{
     let text = copy(a:text)
     let val_col = a:val_col
+    let val_idx = a:val_col
     if strchars(text) > a:width && a:val_col > a:width/2 - 7
         let left_start = a:val_col - a:width/2 + 7
         let val_col = a:val_col - left_start + strchars(g:far#left_cut_text_sign)
+        let val_idx = a:val_col - left_start + len(g:far#left_cut_text_sign)
         let text = g:far#left_cut_text_sign.text[left_start:]
     endif
     if strchars(text) > a:width
@@ -1061,7 +1066,7 @@ function! s:centrify_text(text, width, val_col, expand) abort "{{{
         let text = text.repeat(' ', a:width - strchars(text))
     endif
 
-    return {'text': text, 'val_col': val_col}
+    return {'text': text, 'val_col': val_col, 'val_idx': val_idx}
 endfunction "}}}
 
 

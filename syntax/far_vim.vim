@@ -5,9 +5,9 @@
 " License: MIT
 
 hi def link FarFileStats Comment
-hi def link FarFilePath Title
-hi def link FarSearchVal Statement
-hi def link FarReplaceVal Title
+hi def link FarFilePath Directory
+hi def link FarSearchVal Keyword
+hi def link FarReplaceVal String
 hi def link FarExcludedItem NonText
 hi def link FarReplacedItem Conceal
 hi def link FarLineCol LineNr
