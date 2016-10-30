@@ -21,6 +21,26 @@ endif "}}}
 "}}}
 
 
+"logging {{{
+let s:debug = exists('g:far#debug')? g:far#debug : 0
+let s:debugfile = $HOME.'/far.vim.log'
+
+if s:debug
+    exec 'redir! > ' . s:debugfile
+    silent echon "debug enabled!\n"
+    redir END
+endif
+
+function! s:log(msg)
+    if s:debug
+        exec 'redir >> ' . s:debugfile
+        silent echon a:msg."\n"
+        redir END
+    endif
+endfunction
+"}}}
+
+
 " options {{{
 let g:far#default_mappings = exists('g:far#default_mappings')?
     \   g:far#default_mappings : 1
@@ -80,10 +100,6 @@ let s:far_buffer_name = 'FAR'
 let s:far_preview_buffer_name = 'Preview'
 let s:buffer_counter = 1
 
-let s:debug = exists('g:far#debug')? g:far#debug : 0
-let s:debugfile = $HOME.'/far.vim.log'
-let s:repl_do_pre_cmd = 'zR :let g:far#__readonlytest__ = &readonly || !&modifiable'
-
 let g:far#search_history = []
 let g:far#repl_history = []
 let g:far#file_mask_history = []
@@ -108,23 +124,6 @@ let s:repl_params_meta = {
     \   '--auto-write-bufs': {'param': 'auto_write', 'values': [0, 1]},
     \   '--auto-delete-bufs': {'param': 'auto_delete', 'values': [0, 1]},
     \   }
-"}}}
-
-
-"logging {{{
-if s:debug
-    exec 'redir! > ' . s:debugfile
-    silent echon "debug enabled!\n"
-    redir END
-endif
-
-function! s:log(msg)
-    if s:debug
-        exec 'redir >> ' . s:debugfile
-        silent echon a:msg."\n"
-        redir END
-    endif
-endfunction
 "}}}
 
 
@@ -169,306 +168,6 @@ augroup faraugroup "{{{
     au BufWinLeave * if exists('b:far_preview_winid') |
                 \   exec 'norm :'.win_id2win(b:far_preview_winid).'q' | endif
 augroup END "}}}
-
-
-function! s:do_far(pattern, replace_with, files_mask, fline, lline, xargs) "{{{
-    call s:log('=============== DO FAR ================')
-    call s:log('fargs:'.a:pattern.','. a:replace_with.','.a:files_mask)
-    call s:log('xargs:'.a:fline.','. a:lline.','.string(a:xargs))
-
-    if empty(a:pattern)
-        call s:echo_err('No pattern')
-        return
-    elseif empty(a:files_mask)
-        call s:echo_err('No file mask')
-        return
-    endif
-
-    let pattern = a:pattern
-    if a:pattern == '*'
-        let pattern = ''
-        let p1 = getpos("'<")[1:2]
-        let p2 = getpos("'>")[1:2]
-        let lnum = a:fline
-        while lnum <= a:lline
-            let line = getline(lnum)
-            if lnum == a:fline
-                let line = line[p1[1]-1:]
-            elseif lnum == a:lline
-                let line = line[:p2[1]-1]
-            endif
-            let pattern = pattern.escape(line, '\ /[]*')
-            if lnum != a:lline
-                let pattern = pattern.'\n'
-            endif
-            let lnum += 1
-        endwhile
-        call s:log('*pattern:'.pattern)
-    else
-        let pattern = escape(pattern, '/\[]*')
-    endif
-
-    let replace_with = escape(a:replace_with, '/\')
-
-    if match(pattern, '\\n') + index(g:far#search_history, pattern) == -2
-        call add(g:far#search_history, pattern)
-    endif
-    if index(g:far#repl_history, a:replace_with) == -1
-        call add(g:far#repl_history, a:replace_with)
-    endif
-    if index(g:far#file_mask_history, a:files_mask) == -1
-        call add(g:far#file_mask_history, a:files_mask)
-    endif
-
-    let files_mask = a:files_mask
-    if files_mask == '%'
-        let files_mask = bufname('%')
-    endif
-
-    let win_params = copy(s:win_params)
-    for xarg in a:xargs
-        call s:log('xarg: '.xarg)
-        for k in keys(s:win_params_meta)
-            if match(xarg, k) == 0
-                let val = xarg[len(k)+1:]
-                call s:log('win_param.'.s:win_params_meta[k].param.'='.val)
-                let win_params[s:win_params_meta[k].param] = val
-                break
-            endif
-        endfor
-    endfor
-
-    let far_ctx = s:assemble_context(pattern, replace_with, files_mask, win_params)
-    if empty(far_ctx)
-        call s:echo_err('No match:'.pattern)
-        return
-    endif
-    call s:open_far_buff(far_ctx, win_params)
-endfunction
-command! -complete=customlist,FarComplete -nargs=+ -range Far <line1>,<line2>call Far(<f-args>)
-"}}}
-
-
-function! Far(pattern, replace_with, files_mask, ...) range abort "{{{
-    call s:log('=============== FAR ================')
-
-    let xargs = []
-    for a in a:000
-        call add(xargs, a)
-    endfor
-    return s:do_far(a:pattern, a:replace_with, a:files_mask, a:firstline, a:lastline, xargs)
-endfunction
-command! -complete=customlist,FarComplete -nargs=+ -range Far <line1>,<line2>call Far(<f-args>)
-"}}}
-
-
-function! FarPrompt(...) abort range "{{{
-    call s:log('============ FAR PROMPT ================')
-
-    let pattern = input('Search (pattern): ', '', 'customlist,FarSearchComplete')
-    if empty(pattern)
-        call s:echo_err('No pattern')
-        return
-    endif
-
-    let replace_with = input('Replace with: ', '', 'customlist,FarReplaceComplete')
-
-    let files_mask = input('File mask: ', '', 'customlist,FarFileMaskComplete')
-    if empty(files_mask)
-        call s:echo_err('No file mask')
-        return
-    endif
-
-    let xargs = []
-    for a in a:000
-        call add(xargs, a)
-    endfor
-    return s:do_far(pattern, replace_with, files_mask, a:firstline, a:lastline, xargs)
-endfunction
-command! -complete=customlist,FarArgsComplete -nargs=* -range Farp <line1>,<line2>call FarPrompt(<f-args>)
-"}}}
-
-
-function! FarRepeat() abort "{{{
-    call s:log('=========== FAR REPEAT ==============')
-
-    let bufnr = bufnr('%')
-    let far_ctx = getbufvar(bufnr, 'far_ctx', {})
-    if empty(far_ctx)
-        call s:echo_err('Not a FAR buffer!')
-        return
-    endif
-    let win_params = getbufvar(bufnr, 'win_params')
-
-    let far_ctx = s:assemble_context(far_ctx.pattern, far_ctx.replace_with, far_ctx.files_mask, win_params)
-    call setbufvar(bufnr, 'far_ctx', far_ctx)
-    call s:update_far_buffer(bufnr)
-endfunction
-command! -nargs=0 Refar call FarRepeat()
-"}}}
-
-
-function! FarDo(...) abort "{{{
-    call s:log('============= FAR DO ================')
-
-    let bufnr = bufnr('%')
-    let far_ctx = getbufvar(bufnr, 'far_ctx', {})
-    if empty(far_ctx)
-        call s:echo_err('Not a FAR buffer!')
-        return
-    endif
-
-    let repl_params = copy(s:repl_params)
-    for xarg in a:000
-        call s:log('xarg: '.xarg)
-        for k in keys(s:repl_params_meta)
-            if match(xarg, k) == 0
-                let val = xarg[len(k)+1:]
-                call s:log('repl_param.'.s:repl_params_meta[k].param.'='.val)
-                let repl_params[s:repl_params_meta[k].param] = val
-                break
-            endif
-        endfor
-    endfor
-
-    if g:far#confirm_fardo
-        let files = 0
-        let matches = 0
-        for bufctx in values(far_ctx.items)
-            let excludes = 0
-            for item in bufctx.items
-                if !item.excluded
-                    let excludes += 1
-                endif
-            endfor
-            if !empty(excludes)
-                let files += 1
-                let matches += excludes
-            endif
-        endfor
-        let answ = confirm('Replace '.matches.' matche(s) in '.files.' file(s)?', "&Yes\n&No")
-        if answ != 1
-            return
-        endif
-    endif
-
-    let result = s:do_replece(far_ctx, repl_params)
-    if empty(result)
-        return
-    endif
-
-    echomsg 'Done in '.result.time.'sec. '.result.matches.' replacements in '.result.files.' file(s). '.
-                \   (empty(result.skipped)? '' : result.skipped.' file(s) skipped!')
-endfunction
-command! -complete=customlist,FardoComplete -nargs=* Fardo call FarDo(<f-args>)
-"}}}
-
-
-"command complete functions {{{
-function! s:find_matches(items, key) abort
-    if empty(a:key)
-        return a:items
-    else
-        let matches = []
-        for item in a:items
-            if match(item, a:key) != -1
-                call add(matches, item)
-            endif
-        endfor
-        return matches
-    endif
-endfunction
-
-function! FarSearchComplete(arglead, cmdline, cursorpos) abort
-    let search_hist = g:far#search_history
-    if match(a:cmdline, "'<,'>") == 0 || 1
-        let search_hist = ['*'] + search_hist
-    endif
-    return s:find_matches(search_hist, a:arglead)
-endfunction
-
-function! FarReplaceComplete(arglead, cmdline, cursorpos) abort
-    return s:find_matches(g:far#repl_history, a:arglead)
-endfunction
-
-function! FarFileMaskComplete(arglead, cmdline, cursorpos) abort
-    return s:find_matches(g:far#file_mask_favorits + g:far#file_mask_history, a:arglead)
-endfunction
-
-function! FarArgsComplete(arglead, cmdline, cursorpos) abort
-    let items = split(a:cmdline, '\(.*\\\)\@<!\s')
-    let wargs = []
-    for win_arg in keys(s:win_params_meta)
-        "complete values?
-        if a:arglead == win_arg.'='
-            for val in get(s:win_params_meta[win_arg], 'values', [])
-                call add(wargs, win_arg.'='.val)
-            endfor
-            return s:find_matches(wargs, a:arglead)
-        endif
-
-        "exclude existing?
-        let exclude = 0
-        for item in items
-            if match(item, win_arg) == 0
-                let exclude = 1
-                break
-            endif
-        endfor
-        if !exclude
-            call add(wargs, win_arg)
-        endif
-    endfor
-    return s:find_matches(wargs, a:arglead)
-endfunction
-
-function! FarComplete(arglead, cmdline, cursorpos) abort
-    let items = split(a:cmdline, '\(.*\\\)\@<!\s')
-    let argnr = len(items) - !empty(a:arglead)
-
-    call s:log('far-complete('.a:arglead.','.a:cmdline.','.a:cursorpos.
-        \   ') items:'.string(items).' argnr:'.argnr)
-
-    if argnr == 1
-        return FarSearchComplete(a:arglead, a:cmdline, a:cursorpos)
-    elseif argnr == 2
-        return FarReplaceComplete(a:arglead, a:cmdline, a:cursorpos)
-    elseif argnr == 3
-        return FarFileMaskComplete(a:arglead, a:cmdline, a:cursorpos)
-    else
-        return FarArgsComplete(a:arglead, a:cmdline, a:cursorpos)
-    endif
-endfunction
-
-function! FardoComplete(arglead, cmdline, cursorpos) abort
-    call s:log('fardo-complete:'.a:arglead.','.a:cmdline.','.a:cursorpos)
-    let items = split(a:cmdline, '\(.*\\\)\@!\s')
-
-    let wargs = []
-    for repl_arg in keys(s:repl_params_meta)
-        "complete values?
-        if a:arglead == repl_arg.'='
-            for val in get(s:repl_params_meta[repl_arg], 'values', [])
-                call add(wargs, repl_arg.'='.val)
-            endfor
-            return s:find_matches(wargs, a:arglead)
-        endif
-
-        "exclude existing?
-        let exclude = 0
-        for item in items
-            if match(item, repl_arg) == 0
-                let exclude = 1
-                break
-            endif
-        endfor
-        if !exclude
-            call add(wargs, repl_arg)
-        endif
-    endfor
-    return s:find_matches(wargs, a:arglead)
-endfunction
-"}}}
 
 
  " resize timer {{{
@@ -521,47 +220,6 @@ function! g:far#check_far_window_to_resize(bufnr) abort "{{{
         let cur_winid = win_getid(winnr())
         call s:update_far_buffer(a:bufnr)
         call win_gotoid(cur_winid)
-    endif
-endfunction "}}}
-
-
-function! s:get_contexts_under_cursor() abort "{{{
-    let bufnr = bufnr('%')
-    let far_ctx = s:get_buf_far_ctx(bufnr)
-    let pos = getcurpos()[1]
-    let index = 0
-    for k in keys(far_ctx.items)
-        let buf_ctx = far_ctx.items[k]
-        let index += 1
-        if pos == index
-            return [far_ctx, buf_ctx]
-        endif
-
-        if !buf_ctx.collapsed
-            for item_ctx in buf_ctx.items
-                let index += 1
-                if pos == index
-                    return [far_ctx, buf_ctx, item_ctx]
-                endif
-            endfor
-        endif
-    endfor
-    return [far_ctx]
-endfunction "}}}
-
-
-function! s:get_new_split_layout(smode, bname, width, height) abort "{{{
-    if a:smode == 'top'
-        return 'aboveleft '.a:height.'split '.a:bname
-    elseif a:smode == 'left'
-        return 'leftabove '.a:width.'vsplit '.a:bname
-    elseif a:smode == 'right'
-        return 'rightbelow '.a:width.'vsplit '.a:bname
-    elseif a:smode == 'bottom'
-        return 'belowright '.a:height.'split '.a:bname
-    else
-        echoerr 'invalid window layout '.a:smode
-        return 'aboveleft '.a:height.'split '.a:bname
     endif
 endfunction "}}}
 
@@ -771,13 +429,304 @@ function! g:far#change_exclude_under_cursor(cmode) abort "{{{
 endfunction "}}}
 
 
-function! s:do_replece(far_ctx, repl_params) abort "{{{
-    call s:log('do_replece:'.a:far_ctx.replace_with.', '.string(a:repl_params))
+function! Far(pattern, replace_with, files_mask, ...) range abort "{{{
+    call s:log('=============== FAR ================')
+
+    let xargs = []
+    for a in a:000
+        call add(xargs, a)
+    endfor
+    return s:do_find(a:pattern, a:replace_with, a:files_mask, a:firstline, a:lastline, xargs)
+endfunction
+command! -complete=customlist,FarComplete -nargs=+ -range Far <line1>,<line2>call Far(<f-args>)
+"}}}
+
+
+function! FarPrompt(...) abort range "{{{
+    call s:log('============ FAR PROMPT ================')
+
+    let pattern = input('Search (pattern): ', '', 'customlist,FarSearchComplete')
+    if empty(pattern)
+        call s:echo_err('No pattern')
+        return
+    endif
+
+    let replace_with = input('Replace with: ', '', 'customlist,FarReplaceComplete')
+
+    let files_mask = input('File mask: ', '', 'customlist,FarFileMaskComplete')
+    if empty(files_mask)
+        call s:echo_err('No file mask')
+        return
+    endif
+
+    let xargs = []
+    for a in a:000
+        call add(xargs, a)
+    endfor
+    return s:do_find(pattern, replace_with, files_mask, a:firstline, a:lastline, xargs)
+endfunction
+command! -complete=customlist,FarArgsComplete -nargs=* -range Farp <line1>,<line2>call FarPrompt(<f-args>)
+"}}}
+
+
+function! FarRepeat() abort "{{{
+    call s:log('=========== FAR REPEAT ==============')
+
+    let bufnr = bufnr('%')
+    let far_ctx = getbufvar(bufnr, 'far_ctx', {})
+    if empty(far_ctx)
+        call s:echo_err('Not a FAR buffer!')
+        return
+    endif
+    let win_params = getbufvar(bufnr, 'win_params')
+
+    let far_ctx = s:assemble_context(far_ctx.pattern, far_ctx.replace_with, far_ctx.files_mask, win_params)
+    call setbufvar(bufnr, 'far_ctx', far_ctx)
+    call s:update_far_buffer(bufnr)
+endfunction
+command! -nargs=0 Refar call FarRepeat()
+"}}}
+
+
+function! FarDo(...) abort "{{{
+    call s:log('============= FAR DO ================')
+
+    let bufnr = bufnr('%')
+    let far_ctx = getbufvar(bufnr, 'far_ctx', {})
+    if empty(far_ctx)
+        call s:echo_err('Not a FAR buffer!')
+        return
+    endif
+
+    let repl_params = copy(s:repl_params)
+    for xarg in a:000
+        call s:log('xarg: '.xarg)
+        for k in keys(s:repl_params_meta)
+            if match(xarg, k) == 0
+                let val = xarg[len(k)+1:]
+                call s:log('repl_param.'.s:repl_params_meta[k].param.'='.val)
+                let repl_params[s:repl_params_meta[k].param] = val
+                break
+            endif
+        endfor
+    endfor
+
+    if g:far#confirm_fardo
+        let files = 0
+        let matches = 0
+        for bufctx in values(far_ctx.items)
+            let excludes = 0
+            for item in bufctx.items
+                if !item.excluded
+                    let excludes += 1
+                endif
+            endfor
+            if !empty(excludes)
+                let files += 1
+                let matches += excludes
+            endif
+        endfor
+        let answ = confirm('Replace '.matches.' matche(s) in '.files.' file(s)?', "&Yes\n&No")
+        if answ != 1
+            return
+        endif
+    endif
+
+    call s:do_replace(far_ctx, repl_params)
+endfunction
+command! -complete=customlist,FardoComplete -nargs=* Fardo call FarDo(<f-args>)
+"}}}
+
+
+"command complete functions {{{
+function! s:find_matches(items, key) abort
+    if empty(a:key)
+        return a:items
+    else
+        let matches = []
+        for item in a:items
+            if match(item, a:key) != -1
+                call add(matches, item)
+            endif
+        endfor
+        return matches
+    endif
+endfunction
+
+function! FarSearchComplete(arglead, cmdline, cursorpos) abort
+    let search_hist = g:far#search_history
+    if match(a:cmdline, "'<,'>") == 0 || 1
+        let search_hist = ['*'] + search_hist
+    endif
+    return s:find_matches(search_hist, a:arglead)
+endfunction
+
+function! FarReplaceComplete(arglead, cmdline, cursorpos) abort
+    return s:find_matches(g:far#repl_history, a:arglead)
+endfunction
+
+function! FarFileMaskComplete(arglead, cmdline, cursorpos) abort
+    return s:find_matches(g:far#file_mask_favorits + g:far#file_mask_history, a:arglead)
+endfunction
+
+function! FarArgsComplete(arglead, cmdline, cursorpos) abort
+    let items = split(a:cmdline, '\(.*\\\)\@<!\s')
+    let wargs = []
+    for win_arg in keys(s:win_params_meta)
+        "complete values?
+        if a:arglead == win_arg.'='
+            for val in get(s:win_params_meta[win_arg], 'values', [])
+                call add(wargs, win_arg.'='.val)
+            endfor
+            return s:find_matches(wargs, a:arglead)
+        endif
+
+        "exclude existing?
+        let exclude = 0
+        for item in items
+            if match(item, win_arg) == 0
+                let exclude = 1
+                break
+            endif
+        endfor
+        if !exclude
+            call add(wargs, win_arg)
+        endif
+    endfor
+    return s:find_matches(wargs, a:arglead)
+endfunction
+
+function! FarComplete(arglead, cmdline, cursorpos) abort
+    let items = split(a:cmdline, '\(.*\\\)\@<!\s')
+    let argnr = len(items) - !empty(a:arglead)
+
+    call s:log('far-complete('.a:arglead.','.a:cmdline.','.a:cursorpos.
+        \   ') items:'.string(items).' argnr:'.argnr)
+
+    if argnr == 1
+        return FarSearchComplete(a:arglead, a:cmdline, a:cursorpos)
+    elseif argnr == 2
+        return FarReplaceComplete(a:arglead, a:cmdline, a:cursorpos)
+    elseif argnr == 3
+        return FarFileMaskComplete(a:arglead, a:cmdline, a:cursorpos)
+    else
+        return FarArgsComplete(a:arglead, a:cmdline, a:cursorpos)
+    endif
+endfunction
+
+function! FardoComplete(arglead, cmdline, cursorpos) abort
+    call s:log('fardo-complete:'.a:arglead.','.a:cmdline.','.a:cursorpos)
+    let items = split(a:cmdline, '\(.*\\\)\@!\s')
+
+    let wargs = []
+    for repl_arg in keys(s:repl_params_meta)
+        "complete values?
+        if a:arglead == repl_arg.'='
+            for val in get(s:repl_params_meta[repl_arg], 'values', [])
+                call add(wargs, repl_arg.'='.val)
+            endfor
+            return s:find_matches(wargs, a:arglead)
+        endif
+
+        "exclude existing?
+        let exclude = 0
+        for item in items
+            if match(item, repl_arg) == 0
+                let exclude = 1
+                break
+            endif
+        endfor
+        if !exclude
+            call add(wargs, repl_arg)
+        endif
+    endfor
+    return s:find_matches(wargs, a:arglead)
+endfunction
+"}}}
+
+
+function! s:do_find(pattern, replace_with, files_mask, fline, lline, xargs) "{{{
+    call s:log('=============== DO FAR ================')
+    call s:log('fargs:'.a:pattern.','. a:replace_with.','.a:files_mask)
+    call s:log('xargs:'.a:fline.','. a:lline.','.string(a:xargs))
+
+    if empty(a:pattern)
+        call s:echo_err('No pattern')
+        return
+    elseif empty(a:files_mask)
+        call s:echo_err('No file mask')
+        return
+    endif
+
+    let pattern = a:pattern
+    if a:pattern == '*'
+        let pattern = ''
+        let p1 = getpos("'<")[1:2]
+        let p2 = getpos("'>")[1:2]
+        let lnum = a:fline
+        while lnum <= a:lline
+            let line = getline(lnum)
+            if lnum == a:fline
+                let line = line[p1[1]-1:]
+            elseif lnum == a:lline
+                let line = line[:p2[1]-1]
+            endif
+            let pattern = pattern.escape(line, '\ /[]*')
+            if lnum != a:lline
+                let pattern = pattern.'\n'
+            endif
+            let lnum += 1
+        endwhile
+        call s:log('*pattern:'.pattern)
+    else
+        let pattern = escape(pattern, '/\[]*')
+    endif
+
+    let replace_with = escape(a:replace_with, '/\')
+
+    if match(pattern, '\\n') + index(g:far#search_history, pattern) == -2
+        call add(g:far#search_history, pattern)
+    endif
+    if index(g:far#repl_history, a:replace_with) == -1
+        call add(g:far#repl_history, a:replace_with)
+    endif
+    if index(g:far#file_mask_history, a:files_mask) == -1
+        call add(g:far#file_mask_history, a:files_mask)
+    endif
+
+    let files_mask = a:files_mask
+    if files_mask == '%'
+        let files_mask = bufname('%')
+    endif
+
+    let win_params = copy(s:win_params)
+    for xarg in a:xargs
+        call s:log('xarg: '.xarg)
+        for k in keys(s:win_params_meta)
+            if match(xarg, k) == 0
+                let val = xarg[len(k)+1:]
+                call s:log('win_param.'.s:win_params_meta[k].param.'='.val)
+                let win_params[s:win_params_meta[k].param] = val
+                break
+            endif
+        endfor
+    endfor
+
+    let far_ctx = s:assemble_context(pattern, replace_with, files_mask, win_params)
+    if empty(far_ctx)
+        call s:echo_err('No match:'.pattern)
+        return
+    endif
+    call s:open_far_buff(far_ctx, win_params)
+endfunction
+command! -complete=customlist,FarComplete -nargs=+ -range Far <line1>,<line2>call Far(<f-args>)
+"}}}
+
+
+function! s:do_replace(far_ctx, repl_params) abort "{{{
+    call s:log('do_replace:'.a:far_ctx.replace_with.', '.string(a:repl_params))
     let ts = localtime()
     let bufnr = bufnr('%')
-    let repl_files = 0
-    let repl_skipped = 0
-    let repl_matches = 0
     let del_bufs = []
     arglocal
     for k in keys(a:far_ctx.items)
@@ -844,13 +793,6 @@ function! s:do_replece(far_ctx, repl_params) abort "{{{
                     call add(del_bufs, buf_ctx.bufnr)
                 endif
             endif
-
-            if buf_repls > 0
-                let repl_matches += len(buf_repls)
-                let repl_files += 1
-            else
-                let repl_skipped += 1
-            endif
         endif
     endfor
 
@@ -862,14 +804,6 @@ function! s:do_replece(far_ctx, repl_params) abort "{{{
 
     call setbufvar('%', 'far_ctx', a:far_ctx)
     call s:update_far_buffer(bufnr)
-
-    return {'files': repl_files, 'matches': repl_matches,
-                \   'skipped': repl_skipped, 'time': (localtime()-ts)}
-endfunction "}}}
-
-
-function! s:vimgrep_source(pattern, file_mask) abort "{{{
-
 endfunction "}}}
 
 
@@ -1008,20 +942,15 @@ function! s:build_buffer_content(bufnr) abort "{{{
                     let repl_val = substitute(match_val, far_ctx.pattern, far_ctx.replace_with, "")
                     let repl_text = (item_ctx.cnum == 1? '' : item_ctx.text[0:item_ctx.cnum-2]).
                         \   repl_val.item_ctx.text[item_ctx.cnum+strchars(match_val)-1:]
-                    let match_text = s:centrify_text(item_ctx.text, max_text_len, item_ctx.cnum, 1)
-                    let repl_text = s:centrify_text(repl_text, max_repl_len, item_ctx.cnum, 0)
+                    let match_text = s:centrify_text(item_ctx.text, max_text_len, item_ctx.cnum)
+                    let repl_text = s:centrify_text(repl_text, max_repl_len, item_ctx.cnum)
                     let out = line_num_col_text.match_text.text.g:far#repl_devider.repl_text.text
                 else
                     let max_text_len = far_window_width - strchars(line_num_col_text)
-                    let match_text = s:centrify_text(item_ctx.text, max_text_len, item_ctx.cnum, 0)
+                    let match_text = s:centrify_text(item_ctx.text, max_text_len, item_ctx.cnum)
                     if multiline
-                        if strchars(match_text.text) + strchars(g:far#multiline_sign) > max_text_len
-                            let match_text.text = match_text.text[:strchars(match_text.text)-
-                                \   strchars(g:far#multiline_sign)-1].g:far#multiline_sign
-                        else
-                            let match_text.text = match_text.text.g:far#multiline_sign
-                            let match_val = match_val.g:far#multiline_sign
-                        endif
+                        let match_text.text = match_text.text[:strchars(match_text.text)-
+                                    \   strchars(g:far#multiline_sign)-1].g:far#multiline_sign
                     endif
                     let out = line_num_col_text.match_text.text
                 endif
@@ -1072,6 +1001,45 @@ function! s:build_buffer_content(bufnr) abort "{{{
     endfor
 
     return {'content': content, 'syntaxs': syntaxs}
+endfunction "}}}
+
+
+function! s:update_far_buffer(bufnr) abort "{{{
+    let winnr = bufwinnr(a:bufnr)
+    if winnr == -1
+        echoerr 'far buffer not open'
+        return
+    endif
+
+    let buff_content = s:build_buffer_content(a:bufnr)
+    if s:debug
+        call s:log('content:')
+        for line in buff_content.content
+            call s:log(line)
+        endfor
+        call s:log('syntax:')
+        for line in buff_content.syntaxs
+            call s:log(line)
+        endfor
+    endif
+
+    if winnr != winnr()
+        exec 'norm! '.winnr.''
+    endif
+
+    let pos = winsaveview()
+    setlocal modifiable
+    exec 'norm! ggdG'
+    call append(0, buff_content.content)
+    exec 'norm! Gdd'
+    call winrestview(pos)
+    setlocal nomodifiable
+
+    syntax clear
+    set syntax=far_vim
+    for buf_syn in buff_content.syntaxs
+        exec buf_syn
+    endfor
 endfunction "}}}
 
 
@@ -1142,42 +1110,19 @@ function! s:get_new_buf_layout(win_params, param_prefix, bname) abort "{{{
 endfunction "}}}
 
 
-function! s:update_far_buffer(bufnr) abort "{{{
-    let winnr = bufwinnr(a:bufnr)
-    if winnr == -1
-        echoerr 'far buffer not open'
-        return
+function! s:get_new_split_layout(smode, bname, width, height) abort "{{{
+    if a:smode == 'top'
+        return 'aboveleft '.a:height.'split '.a:bname
+    elseif a:smode == 'left'
+        return 'leftabove '.a:width.'vsplit '.a:bname
+    elseif a:smode == 'right'
+        return 'rightbelow '.a:width.'vsplit '.a:bname
+    elseif a:smode == 'bottom'
+        return 'belowright '.a:height.'split '.a:bname
+    else
+        echoerr 'invalid window layout '.a:smode
+        return 'aboveleft '.a:height.'split '.a:bname
     endif
-
-    let buff_content = s:build_buffer_content(a:bufnr)
-    if s:debug
-        call s:log('content:')
-        for line in buff_content.content
-            call s:log(line)
-        endfor
-        call s:log('syntax:')
-        for line in buff_content.syntaxs
-            call s:log(line)
-        endfor
-    endif
-
-    if winnr != winnr()
-        exec 'norm! '.winnr.''
-    endif
-
-    let pos = winsaveview()
-    setlocal modifiable
-    exec 'norm! ggdG'
-    call append(0, buff_content.content)
-    exec 'norm! Gdd'
-    call winrestview(pos)
-    setlocal nomodifiable
-
-    syntax clear
-    set syntax=far_vim
-    for buf_syn in buff_content.syntaxs
-        exec buf_syn
-    endfor
 endfunction "}}}
 
 
@@ -1190,7 +1135,32 @@ function! s:get_buf_far_ctx(bufnr) abort "{{{
 endfunction "}}}
 
 
-function! s:centrify_text(text, width, val_col, expand) abort "{{{
+function! s:get_contexts_under_cursor() abort "{{{
+    let bufnr = bufnr('%')
+    let far_ctx = s:get_buf_far_ctx(bufnr)
+    let pos = getcurpos()[1]
+    let index = 0
+    for k in keys(far_ctx.items)
+        let buf_ctx = far_ctx.items[k]
+        let index += 1
+        if pos == index
+            return [far_ctx, buf_ctx]
+        endif
+
+        if !buf_ctx.collapsed
+            for item_ctx in buf_ctx.items
+                let index += 1
+                if pos == index
+                    return [far_ctx, buf_ctx, item_ctx]
+                endif
+            endfor
+        endif
+    endfor
+    return [far_ctx]
+endfunction "}}}
+
+
+function! s:centrify_text(text, width, val_col) abort "{{{
     let text = copy(a:text)
     let val_col = a:val_col
     let val_idx = a:val_col
@@ -1204,7 +1174,7 @@ function! s:centrify_text(text, width, val_col, expand) abort "{{{
         let wtf = -1-(len(text)-strchars(text))
         let text = text[0:a:width-len(g:far#right_cut_text_sign)-wtf].g:far#right_cut_text_sign
     endif
-    if a:expand && strchars(text) < a:width
+    if strchars(text) < a:width
         let text = text.repeat(' ', a:width - strchars(text))
     endif
 
