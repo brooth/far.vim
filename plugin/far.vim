@@ -67,9 +67,6 @@ let g:far#check_window_resize_period = exists('g:far#check_window_resize_period'
 let g:far#file_mask_favorits = exists('g:far#file_mask_favorits')?
     \   g:far#file_mask_favorits : ['%', '**/*.*', '**/*.html', '**/*.js', '**/*.css']
 
-"g:far#window_layout = (top, left, right, buttom, tab, current)
-"g:far#preview_window_layout = (top, left, right, buttom)
-"g:far#jump_window_layout (top, left, right, bottom, tab, current)
 let s:win_params = {
     \   'layout': exists('g:far#window_layout')? g:far#window_layout : 'right',
     \   'width': exists('g:far#window_width')? g:far#window_width : 100,
@@ -105,13 +102,13 @@ let g:far#repl_history = []
 let g:far#file_mask_history = []
 
 let s:win_params_meta = {
-    \   '--win-layout': {'param': 'layout', 'values': ['top', 'left', 'right', 'buttom', 'tab', 'current']},
+    \   '--win-layout': {'param': 'layout', 'values': ['top', 'left', 'right', 'bottom', 'tab', 'current']},
     \   '--win-width': {'param': 'width', 'values': [60, 70, 80, 90, 100, 110, 120, 130, 140, 150]},
     \   '--win-height': {'param': 'height', 'values': [5, 7, 10, 15, 20, 25, 30]},
-    \   '--preview-win-layout': {'param': 'preview_layout', 'values': ['top', 'left', 'right', 'buttom']},
+    \   '--preview-win-layout': {'param': 'preview_layout', 'values': ['top', 'left', 'right', 'bottom']},
     \   '--preview-win-width': {'param': 'preview_width', 'values': [60, 70, 80, 90, 100, 110, 120, 130, 140, 150]},
     \   '--preview-win-height': {'param': 'preview_height', 'values': [5, 7, 10, 15, 20, 25, 30]},
-    \   '--jump-win-layout': {'param': 'jump_win_layout', 'values': ['top', 'left', 'right', 'buttom', 'tab', 'current']},
+    \   '--jump-win-layout': {'param': 'jump_win_layout', 'values': ['top', 'left', 'right', 'bottom', 'tab', 'current']},
     \   '--jump-win-width': {'param': 'jump_win_width', 'values': [60, 70, 80, 90, 100, 110, 120, 130, 140, 150]},
     \   '--jump-win-height': {'param': 'jump_win_height', 'values': [5, 7, 10, 15, 20, 25, 30]},
     \   '--auto-preview': {'param': 'auto_preview', 'values': [0, 1]},
@@ -244,7 +241,7 @@ endfunction "}}}
 
 function! g:far#show_preview_window_under_cursor() abort "{{{
     let ctxs = s:get_contexts_under_cursor()
-    if len(ctxs) < 3
+    if len(ctxs) < 2
         return
     endif
 
@@ -260,8 +257,10 @@ function! g:far#show_preview_window_under_cursor() abort "{{{
         endif
     endif
     if !exists('b:far_preview_winid')
-        exec s:get_new_split_layout(win_params.preview_layout, '| b'.ctxs[1].bufnr,
+        let splitcmd = s:get_new_split_layout(win_params.preview_layout, '| b'.ctxs[1].bufnr,
             \   win_params.preview_width, win_params.preview_height)
+        call s:log('preview split: '.splitcmd)
+        exec splitcmd
         let preview_winnr = winnr()
         let w:far_preview_win = 1
         call setbufvar(far_bufnr, 'far_preview_winid', win_getid(preview_winnr))
@@ -275,15 +274,19 @@ function! g:far#show_preview_window_under_cursor() abort "{{{
         exec 'buffer '.ctxs[1].bufnr
     endif
 
-    exec 'norm! '.ctxs[2].lnum.'ggzz'
-    " TODO: if replaced take data from undo_ctx
-    " exec 'match Search "\%'.contexts[2].lnum.'lcontextsctxs[2].cnum.'c.\{'.
-    "     \   strchars(contexts[2].replaccontextsctxs[2].repcontextsl : ctxs[2].match_val).'\}"'
-    let pmatch = 'match FarPreviewMatch /\%'.ctxs[2].lnum.'l\%'.ctxs[2].cnum.'c'.ctxs[0].pattern.
-        \   (&ignorecase? '\c/' : '/')
-    call s:log('preview match: '.pmatch)
-    exec pmatch
     set nofoldenable
+    exec 'set filetype='.&filetype
+
+    if len(ctxs) > 2
+        exec 'norm! '.ctxs[2].lnum.'ggzz'.ctxs[2].cnum.'l'
+        " TODO: if replaced take data from undo_ctx
+        " exec 'match Search "\%'.contexts[2].lnum.'lcontextsctxs[2].cnum.'c.\{'.
+        "     \   strchars(contexts[2].replaccontextsctxs[2].repcontextsl : ctxs[2].match_val).'\}"'
+        let pmatch = 'match FarPreviewMatch /\%'.ctxs[2].lnum.'l\%'.ctxs[2].cnum.'c'.
+            \   ctxs[0].pattern.(&ignorecase? '\c/' : '/')
+        call s:log('preview match: '.pmatch)
+        exec pmatch
+    endif
 
     call win_gotoid(far_winid)
 endfunction "}}}
@@ -540,12 +543,13 @@ command! -complete=customlist,FardoComplete -nargs=* Fardo call FarDo(<f-args>)
 
 "command complete functions {{{
 function! s:find_matches(items, key) abort
+    call s:log('find matches: "'.a:key.'" in '.string(a:items))
     if empty(a:key)
         return a:items
     else
         let matches = []
         for item in a:items
-            if match(item, a:key) != -1
+            if match(item, '\V'.a:key) != -1
                 call add(matches, item)
             endif
         endfor
@@ -572,19 +576,24 @@ endfunction
 function! FarArgsComplete(arglead, cmdline, cursorpos) abort
     let items = split(a:cmdline, '\(.*\\\)\@<!\s')
     let wargs = []
+    let cmpl_val = match(a:arglead, '\V=') != -1
     for win_arg in keys(s:win_params_meta)
         "complete values?
-        if a:arglead == win_arg.'='
-            for val in get(s:win_params_meta[win_arg], 'values', [])
-                call add(wargs, win_arg.'='.val)
-            endfor
+        if cmpl_val
+            if match(a:arglead, '\V'.win_arg) == -1
+                continue
+            else
+                for val in get(s:win_params_meta[win_arg], 'values', [])
+                    call add(wargs, win_arg.'='.val)
+                endfor
+            endif
             return s:find_matches(wargs, a:arglead)
         endif
 
         "exclude existing?
         let exclude = 0
         for item in items
-            if match(item, win_arg) == 0
+            if match(item, '\V'.win_arg) != -1
                 let exclude = 1
                 break
             endif
@@ -599,10 +608,6 @@ endfunction
 function! FarComplete(arglead, cmdline, cursorpos) abort
     let items = split(a:cmdline, '\(.*\\\)\@<!\s')
     let argnr = len(items) - !empty(a:arglead)
-
-    call s:log('far-complete('.a:arglead.','.a:cmdline.','.a:cursorpos.
-        \   ') items:'.string(items).' argnr:'.argnr)
-
     if argnr == 1
         return FarSearchComplete(a:arglead, a:cmdline, a:cursorpos)
     elseif argnr == 2
@@ -646,7 +651,7 @@ endfunction
 
 
 function! s:do_find(pattern, replace_with, files_mask, fline, lline, xargs) "{{{
-    call s:log('=============== DO FAR ================')
+    call s:log('=============== DO FIND ================')
     call s:log('fargs:'.a:pattern.','. a:replace_with.','.a:files_mask)
     call s:log('xargs:'.a:fline.','. a:lline.','.string(a:xargs))
 
@@ -724,7 +729,8 @@ command! -complete=customlist,FarComplete -nargs=+ -range Far <line1>,<line2>cal
 
 
 function! s:do_replace(far_ctx, repl_params) abort "{{{
-    call s:log('do_replace:'.a:far_ctx.replace_with.', '.string(a:repl_params))
+    call s:log('=============== DO REPLACE ================')
+    call s:log('args: '.a:far_ctx.replace_with.', '.string(a:repl_params))
     let ts = localtime()
     let bufnr = bufnr('%')
     let del_bufs = []
