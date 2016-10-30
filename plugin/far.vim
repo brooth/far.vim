@@ -9,8 +9,7 @@ endif "}}}
 
 
 " TODO {{{
-" arg values complete
-" nodes: nested ctxs? for dirs? for python package/module/class/method
+" Farundo
 " readonly buffers? not saved buffers? modified (after search)?
 " statusline (done in Xms stat, number of matches)
 " async for neovim
@@ -18,7 +17,7 @@ endif "}}}
 " multiple finders, excluder (dublicates..)
 " pass finders via param
 " python rename provider (tags? rope? jedi? all of them!)
-" check consistancy timer
+" nodes: nested ctxs? for dirs? for python package/module/class/method
 "}}}
 
 
@@ -115,6 +114,7 @@ let s:repl_params_meta = {
 "logging {{{
 if s:debug
     exec 'redir! > ' . s:debugfile
+    silent echon "debug enabled!\n"
     redir END
 endif
 
@@ -171,33 +171,12 @@ augroup faraugroup "{{{
 augroup END "}}}
 
 
-function! Far(pattern, replace_with, files_mask, ...) range abort "{{{
-    call s:log('=============== FAR ================')
+function! s:do_far(pattern, replace_with, files_mask, fline, lline, xargs) "{{{
+    call s:log('=============== DO FAR ================')
     call s:log('fargs:'.a:pattern.','. a:replace_with.','.a:files_mask)
+    call s:log('xargs:'.a:fline.','. a:lline.','.string(a:xargs))
 
-    let pattern = a:pattern
-    if a:pattern == '*'
-        let pattern = ''
-        let p1 = getpos("'<")[1:2]
-        let p2 = getpos("'>")[1:2]
-        let lnum = a:firstline
-        while lnum <= a:lastline
-            let line = getline(lnum)
-            if lnum == a:firstline
-                let line = line[p1[1]-1:]
-            elseif lnum == a:lastline
-                let line = line[:p2[1]-1]
-            endif
-            let pattern = pattern.escape(line, '\ /[]*')
-            if lnum != a:lastline
-                let pattern = pattern.'\n'
-            endif
-            let lnum += 1
-        endwhile
-        call s:log('*pattern:'.pattern)
-    endif
-
-    if empty(pattern)
+    if empty(a:pattern)
         call s:echo_err('No pattern')
         return
     elseif empty(a:files_mask)
@@ -205,20 +184,33 @@ function! Far(pattern, replace_with, files_mask, ...) range abort "{{{
         return
     endif
 
-    let win_params = copy(s:win_params)
-    for xarg in a:000
-        call s:log('xarg: '.xarg)
-        for k in keys(s:win_params_meta)
-            if match(xarg, k) == 0
-                let val = xarg[len(k)+1:]
-                call s:log('win_param.'.s:win_params_meta[k].param.'='.val)
-                let win_params[s:win_params_meta[k].param] = val
-                break
+    let pattern = a:pattern
+    if a:pattern == '*'
+        let pattern = ''
+        let p1 = getpos("'<")[1:2]
+        let p2 = getpos("'>")[1:2]
+        let lnum = a:fline
+        while lnum <= a:lline
+            let line = getline(lnum)
+            if lnum == a:fline
+                let line = line[p1[1]-1:]
+            elseif lnum == a:lline
+                let line = line[:p2[1]-1]
             endif
-        endfor
-    endfor
+            let pattern = pattern.escape(line, '\ /[]*')
+            if lnum != a:lline
+                let pattern = pattern.'\n'
+            endif
+            let lnum += 1
+        endwhile
+        call s:log('*pattern:'.pattern)
+    else
+        let pattern = escape(pattern, '/\[]*')
+    endif
 
-    if index(g:far#search_history, pattern) == -1
+    let replace_with = escape(a:replace_with, '/\')
+
+    if match(pattern, '\\n') + index(g:far#search_history, pattern) == -2
         call add(g:far#search_history, pattern)
     endif
     if index(g:far#repl_history, a:replace_with) == -1
@@ -233,7 +225,20 @@ function! Far(pattern, replace_with, files_mask, ...) range abort "{{{
         let files_mask = bufname('%')
     endif
 
-    let far_ctx = s:assemble_context(pattern, a:replace_with, files_mask, win_params)
+    let win_params = copy(s:win_params)
+    for xarg in a:xargs
+        call s:log('xarg: '.xarg)
+        for k in keys(s:win_params_meta)
+            if match(xarg, k) == 0
+                let val = xarg[len(k)+1:]
+                call s:log('win_param.'.s:win_params_meta[k].param.'='.val)
+                let win_params[s:win_params_meta[k].param] = val
+                break
+            endif
+        endfor
+    endfor
+
+    let far_ctx = s:assemble_context(pattern, replace_with, files_mask, win_params)
     if empty(far_ctx)
         call s:echo_err('No match:'.pattern)
         return
@@ -244,28 +249,41 @@ command! -complete=customlist,FarComplete -nargs=+ -range Far <line1>,<line2>cal
 "}}}
 
 
+function! Far(pattern, replace_with, files_mask, ...) range abort "{{{
+    call s:log('=============== FAR ================')
+
+    let xargs = []
+    for a in a:000
+        call add(xargs, a)
+    endfor
+    return s:do_far(a:pattern, a:replace_with, a:files_mask, a:firstline, a:lastline, xargs)
+endfunction
+command! -complete=customlist,FarComplete -nargs=+ -range Far <line1>,<line2>call Far(<f-args>)
+"}}}
+
+
 function! FarPrompt(...) abort range "{{{
     call s:log('============ FAR PROMPT ================')
 
-    let g:far_prompt_pattern = input('Search (pattern): ', '', 'customlist,FarSearchComplete')
-    if empty(g:far_prompt_pattern)
+    let pattern = input('Search (pattern): ', '', 'customlist,FarSearchComplete')
+    if empty(pattern)
         call s:echo_err('No pattern')
         return
     endif
 
-    let g:far_prompt_replace_with = input('Replace with: ', '', 'customlist,FarReplaceComplete')
+    let replace_with = input('Replace with: ', '', 'customlist,FarReplaceComplete')
 
-    let g:far_prompt_files_mask = input('File mask: ', '', 'customlist,FarFileMaskComplete')
-    if empty(g:far_prompt_files_mask)
+    let files_mask = input('File mask: ', '', 'customlist,FarFileMaskComplete')
+    if empty(files_mask)
         call s:echo_err('No file mask')
         return
     endif
 
-    let xargs = [g:far_prompt_pattern, g:far_prompt_replace_with, g:far_prompt_files_mask]
+    let xargs = []
     for a in a:000
         call add(xargs, a)
     endfor
-    call call(function('Far'), xargs)
+    return s:do_far(pattern, replace_with, files_mask, a:firstline, a:lastline, xargs)
 endfunction
 command! -complete=customlist,FarArgsComplete -nargs=* -range Farp <line1>,<line2>call FarPrompt(<f-args>)
 "}}}
@@ -378,7 +396,7 @@ function! FarFileMaskComplete(arglead, cmdline, cursorpos) abort
 endfunction
 
 function! FarArgsComplete(arglead, cmdline, cursorpos) abort
-    let items = split(a:cmdline, '\(.*\\\)\@!\s')
+    let items = split(a:cmdline, '\(.*\\\)\@<!\s')
     let wargs = []
     for win_arg in keys(s:win_params_meta)
         "complete values?
@@ -405,7 +423,7 @@ function! FarArgsComplete(arglead, cmdline, cursorpos) abort
 endfunction
 
 function! FarComplete(arglead, cmdline, cursorpos) abort
-    let items = split(a:cmdline, '\(.*\\\)\@!\s')
+    let items = split(a:cmdline, '\(.*\\\)\@<!\s')
     let argnr = len(items) - !empty(a:arglead)
 
     call s:log('far-complete('.a:arglead.','.a:cmdline.','.a:cursorpos.
@@ -603,7 +621,10 @@ function! g:far#show_preview_window_under_cursor() abort "{{{
     " TODO: if replaced take data from undo_ctx
     " exec 'match Search "\%'.contexts[2].lnum.'lcontextsctxs[2].cnum.'c.\{'.
     "     \   strchars(contexts[2].replaccontextsctxs[2].repcontextsl : ctxs[2].match_val).'\}"'
-    exec 'match FarPreviewMatch /\%'.ctxs[2].lnum.'l\%'.ctxs[2].cnum.'c'.ctxs[0].pattern.'/'
+    let pmatch = 'match FarPreviewMatch /\%'.ctxs[2].lnum.'l\%'.ctxs[2].cnum.'c'.ctxs[0].pattern.
+        \   (&ignorecase? '\c/' : '/')
+    call s:log('preview match: '.pmatch)
+    exec pmatch
     set nofoldenable
 
     call win_gotoid(far_winid)
@@ -764,16 +785,20 @@ function! s:do_replece(far_ctx, repl_params) abort "{{{
         call s:log('replacing buffer '.buf_ctx.bufnr.' '.buf_ctx.bufname)
 
         let cmds = []
+        let items = []
         for item_ctx in buf_ctx.items
             if !item_ctx.excluded && !item_ctx.replaced
                 let cmd = item_ctx.lnum.'s/\%'.item_ctx.cnum.'c'.a:far_ctx.pattern.'/'
-                    \   .a:far_ctx.replace_with.'/e'
-                call s:log('argdo:'.cmd)
+                    \   .a:far_ctx.replace_with.'/e#'
                 call add(cmds, cmd)
+                call add(items, item_ctx)
             endif
         endfor
 
         if !empty(cmds)
+            let buf_repls = 0
+            let cmds = reverse(cmds)
+
             if a:repl_params.auto_write
                 call add(cmds, 'write')
             endif
@@ -782,7 +807,36 @@ function! s:do_replece(far_ctx, repl_params) abort "{{{
             call s:log('argdo: '.argdocmd)
 
             exec 'argadd '.buf_ctx.bufname
+
+            exec 'redir => s:argdo_msgs'
             exec 'silent! argdo! '.argdocmd
+            exec 'redir END'
+
+            let repl_lines = []
+            for argdo_msg in reverse(split(s:argdo_msgs, "\n"))
+                let nr = str2nr(matchstr(argdo_msg, '^\s*\d*'))
+                if nr != 0
+                    call add(repl_lines, nr)
+                else
+                    break
+                endif
+            endfor
+            call s:log('repl_line:'.string(repl_lines))
+
+            for item_ctx in items
+                for idx in range(len(repl_lines))
+                    if item_ctx.lnum == repl_lines[idx]
+                        let item_ctx.replaced = 1
+                        let buf_repls += 1
+                        unlet repl_lines[idx]
+                        break
+                    endif
+                endfor
+                if !item_ctx.replaced
+                    let item_ctx.broken = 1
+                endif
+            endfor
+
             exec 'argdelete! '.buf_ctx.bufname
 
             if a:repl_params.auto_write
@@ -791,8 +845,12 @@ function! s:do_replece(far_ctx, repl_params) abort "{{{
                 endif
             endif
 
-            let repl_matches += len(cmds)
-            let repl_files += 1
+            if buf_repls > 0
+                let repl_matches += len(buf_repls)
+                let repl_files += 1
+            else
+                let repl_skipped += 1
+            endif
         endif
     endfor
 
@@ -970,14 +1028,14 @@ function! s:build_buffer_content(bufnr) abort "{{{
 
                 " Syntax
                 if win_params.highlight_match
-                    if get(item_ctx, 'broken', 0)
-                        let excl_syn = 'syn region Error start="\%'.line_num.'l^" end="$"'
-                        call add(syntaxs, excl_syn)
-                    elseif item_ctx.replaced
+                    if item_ctx.replaced
                         let excl_syn = 'syn region FarReplacedItem start="\%'.line_num.'l^" end="$"'
                         call add(syntaxs, excl_syn)
                     elseif item_ctx.excluded
                         let excl_syn = 'syn region FarExcludedItem start="\%'.line_num.'l^" end="$"'
+                        call add(syntaxs, excl_syn)
+                    elseif get(item_ctx, 'broken', 0)
+                        let excl_syn = 'syn region Error start="\%'.line_num.'l^" end="$"'
                         call add(syntaxs, excl_syn)
                     else
                         if win_params.result_preview
@@ -1181,17 +1239,5 @@ if !s:debug "{{{
     let g:loaded_far = 0
 endif "}}}
 
-" TODO: check badd command to load a buffer
-" if g:far#check_buff_consistency && !item_ctx.excluded
-"     let actual_text = getbufline(buf_ctx.bufnr, item_ctx.lnum)
-"     if empty(actual_text) || actual_text[0] != item_ctx.text
-"         call s:log('broken line, actual: '.(empty(actual_text)?
-"             \   'empty' : actual_text[0]).', ctx:'.item_ctx.text)
-"         let item_ctx.excluded = 1
-"         let item_ctx.broken = 1
-"     else
-"         let item_ctx.broken = 0
-"     endif
-" endif
 
 " vim: set et fdm=marker sts=4 sw=4:
