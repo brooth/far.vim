@@ -160,10 +160,8 @@ augroup faraugroup "{{{
     autocmd!
 
     " close preview on far buffer/window close
-    au BufDelete * if exists('b:far_preview_winid') |
-                \   exec 'norm :'.win_id2win(b:far_preview_winid).'q' | endif
-    au BufWinLeave * if exists('b:far_preview_winid') |
-                \   exec 'norm :'.win_id2win(b:far_preview_winid).'q' | endif
+    au BufHidden * if exists('b:far_preview_winid') |
+        \   exec win_id2win(b:far_preview_winid).'hide' | endif
 augroup END "}}}
 
 
@@ -261,6 +259,8 @@ function! g:far#show_preview_window_under_cursor() abort "{{{
             \   win_params.preview_width, win_params.preview_height)
         call s:log('preview split: '.splitcmd)
         exec splitcmd
+        exec 'set filetype='.&filetype
+        set nofoldenable
         let preview_winnr = winnr()
         let w:far_preview_win = 1
         call setbufvar(far_bufnr, 'far_preview_winid', win_getid(preview_winnr))
@@ -271,11 +271,10 @@ function! g:far#show_preview_window_under_cursor() abort "{{{
     endif
 
     if winbufnr(preview_winnr) != ctxs[1].bufnr
-        exec 'buffer '.ctxs[1].bufnr
+        exec 'buffer! '.ctxs[1].bufnr
+        exec 'set filetype='.&filetype
+        set nofoldenable
     endif
-
-    set nofoldenable
-    exec 'set filetype='.&filetype
 
     if len(ctxs) > 2
         exec 'norm! '.ctxs[2].lnum.'ggzz'.ctxs[2].cnum.'l'
@@ -298,9 +297,12 @@ function! g:far#close_preview_window() abort "{{{
         return
     endif
 
-    autocmd! FarAutoPreview CursorMoved <buffer>
-    exec 'quit '.win_id2win(b:far_preview_winid)
-    unlet b:far_preview_winid
+    let winnr = win_id2win(b:far_preview_winid)
+    if winnr > 0
+        autocmd! FarAutoPreview CursorMoved <buffer>
+        exec 'quit '.win_id2win(b:far_preview_winid)
+        unlet b:far_preview_winid
+    endif
 endfunction "}}}
 
 
@@ -318,7 +320,9 @@ function! g:far#jump_buffer_under_cursor() abort "{{{
             endif
         endfor
         if new_win
-            exec s:get_new_buf_layout(win_params, 'jump_win_', ctxs[1].bufname)
+            let cmd = s:get_new_buf_layout(win_params, 'jump_win_', ctxs[1].bufname)
+            call s:log('jump wincmd: '.cmd)
+            exec cmd
         endif
         if len(ctxs) == 3
             exec 'norm! '.ctxs[2].lnum.'gg0'.(ctxs[2].cnum-1).'lzv'
@@ -434,12 +438,7 @@ endfunction "}}}
 
 function! Far(pattern, replace_with, files_mask, ...) range abort "{{{
     call s:log('=============== FAR ================')
-
-    let xargs = []
-    for a in a:000
-        call add(xargs, a)
-    endfor
-    return s:do_find(a:pattern, a:replace_with, a:files_mask, a:firstline, a:lastline, xargs)
+    return s:do_find(a:pattern, a:replace_with, a:files_mask, a:firstline, a:lastline, a:000)
 endfunction
 command! -complete=customlist,FarComplete -nargs=+ -range Far <line1>,<line2>call Far(<f-args>)
 "}}}
@@ -462,11 +461,7 @@ function! FarPrompt(...) abort range "{{{
         return
     endif
 
-    let xargs = []
-    for a in a:000
-        call add(xargs, a)
-    endfor
-    return s:do_find(pattern, replace_with, files_mask, a:firstline, a:lastline, xargs)
+    return s:do_find(pattern, replace_with, files_mask, a:firstline, a:lastline, a:000)
 endfunction
 command! -complete=customlist,FarArgsComplete -nargs=* -range Farp <line1>,<line2>call FarPrompt(<f-args>)
 "}}}
@@ -734,7 +729,6 @@ function! s:do_replace(far_ctx, repl_params) abort "{{{
     let ts = localtime()
     let bufnr = bufnr('%')
     let del_bufs = []
-    arglocal
     for k in keys(a:far_ctx.items)
         let buf_ctx = a:far_ctx.items[k]
         call s:log('replacing buffer '.buf_ctx.bufnr.' '.buf_ctx.bufname)
@@ -758,30 +752,33 @@ function! s:do_replace(far_ctx, repl_params) abort "{{{
                 call add(cmds, 'write')
             endif
 
-            let argdocmd = join(cmds, '|')
-            call s:log('argdo: '.argdocmd)
+            let bufcmd = join(cmds, '|')
+            call s:log('bufdo: '.bufcmd)
 
-            exec 'argadd '.buf_ctx.bufname
+            exec 'buffer! '.buf_ctx.bufname
 
-            exec 'redir => s:argdo_msgs'
-            exec 'silent! argdo! '.argdocmd
+            exec 'redir => s:bufdo_msgs'
+            silent! exec bufcmd
             exec 'redir END'
+            call s:log('bufdo_msgs: '.s:bufdo_msgs)
 
             let repl_lines = []
-            for argdo_msg in reverse(split(s:argdo_msgs, "\n"))
-                let nr = str2nr(matchstr(argdo_msg, '^\s*\d*'))
-                if nr != 0
-                    call add(repl_lines, nr)
+            for bufdo_msg in reverse(split(s:bufdo_msgs, "\n"))
+                let sp = matchend(bufdo_msg, '^\s*\d*')
+                if sp != -1
+                    let nr = str2nr(bufdo_msg[:sp-1])
+                    let text = bufdo_msg[sp:]
+                    call add(repl_lines, [nr, text])
                 else
                     break
                 endif
             endfor
-            call s:log('repl_line:'.string(repl_lines))
 
             for item_ctx in items
                 for idx in range(len(repl_lines))
-                    if item_ctx.lnum == repl_lines[idx]
+                    if item_ctx.lnum == repl_lines[idx][0]
                         let item_ctx.replaced = 1
+                        let item_ctx.text = repl_lines[idx][1]
                         let buf_repls += 1
                         unlet repl_lines[idx]
                         break
@@ -791,8 +788,6 @@ function! s:do_replace(far_ctx, repl_params) abort "{{{
                     let item_ctx.broken = 1
                 endif
             endfor
-
-            exec 'argdelete! '.buf_ctx.bufname
 
             if a:repl_params.auto_write
                 if a:repl_params.auto_delete && !buflisted(buf_ctx.bufnr)
@@ -937,12 +932,11 @@ function! s:build_buffer_content(bufnr) abort "{{{
 
                 let multiline = match(far_ctx.pattern, '\\n') >= 0
                 if multiline
-                    let win_params.result_preview = 0
                     let match_val = item_ctx.text[item_ctx.cnum:]
                     let match_val = match_val.g:far#multiline_sign
                 endif
 
-                if win_params.result_preview
+                if win_params.result_preview && !multiline && !item_ctx.replaced
                     let max_text_len = far_window_width / 2 - strchars(line_num_col_text)
                     let max_repl_len = far_window_width / 2 - strchars(g:far#repl_devider)
                     let repl_val = substitute(match_val, far_ctx.pattern, far_ctx.replace_with, "")
@@ -973,7 +967,7 @@ function! s:build_buffer_content(bufnr) abort "{{{
                         let excl_syn = 'syn region Error start="\%'.line_num.'l^" end="$"'
                         call add(syntaxs, excl_syn)
                     else
-                        if win_params.result_preview
+                        if win_params.result_preview && !multiline && !item_ctx.replaced
                             let match_col = match_text.val_col
                             let repl_col_h = strchars(repl_text.text) - repl_text.val_col - strchars(repl_val) + 1
                             let repl_col_e = len(repl_text.text) - repl_text.val_idx + 1
@@ -1012,6 +1006,7 @@ endfunction "}}}
 
 function! s:update_far_buffer(bufnr) abort "{{{
     let winnr = bufwinnr(a:bufnr)
+    call s:log('update_far_buffer('.a:bufnr.', '.winnr.')')
     if winnr == -1
         echoerr 'far buffer not open'
         return
@@ -1058,13 +1053,15 @@ function! s:open_far_buff(far_ctx, win_params) abort "{{{
         return
     endif
 
-    exec s:get_new_buf_layout(a:win_params, '', bufname)
-    let bufnr = last_buffer_nr()
+    let cmd = s:get_new_buf_layout(a:win_params, '', bufname)
+    call s:log('new bufcmd: '.cmd)
+    exec cmd
+    let bufnr = bufnr('%')
     let s:buffer_counter += 1
 
     setlocal noswapfile
     setlocal buftype=nowrite
-    " setlocal bufhidden=delete
+    setlocal bufhidden=hide
     setlocal nowrap
     setlocal foldcolumn=0
     setlocal nospell

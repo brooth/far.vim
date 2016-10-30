@@ -9,7 +9,7 @@ hi def link FarFilePath Directory
 hi def link FarSearchVal Keyword
 hi def link FarReplaceVal String
 hi def link FarExcludedItem NonText
-hi def link FarReplacedItem Conceal
+hi def link FarReplacedItem String
 hi def link FarLineCol LineNr
 hi def link FarPreviewMatch Search
 
