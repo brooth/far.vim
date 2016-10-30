@@ -10,15 +10,13 @@ endif "}}}
 
 " TODO {{{
 " arg values complete
-" back Farp, useful for visual+paste from register. +complete?
 " nodes: nested ctxs? for dirs? for python package/module/class/method
 " readonly buffers? not saved buffers? modified (after search)?
 " statusline (done in Xms stat, number of matches)
 " async for neovim
-" support alternative providers (not vimgrep)
-" multiple providers, excluder (dublicates..)
-" support alternative replacers?
-" pass providers as params (Farp as well)
+" support alternative finders (not vimgrep)
+" multiple finders, excluder (dublicates..)
+" pass finders via param
 " python rename provider (tags? rope? jedi? all of them!)
 " check consistancy timer
 "}}}
@@ -27,27 +25,27 @@ endif "}}}
 " options {{{
 let g:far#default_mappings = exists('g:far#default_mappings')?
     \   g:far#default_mappings : 1
-let g:far#multiline_sign = exists('g:far#multiline_sign ')?
+let g:far#multiline_sign = exists('g:far#multiline_sign')?
     \   g:far#multiline_sign : '⬎'
-let g:far#repl_devider = exists('g:far#repl_devider ')?
+let g:far#repl_devider = exists('g:far#repl_devider')?
     \   g:far#repl_devider : '  ➝  '
-let g:far#left_cut_text_sign = exists('g:far#left_cut_text_sign ')?
+let g:far#left_cut_text_sign = exists('g:far#left_cut_text_sign')?
     \   g:far#left_cut_text_sign : '…'
-let g:far#right_cut_text_sign = exists('g:far#right_cut_text_sign ')?
+let g:far#right_cut_text_sign = exists('g:far#right_cut_text_sign')?
     \   g:far#right_cut_text_sign : '…'
-let g:far#collapse_sign = exists('g:far#collapse_sign ')?
+let g:far#collapse_sign = exists('g:far#collapse_sign')?
     \   g:far#collapse_sign : '-'
-let g:far#expand_sign = exists('g:far#expand_sign ')?
+let g:far#expand_sign = exists('g:far#expand_sign')?
     \   g:far#expand_sign : '+'
-let g:far#confirm_fardo = exists('g:far#confirm_fardo ')?
+let g:far#confirm_fardo = exists('g:far#confirm_fardo')?
     \   g:far#confirm_fardo : 1
-let g:far#window_min_content_width = exists('g:far#window_min_content_width ')?
+let g:far#window_min_content_width = exists('g:far#window_min_content_width')?
     \   g:far#window_min_content_width : 60
-let g:far#preview_window_scroll_steps = exists('g:far#preview_window_scroll_steps ')?
+let g:far#preview_window_scroll_steps = exists('g:far#preview_window_scroll_steps')?
     \   g:far#preview_window_scroll_steps : 2
-let g:far#check_window_resize_period = exists('g:far#check_window_resize_period ')?
+let g:far#check_window_resize_period = exists('g:far#check_window_resize_period')?
     \   g:far#check_window_resize_period : 2000
-let g:far#file_mask_favorits = exists('g:far#file_mask_favorits ')?
+let g:far#file_mask_favorits = exists('g:far#file_mask_favorits')?
     \   g:far#file_mask_favorits : ['%', '**/*.*', '**/*.html', '**/*.js', '**/*.css']
 
 "g:far#window_layout = (top, left, right, buttom, tab, current)
@@ -91,25 +89,25 @@ let g:far#search_history = []
 let g:far#repl_history = []
 let g:far#file_mask_history = []
 
-let s:win_args = {
-    \   '--win-layout=': 'layout',
-    \   '--win-width=': 'width',
-    \   '--win-height=': 'height',
-    \   '--preview-win-layout=': 'preview_layout',
-    \   '--preview-win-width=': 'preview_width',
-    \   '--preview-win-height=': 'preview_height',
-    \   '--jump-win-layout=': 'jump_win_layout',
-    \   '--jump-win-width=': 'jump_win_width',
-    \   '--jump-win-height=': 'jump_win_height',
-    \   '--auto-preview=': 'auto_preview',
-    \   '--hl-match=': 'highlight_match',
-    \   '--collapse=': 'collapse_result',
-    \   '--result-preview=': 'result_preview',
+let s:win_params_meta = {
+    \   '--win-layout': {'param': 'layout', 'values': ['top', 'left', 'right', 'buttom', 'tab', 'current']},
+    \   '--win-width': {'param': 'width', 'values': [60, 70, 80, 90, 100, 110, 120, 130, 140, 150]},
+    \   '--win-height': {'param': 'height', 'values': [5, 7, 10, 15, 20, 25, 30]},
+    \   '--preview-win-layout': {'param': 'preview_layout', 'values': ['top', 'left', 'right', 'buttom']},
+    \   '--preview-win-width': {'param': 'preview_width', 'values': [60, 70, 80, 90, 100, 110, 120, 130, 140, 150]},
+    \   '--preview-win-height': {'param': 'preview_height', 'values': [5, 7, 10, 15, 20, 25, 30]},
+    \   '--jump-win-layout': {'param': 'jump_win_layout', 'values': ['top', 'left', 'right', 'buttom', 'tab', 'current']},
+    \   '--jump-win-width': {'param': 'jump_win_width', 'values': [60, 70, 80, 90, 100, 110, 120, 130, 140, 150]},
+    \   '--jump-win-height': {'param': 'jump_win_height', 'values': [5, 7, 10, 15, 20, 25, 30]},
+    \   '--auto-preview': {'param': 'auto_preview', 'values': [0, 1]},
+    \   '--hl-match': {'param': 'highlight_match', 'values': [0, 1]},
+    \   '--collapse': {'param': 'collapse_result', 'values': [0, 1]},
+    \   '--result-preview': {'param': 'result_preview', 'values': [0, 1]},
     \   }
 
-let s:repl_args = {
-    \   '--auto-write-bufs=': 'auto_write',
-    \   '--auto-delete-bufs=': 'auto_delete',
+let s:repl_params_meta = {
+    \   '--auto-write-bufs': {'param': 'auto_write', 'values': [0, 1]},
+    \   '--auto-delete-bufs': {'param': 'auto_delete', 'values': [0, 1]},
     \   }
 "}}}
 
@@ -210,11 +208,11 @@ function! Far(pattern, replace_with, files_mask, ...) range abort "{{{
     let win_params = copy(s:win_params)
     for xarg in a:000
         call s:log('xarg: '.xarg)
-        for k in keys(s:win_args)
+        for k in keys(s:win_params_meta)
             if match(xarg, k) == 0
-                let val = xarg[len(k):]
-                call s:log('win_param.'.s:win_args[k]. '='.val)
-                let win_params[s:win_args[k]] = val
+                let val = xarg[len(k)+1:]
+                call s:log('win_param.'.s:win_params_meta[k].param.'='.val)
+                let win_params[s:win_params_meta[k].param] = val
                 break
             endif
         endfor
@@ -305,11 +303,11 @@ function! FarDo(...) abort "{{{
     let repl_params = copy(s:repl_params)
     for xarg in a:000
         call s:log('xarg: '.xarg)
-        for k in keys(s:repl_args)
+        for k in keys(s:repl_params_meta)
             if match(xarg, k) == 0
-                let val = xarg[len(k):]
-                call s:log('repl_param.'.s:repl_args[k]. '='.val)
-                let repl_params[s:repl_args[k]] = val
+                let val = xarg[len(k)+1:]
+                call s:log('repl_param.'.s:repl_params_meta[k].param.'='.val)
+                let repl_params[s:repl_params_meta[k].param] = val
                 break
             endif
         endfor
@@ -382,15 +380,24 @@ endfunction
 function! FarArgsComplete(arglead, cmdline, cursorpos) abort
     let items = split(a:cmdline, '\(.*\\\)\@!\s')
     let wargs = []
-    for win_arg in keys(s:win_args)
-        let incl = 1
+    for win_arg in keys(s:win_params_meta)
+        "complete values?
+        if a:arglead == win_arg.'='
+            for val in get(s:win_params_meta[win_arg], 'values', [])
+                call add(wargs, win_arg.'='.val)
+            endfor
+            return s:find_matches(wargs, a:arglead)
+        endif
+
+        "exclude existing?
+        let exclude = 0
         for item in items
             if match(item, win_arg) == 0
-                let incl = 0
+                let exclude = 1
                 break
             endif
         endfor
-        if incl
+        if !exclude
             call add(wargs, win_arg)
         endif
     endfor
@@ -398,9 +405,12 @@ function! FarArgsComplete(arglead, cmdline, cursorpos) abort
 endfunction
 
 function! FarComplete(arglead, cmdline, cursorpos) abort
-    call s:log('far-complete:'.a:arglead.','.a:cmdline.','.a:cursorpos)
     let items = split(a:cmdline, '\(.*\\\)\@!\s')
     let argnr = len(items) - !empty(a:arglead)
+
+    call s:log('far-complete('.a:arglead.','.a:cmdline.','.a:cursorpos.
+        \   ') items:'.string(items).' argnr:'.argnr)
+
     if argnr == 1
         return FarSearchComplete(a:arglead, a:cmdline, a:cursorpos)
     elseif argnr == 2
@@ -417,15 +427,24 @@ function! FardoComplete(arglead, cmdline, cursorpos) abort
     let items = split(a:cmdline, '\(.*\\\)\@!\s')
 
     let wargs = []
-    for repl_arg in keys(s:repl_args)
-        let incl = 1
+    for repl_arg in keys(s:repl_params_meta)
+        "complete values?
+        if a:arglead == repl_arg.'='
+            for val in get(s:repl_params_meta[repl_arg], 'values', [])
+                call add(wargs, repl_arg.'='.val)
+            endfor
+            return s:find_matches(wargs, a:arglead)
+        endif
+
+        "exclude existing?
+        let exclude = 0
         for item in items
             if match(item, repl_arg) == 0
-                let incl = 0
+                let exclude = 1
                 break
             endif
         endfor
-        if incl
+        if !exclude
             call add(wargs, repl_arg)
         endif
     endfor
