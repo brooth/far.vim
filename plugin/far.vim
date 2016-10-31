@@ -9,6 +9,7 @@ endif "}}}
 
 
 " TODO {{{
+" Refar fails on empty data
 " Farundo
 " readonly buffers? not saved buffers? modified (after search)?
 " statusline (done in Xms stat, number of matches)
@@ -93,7 +94,7 @@ let s:repl_params = {
 
 
 " vars {{{
-let s:far_buffer_name = 'FAR'
+let s:far_buffer_name = 'FAR %d'
 let s:far_preview_buffer_name = 'Preview'
 let s:buffer_counter = 1
 
@@ -809,7 +810,6 @@ endfunction "}}}
 
 
 function! s:vimgrep_finder(pattern, file_mask) abort "{{{
-    let qfitems = getqflist()
     try
         silent exec 'vimgrep/'.a:pattern.'/gj '.a:file_mask
     catch /.*/
@@ -817,8 +817,6 @@ function! s:vimgrep_finder(pattern, file_mask) abort "{{{
     endtry
 
     let items = getqflist()
-    call setqflist(qfitems, 'r')
-
     if empty(items)
         return []
     endif
@@ -882,7 +880,7 @@ function! s:build_buffer_content(bufnr) abort "{{{
     endif
     if len(far_ctx.items) == 0
         call s:log('empty context result')
-        return
+        return {}
     endif
     let win_params = getbufvar(a:bufnr, 'win_params')
 
@@ -1013,6 +1011,11 @@ function! s:update_far_buffer(bufnr) abort "{{{
     endif
 
     let buff_content = s:build_buffer_content(a:bufnr)
+    if empty(buff_content)
+        call s:echo_err('No match')
+        return
+    endif
+
     if s:debug
         call s:log('content:')
         for line in buff_content.content
@@ -1045,7 +1048,7 @@ endfunction "}}}
 
 
 function! s:open_far_buff(far_ctx, win_params) abort "{{{
-    let bufname = s:far_buffer_name.'-'.s:buffer_counter
+    let bufname = escape(printf(s:far_buffer_name, s:buffer_counter), ' ')
     let bufnr = bufnr(bufname)
     if bufnr != -1
         let s:buffer_counter += 1
