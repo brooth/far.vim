@@ -9,8 +9,6 @@ endif "}}}
 
 
 " TODO {{{
-" fix escape pattern, no regex is allowed now
-" Refar fails on empty data
 " Farundo
 " readonly buffers? not saved buffers? modified (after search)?
 " statusline (done in Xms stat, number of matches)
@@ -440,7 +438,7 @@ function! Far(cmdline, fline, lline) range abort "{{{
     call s:log('=============== FAR ================')
     call s:log('cmdline: '.a:cmdline)
 
-    let cargs = split(a:cmdline, '\(.*\\\)\@<!\s')
+    let cargs = s:splitcmd(a:cmdline)
     if len(cargs) < 3
         call s:echo_err('Arguments required. Format :Far <pattern> <replace with> <file mask> [additional args]')
         return
@@ -510,11 +508,9 @@ function! FarDo(...) abort "{{{
 
     let repl_params = copy(s:repl_params)
     for xarg in a:000
-        call s:log('xarg: '.xarg)
         for k in keys(s:repl_params_meta)
             if match(xarg, k) == 0
                 let val = xarg[len(k)+1:]
-                call s:log('repl_param.'.s:repl_params_meta[k].param.'='.val)
                 let repl_params[s:repl_params_meta[k].param] = val
                 break
             endif
@@ -581,7 +577,7 @@ function! FarFileMaskComplete(arglead, cmdline, cursorpos) abort
 endfunction
 
 function! FarArgsComplete(arglead, cmdline, cursorpos) abort
-    let items = split(a:cmdline, '\(.*\\\)\@<!\s')
+    let items = s:splitcmd(a:cmdline)
     let wargs = []
     let cmpl_val = match(a:arglead, '\V=') != -1
     for win_arg in keys(s:win_params_meta)
@@ -613,8 +609,8 @@ function! FarArgsComplete(arglead, cmdline, cursorpos) abort
 endfunction
 
 function! FarComplete(arglead, cmdline, cursorpos) abort
-    let items = split(a:cmdline, '\(.*\\\)\@<!\s')
-    let argnr = len(items) - !empty(a:arglead)
+    let items = s:splitcmd(a:cmdline)
+    let argnr = len(items)-1
     if argnr == 1
         return FarSearchComplete(a:arglead, a:cmdline, a:cursorpos)
     elseif argnr == 2
@@ -628,7 +624,7 @@ endfunction
 
 function! FardoComplete(arglead, cmdline, cursorpos) abort
     call s:log('fardo-complete:'.a:arglead.','.a:cmdline.','.a:cursorpos)
-    let items = split(a:cmdline, '\(.*\\\)\@!\s')
+    let items = s:splitcmd(a:cmdline)
 
     let wargs = []
     for repl_arg in keys(s:repl_params_meta)
@@ -658,9 +654,8 @@ endfunction
 
 
 function! s:do_find(pattern, replace_with, files_mask, fline, lline, xargs) "{{{
-    call s:log('=============== DO FIND ================')
-    call s:log('fargs:'.a:pattern.','. a:replace_with.','.a:files_mask)
-    call s:log('xargs:'.a:fline.','. a:lline.','.string(a:xargs))
+    call s:log('do_find('.a:pattern.','. a:replace_with.','.a:files_mask.','
+        \   .a:fline.','. a:lline.','.string(a:xargs).')')
 
     if empty(a:pattern)
         call s:echo_err('No pattern')
@@ -722,11 +717,9 @@ function! s:do_find(pattern, replace_with, files_mask, fline, lline, xargs) "{{{
 
     let win_params = copy(s:win_params)
     for xarg in a:xargs
-        call s:log('xarg: '.xarg)
         for k in keys(s:win_params_meta)
             if match(xarg, k) == 0
                 let val = xarg[len(k)+1:]
-                call s:log('win_param.'.s:win_params_meta[k].param.'='.val)
                 let win_params[s:win_params_meta[k].param] = val
                 break
             endif
@@ -746,6 +739,7 @@ endfunction
 function! s:do_replace(far_ctx, repl_params) abort "{{{
     call s:log('=============== DO REPLACE ================')
     call s:log('args: '.a:far_ctx.replace_with.', '.string(a:repl_params))
+
     let ts = localtime()
     let bufnr = bufnr('%')
     let del_bufs = []
@@ -757,8 +751,8 @@ function! s:do_replace(far_ctx, repl_params) abort "{{{
         let items = []
         for item_ctx in buf_ctx.items
             if !item_ctx.excluded && !item_ctx.replaced
-                let cmd = item_ctx.lnum.'s/\%'.item_ctx.cnum.'c'.a:far_ctx.pattern.'/'
-                    \   .a:far_ctx.replace_with.'/e#'
+                let cmd = item_ctx.lnum.'s/\%'.item_ctx.cnum.'c'.
+                    \   escape(a:far_ctx.pattern, '/').'/'.a:far_ctx.replace_with.'/e#'
                 call add(cmds, cmd)
                 call add(items, item_ctx)
             endif
@@ -829,8 +823,10 @@ endfunction "}}}
 
 
 function! s:vimgrep_source(pattern, file_mask) abort "{{{
+    call s:log('vimgrep_source('.a:pattern.','.a:file_mask.')')
+
     try
-        let cmd = 'silent! vimgrep! /'.a:pattern.'/gj '.a:file_mask
+        let cmd = 'silent! vimgrep! /'.escape(a:pattern, '/').'/gj '.a:file_mask
         call s:log('vimgrep cmd: '.cmd)
         exec cmd
     catch /.*/
@@ -868,7 +864,7 @@ endfunction "}}}
 
 
 function! s:assemble_context(pattern, replace_with, files_mask, win_params) abort "{{{
-    call s:log('assemble_context(): '.string([a:pattern, a:replace_with, a:files_mask]))
+    call s:log('assemble_context('.a:pattern.','.a:replace_with.','.a:files_mask.')')
 
     let items = s:vimgrep_source(a:pattern, a:files_mask)
     let far_ctx = {
@@ -890,6 +886,8 @@ endfunction "}}}
 
 
 function! s:build_buffer_content(bufnr) abort "{{{
+    call s:log('build_buffer_content('.a:bufnr.')')
+
     let far_ctx = getbufvar(a:bufnr, 'far_ctx', {})
     if empty(far_ctx)
         echoerr 'far context not found for '.a:bufnr.' buffer'
@@ -1022,6 +1020,7 @@ endfunction "}}}
 function! s:update_far_buffer(bufnr) abort "{{{
     let winnr = bufwinnr(a:bufnr)
     call s:log('update_far_buffer('.a:bufnr.', '.winnr.')')
+
     if winnr == -1
         echoerr 'far buffer not open'
         return
@@ -1061,6 +1060,8 @@ endfunction "}}}
 
 
 function! s:open_far_buff(far_ctx, win_params) abort "{{{
+    call s:log('open_far_buff('.string(a:win_params).')')
+
     let bufname = escape(printf(s:far_buffer_name, s:buffer_counter), ' ')
     let bufnr = bufnr(bufname)
     if bufnr != -1
@@ -1198,6 +1199,32 @@ function! s:centrify_text(text, width, val_col) abort "{{{
     endif
 
     return {'text': text, 'val_col': val_col, 'val_idx': val_idx}
+endfunction "}}}
+
+
+function! s:splitcmd(cmdline) "{{{
+    let slashes = split(a:cmdline, '\\\\')
+    let cmds = []
+    let slash_weight = 0
+    let p1 = 0
+    for idx in range(0, len(slashes)-1)
+        let slash = slashes[idx]
+        let pos = -1
+        while 1
+            let pos = match(slash, '\(.*\\\)\@<!\s', pos+1)
+            if pos != -1
+                let p2 = pos + idx*2 + slash_weight
+                call add(cmds, a:cmdline[p1:p2-1])
+                let p1 = p2+1
+            else
+                break
+            endif
+        endwhile
+        let slash_weight += len(slash)
+        let idx += 1
+    endfor
+    call add(cmds, a:cmdline[p1:])
+    return cmds
 endfunction "}}}
 
 
