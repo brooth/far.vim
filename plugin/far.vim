@@ -60,8 +60,8 @@ let g:far#confirm_fardo = exists('g:far#confirm_fardo')?
     \   g:far#confirm_fardo : 1
 let g:far#window_min_content_width = exists('g:far#window_min_content_width')?
     \   g:far#window_min_content_width : 60
-let g:far#preview_window_scroll_steps = exists('g:far#preview_window_scroll_steps')?
-    \   g:far#preview_window_scroll_steps : 2
+let g:far#preview_window_scroll_step = exists('g:far#preview_window_scroll_step')?
+    \   g:far#preview_window_scroll_step : 2
 let g:far#check_window_resize_period = exists('g:far#check_window_resize_period')?
     \   g:far#check_window_resize_period : 2000
 let g:far#file_mask_favorits = exists('g:far#file_mask_favorits')?
@@ -78,7 +78,6 @@ let s:win_params = {
     \   'jump_win_width': exists('g:far#jump_window_width')? g:far#jump_window_width : 100,
     \   'jump_win_height': exists('g:far#jump_window_height')? g:far#jump_window_height : 15,
     \   'auto_preview': exists('g:far#auto_preview')? g:far#auto_preview : 1,
-    \   'check_consist': exists('far#check_consistency')? g:far#check_consistency : 1,
     \   'highlight_match': exists('far#highlight_match')? g:far#highlight_match : 1,
     \   'collapse_result': exists('far#collapse_result')? g:far#collapse_result : 0,
     \   'result_preview': exists('far#result_preview')? g:far#result_preview : 1,
@@ -87,7 +86,6 @@ let s:win_params = {
 let s:repl_params = {
     \   'auto_write': exists('far#auto_write_replaced_buffers')? g:far#auto_write_replaced_buffers : 1,
     \   'auto_delete': exists('far#auto_delete_replaced_buffers')? g:far#auto_delete_replaced_buffers : 1,
-    \   'check_consist': exists('far#check_consistency')? g:far#check_consistency : 1,
     \   }
 "}}}
 
@@ -150,8 +148,8 @@ function! g:far#apply_default_mappings() abort "{{{
     nnoremap <buffer><silent> p :call g:far#show_preview_window_under_cursor()<cr>
     nnoremap <buffer><silent> P :call g:far#close_preview_window()<cr>
 
-    nnoremap <buffer><silent> <c-p> :call g:far#scroll_preview_window(-g:far#preview_window_scroll_steps)<cr>
-    nnoremap <buffer><silent> <c-n> :call g:far#scroll_preview_window(g:far#preview_window_scroll_steps)<cr>
+    nnoremap <buffer><silent> <c-p> :call g:far#scroll_preview_window(-g:far#preview_window_scroll_step)<cr>
+    nnoremap <buffer><silent> <c-n> :call g:far#scroll_preview_window(g:far#preview_window_scroll_step)<cr>
 
 endfunction "}}}
 
@@ -159,7 +157,6 @@ endfunction "}}}
 augroup faraugroup "{{{
     autocmd!
 
-    " close preview on far buffer/window close
     au BufHidden * if exists('b:far_preview_winid') |
         \   exec win_id2win(b:far_preview_winid).'hide' | endif
 augroup END "}}}
@@ -440,7 +437,7 @@ function! Far(cmdline, fline, lline) range abort "{{{
 
     let cargs = s:splitcmd(a:cmdline)
     if len(cargs) < 3
-        call s:echo_err('Arguments required. Format :Far <pattern> <replace with> <file mask> [additional args]')
+        call s:echo_err('Arguments required. Format :Far <pattern> <replace> <filemask> [<param1>...]')
         return
     endif
 
@@ -461,13 +458,13 @@ function! FarPrompt(...) abort range "{{{
 
     let replace_with = input('Replace with: ', '', 'customlist,FarReplaceComplete')
 
-    let files_mask = input('File mask: ', '', 'customlist,FarFileMaskComplete')
-    if empty(files_mask)
+    let file_mask = input('File mask: ', '', 'customlist,FarFileMaskComplete')
+    if empty(file_mask)
         call s:echo_err('No file mask')
         return
     endif
 
-    return s:do_find(pattern, replace_with, files_mask, a:firstline, a:lastline, a:000)
+    return s:do_find(pattern, replace_with, file_mask, a:firstline, a:lastline, a:000)
 endfunction
 command! -complete=customlist,FarArgsComplete -nargs=* -range Farp <line1>,<line2>call FarPrompt(<f-args>)
 "}}}
@@ -484,7 +481,7 @@ function! FarRepeat() abort "{{{
     endif
     let win_params = getbufvar(bufnr, 'win_params')
 
-    let far_ctx = s:assemble_context(far_ctx.pattern, far_ctx.replace_with, far_ctx.files_mask, win_params)
+    let far_ctx = s:assemble_context(far_ctx.pattern, far_ctx.replace_with, far_ctx.file_mask, win_params)
     call setbufvar(bufnr, 'far_ctx', far_ctx)
     call s:update_far_buffer(bufnr)
 
@@ -653,26 +650,27 @@ endfunction
 "}}}
 
 
-function! s:do_find(pattern, replace_with, files_mask, fline, lline, xargs) "{{{
-    call s:log('do_find('.a:pattern.','. a:replace_with.','.a:files_mask.','
+function! s:do_find(pattern, replace_with, file_mask, fline, lline, xargs) "{{{
+    call s:log('do_find('.a:pattern.','. a:replace_with.','.a:file_mask.','
         \   .a:fline.','. a:lline.','.string(a:xargs).')')
 
     if empty(a:pattern)
         call s:echo_err('No pattern')
         return
-    elseif empty(a:files_mask)
+    elseif empty(a:file_mask)
         call s:echo_err('No file mask')
         return
     endif
 
-    if index(g:far#search_history, a:pattern) == -1
+    if a:pattern != '*' && index(g:far#search_history, a:pattern) == -1
         call add(g:far#search_history, a:pattern)
     endif
     if index(g:far#repl_history, a:replace_with) == -1
         call add(g:far#repl_history, a:replace_with)
     endif
-    if index(g:far#file_mask_history, a:files_mask) == -1
-        call add(g:far#file_mask_history, a:files_mask)
+    if index(g:far#file_mask_favorits, a:file_mask) == -1 &&
+            \   index(g:far#file_mask_history, a:file_mask) == -1
+        call add(g:far#file_mask_history, a:file_mask)
     endif
 
     let pattern = a:pattern
@@ -696,23 +694,10 @@ function! s:do_find(pattern, replace_with, files_mask, fline, lline, xargs) "{{{
         endwhile
         call s:log('*pattern:'.pattern)
     endif
-
     let replace_with = a:replace_with
-
-    if match(pattern, '\\n') + index(g:far#search_history, pattern) == -2
-        call add(g:far#search_history, pattern)
-    endif
-    if index(g:far#repl_history, a:replace_with) == -1
-        call add(g:far#repl_history, a:replace_with)
-    endif
-    if index(g:far#file_mask_history, a:files_mask) == -1
-        call add(g:far#file_mask_history, a:files_mask)
-    endif
-
-    let replace_with = a:replace_with
-    let files_mask = a:files_mask
-    if files_mask == '%'
-        let files_mask = bufname('%')
+    let file_mask = a:file_mask
+    if file_mask == '%'
+        let file_mask = bufname('%')
     endif
 
     let win_params = copy(s:win_params)
@@ -726,9 +711,9 @@ function! s:do_find(pattern, replace_with, files_mask, fline, lline, xargs) "{{{
         endfor
     endfor
 
-    let far_ctx = s:assemble_context(pattern, replace_with, files_mask, win_params)
+    let far_ctx = s:assemble_context(pattern, replace_with, file_mask, win_params)
     if empty(far_ctx.items)
-        call s:echo_err('No match: '.pattern)
+        call s:echo_err('No match')
         return
     endif
     call s:open_far_buff(far_ctx, win_params)
@@ -863,13 +848,13 @@ function! s:vimgrep_source(pattern, file_mask) abort "{{{
 endfunction "}}}
 
 
-function! s:assemble_context(pattern, replace_with, files_mask, win_params) abort "{{{
-    call s:log('assemble_context('.a:pattern.','.a:replace_with.','.a:files_mask.')')
+function! s:assemble_context(pattern, replace_with, file_mask, win_params) abort "{{{
+    call s:log('assemble_context('.a:pattern.','.a:replace_with.','.a:file_mask.')')
 
-    let items = s:vimgrep_source(a:pattern, a:files_mask)
+    let items = s:vimgrep_source(a:pattern, a:file_mask)
     let far_ctx = {
                 \ 'pattern': a:pattern,
-                \ 'files_mask': a:files_mask,
+                \ 'file_mask': a:file_mask,
                 \ 'replace_with': a:replace_with,
                 \ 'items': items}
 
