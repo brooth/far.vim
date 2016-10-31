@@ -9,6 +9,7 @@ endif "}}}
 
 
 " TODO {{{
+" fix escape pattern, no regex is allowed now
 " Refar fails on empty data
 " Farundo
 " readonly buffers? not saved buffers? modified (after search)?
@@ -129,8 +130,8 @@ function! g:far#apply_default_mappings() abort "{{{
     call s:log('apply_default_mappings()')
 
     nnoremap <buffer><silent> zA :call g:far#change_collapse_all(-1)<cr>
-    nnoremap <buffer><silent> zM :call g:far#change_collapse_all(1)<cr>
-    nnoremap <buffer><silent> zR :call g:far#change_collapse_all(0)<cr>
+    nnoremap <buffer><silent> zm :call g:far#change_collapse_all(1)<cr>
+    nnoremap <buffer><silent> zr :call g:far#change_collapse_all(0)<cr>
 
     nnoremap <buffer><silent> za :call g:far#change_collapse_under_cursor(-1)<cr>
     nnoremap <buffer><silent> zc :call g:far#change_collapse_under_cursor(1)<cr>
@@ -282,8 +283,8 @@ function! g:far#show_preview_window_under_cursor() abort "{{{
         " TODO: if replaced take data from undo_ctx
         " exec 'match Search "\%'.contexts[2].lnum.'lcontextsctxs[2].cnum.'c.\{'.
         "     \   strchars(contexts[2].replaccontextsctxs[2].repcontextsl : ctxs[2].match_val).'\}"'
-        let pmatch = 'match FarPreviewMatch /\%'.ctxs[2].lnum.'l\%'.ctxs[2].cnum.'c'.
-            \   ctxs[0].pattern.(&ignorecase? '\c/' : '/')
+        let pmatch = 'match FarPreviewMatch "\%'.ctxs[2].lnum.'l\%'.ctxs[2].cnum.'c'.
+            \   escape(ctxs[0].pattern, '"').(&ignorecase? '\c"' : '"')
         call s:log('preview match: '.pmatch)
         exec pmatch
     endif
@@ -435,11 +436,19 @@ function! g:far#change_exclude_under_cursor(cmode) abort "{{{
 endfunction "}}}
 
 
-function! Far(pattern, replace_with, files_mask, ...) range abort "{{{
+function! Far(cmdline, fline, lline) range abort "{{{
     call s:log('=============== FAR ================')
-    return s:do_find(a:pattern, a:replace_with, a:files_mask, a:firstline, a:lastline, a:000)
+    call s:log('cmdline: '.a:cmdline)
+
+    let cargs = split(a:cmdline, '\(.*\\\)\@<!\s')
+    if len(cargs) < 3
+        call s:echo_err('Arguments required. Format :Far <pattern> <replace with> <file mask> [additional args]')
+        return
+    endif
+
+    return s:do_find(cargs[0], cargs[1], cargs[2], a:fline, a:lline, cargs[3:])
 endfunction
-command! -complete=customlist,FarComplete -nargs=+ -range Far <line1>,<line2>call Far(<f-args>)
+command! -complete=customlist,FarComplete -nargs=1 -range Far call Far('<args>',<line1>,<line2>)
 "}}}
 
 
@@ -661,6 +670,16 @@ function! s:do_find(pattern, replace_with, files_mask, fline, lline, xargs) "{{{
         return
     endif
 
+    if index(g:far#search_history, a:pattern) == -1
+        call add(g:far#search_history, a:pattern)
+    endif
+    if index(g:far#repl_history, a:replace_with) == -1
+        call add(g:far#repl_history, a:replace_with)
+    endif
+    if index(g:far#file_mask_history, a:files_mask) == -1
+        call add(g:far#file_mask_history, a:files_mask)
+    endif
+
     let pattern = a:pattern
     if a:pattern == '*'
         let pattern = ''
@@ -681,11 +700,9 @@ function! s:do_find(pattern, replace_with, files_mask, fline, lline, xargs) "{{{
             let lnum += 1
         endwhile
         call s:log('*pattern:'.pattern)
-    else
-        let pattern = escape(pattern, '/\[]*')
     endif
 
-    let replace_with = escape(a:replace_with, '/\')
+    let replace_with = a:replace_with
 
     if match(pattern, '\\n') + index(g:far#search_history, pattern) == -2
         call add(g:far#search_history, pattern)
@@ -697,6 +714,7 @@ function! s:do_find(pattern, replace_with, files_mask, fline, lline, xargs) "{{{
         call add(g:far#file_mask_history, a:files_mask)
     endif
 
+    let replace_with = a:replace_with
     let files_mask = a:files_mask
     if files_mask == '%'
         let files_mask = bufname('%')
@@ -722,7 +740,6 @@ function! s:do_find(pattern, replace_with, files_mask, fline, lline, xargs) "{{{
     endif
     call s:open_far_buff(far_ctx, win_params)
 endfunction
-command! -complete=customlist,FarComplete -nargs=+ -range Far <line1>,<line2>call Far(<f-args>)
 "}}}
 
 
@@ -813,7 +830,9 @@ endfunction "}}}
 
 function! s:vimgrep_source(pattern, file_mask) abort "{{{
     try
-        exec 'silent! vimgrep! /'.a:pattern.'/gj '.a:file_mask
+        let cmd = 'silent! vimgrep! /'.a:pattern.'/gj '.a:file_mask
+        call s:log('vimgrep cmd: '.cmd)
+        exec cmd
     catch /.*/
         call s:log('vimgrep error:'.v:exception)
     endtry
