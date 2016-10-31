@@ -14,9 +14,9 @@ endif "}}}
 " readonly buffers? not saved buffers? modified (after search)?
 " statusline (done in Xms stat, number of matches)
 " async for neovim
-" support alternative finders (not vimgrep)
-" multiple finders, excluder (dublicates..)
-" pass finders via param
+" support alternative sources (not vimgrep)
+" multiple sources, excluder (dublicates..)
+" pass sources via param
 " python rename provider (tags? rope? jedi? all of them!)
 " nodes: nested ctxs? for dirs? for python package/module/class/method
 "}}}
@@ -330,8 +330,6 @@ function! g:far#jump_buffer_under_cursor() abort "{{{
         endif
         return
     endif
-
-    echoerr 'no far ctx item found under cursor '
 endfunction "}}}
 
 
@@ -482,6 +480,10 @@ function! FarRepeat() abort "{{{
     let far_ctx = s:assemble_context(far_ctx.pattern, far_ctx.replace_with, far_ctx.files_mask, win_params)
     call setbufvar(bufnr, 'far_ctx', far_ctx)
     call s:update_far_buffer(bufnr)
+
+    if empty(far_ctx.items)
+        call s:echo_err('No more matches')
+    endif
 endfunction
 command! -nargs=0 Refar call FarRepeat()
 "}}}
@@ -714,8 +716,8 @@ function! s:do_find(pattern, replace_with, files_mask, fline, lline, xargs) "{{{
     endfor
 
     let far_ctx = s:assemble_context(pattern, replace_with, files_mask, win_params)
-    if empty(far_ctx)
-        call s:echo_err('No match:'.pattern)
+    if empty(far_ctx.items)
+        call s:echo_err('No match: '.pattern)
         return
     endif
     call s:open_far_buff(far_ctx, win_params)
@@ -809,16 +811,16 @@ function! s:do_replace(far_ctx, repl_params) abort "{{{
 endfunction "}}}
 
 
-function! s:vimgrep_finder(pattern, file_mask) abort "{{{
+function! s:vimgrep_source(pattern, file_mask) abort "{{{
     try
-        silent exec 'vimgrep/'.a:pattern.'/gj '.a:file_mask
+        exec 'silent! vimgrep! /'.a:pattern.'/gj '.a:file_mask
     catch /.*/
         call s:log('vimgrep error:'.v:exception)
     endtry
 
     let items = getqflist()
     if empty(items)
-        return []
+        return {}
     endif
 
     let result = {}
@@ -849,11 +851,7 @@ endfunction "}}}
 function! s:assemble_context(pattern, replace_with, files_mask, win_params) abort "{{{
     call s:log('assemble_context(): '.string([a:pattern, a:replace_with, a:files_mask]))
 
-    let items = s:vimgrep_finder(a:pattern, a:files_mask)
-    if empty(items)
-        return {}
-    endif
-
+    let items = s:vimgrep_source(a:pattern, a:files_mask)
     let far_ctx = {
                 \ 'pattern': a:pattern,
                 \ 'files_mask': a:files_mask,
@@ -880,7 +878,7 @@ function! s:build_buffer_content(bufnr) abort "{{{
     endif
     if len(far_ctx.items) == 0
         call s:log('empty context result')
-        return {}
+        return {'content': [], 'syntaxs': []}
     endif
     let win_params = getbufvar(a:bufnr, 'win_params')
 
@@ -1011,10 +1009,6 @@ function! s:update_far_buffer(bufnr) abort "{{{
     endif
 
     let buff_content = s:build_buffer_content(a:bufnr)
-    if empty(buff_content)
-        call s:echo_err('No match')
-        return
-    endif
 
     if s:debug
         call s:log('content:')
