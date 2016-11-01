@@ -10,14 +10,7 @@ endif "}}}
 
 " TODO {{{
 " Farundo
-" readonly buffers? not saved buffers? modified (after search)?
 " statusline (done in Xms stat, number of matches)
-" async for neovim
-" support alternative sources (not vimgrep)
-" multiple sources, excluder (dublicates..)
-" pass sources via param
-" python rename provider (tags? rope? jedi? all of them!)
-" nodes: nested ctxs? for dirs? for python package/module/class/method
 "}}}
 
 
@@ -61,7 +54,7 @@ let g:far#confirm_fardo = exists('g:far#confirm_fardo')?
 let g:far#window_min_content_width = exists('g:far#window_min_content_width')?
     \   g:far#window_min_content_width : 60
 let g:far#preview_window_scroll_step = exists('g:far#preview_window_scroll_step')?
-    \   g:far#preview_window_scroll_step : 2
+    \   g:far#preview_window_scroll_step : 1
 let g:far#check_window_resize_period = exists('g:far#check_window_resize_period')?
     \   g:far#check_window_resize_period : 2000
 let g:far#file_mask_favorits = exists('g:far#file_mask_favorits')?
@@ -116,8 +109,8 @@ let s:win_params_meta = {
     \   }
 
 let s:repl_params_meta = {
-    \   '--auto-write-bufs': {'param': 'auto_write', 'values': [0, 1]},
-    \   '--auto-delete-bufs': {'param': 'auto_delete', 'values': [0, 1]},
+    \   '--write-bufs': {'param': 'auto_write', 'values': [0, 1]},
+    \   '--delete-bufs': {'param': 'auto_delete', 'values': [0, 1]},
     \   }
 "}}}
 
@@ -150,7 +143,6 @@ function! g:far#apply_default_mappings() abort "{{{
 
     nnoremap <buffer><silent> <c-p> :call g:far#scroll_preview_window(-g:far#preview_window_scroll_step)<cr>
     nnoremap <buffer><silent> <c-n> :call g:far#scroll_preview_window(g:far#preview_window_scroll_step)<cr>
-
 endfunction "}}}
 
 
@@ -202,6 +194,8 @@ endfunction
 
 
 function! g:far#check_far_window_to_resize(bufnr) abort "{{{
+    call s:log('far#check_window_resize_period('.a:bufnr.')')
+
     let width = getbufvar(a:bufnr, 'far_window_width', -1)
     if width == -1
         call s:echo_err('Not a FAR buffer')
@@ -217,6 +211,8 @@ endfunction "}}}
 
 
 function! g:far#scroll_preview_window(steps) abort "{{{
+    call s:log('far#scroll_preview_window('.a:steps.')')
+
     if !exists('b:far_preview_winid') || win_id2win(b:far_preview_winid) == 0
         call s:echo_err('No preview window for curren buffer')
         return
@@ -235,6 +231,8 @@ endfunction "}}}
 
 
 function! g:far#show_preview_window_under_cursor() abort "{{{
+    call s:log('far#show_preview_window_under_cursor()')
+
     let ctxs = s:get_contexts_under_cursor()
     if len(ctxs) < 2
         return
@@ -275,13 +273,12 @@ function! g:far#show_preview_window_under_cursor() abort "{{{
 
     if len(ctxs) > 2
         exec 'norm! '.ctxs[2].lnum.'ggzz'.ctxs[2].cnum.'l'
-        " TODO: if replaced take data from undo_ctx
-        " exec 'match Search "\%'.contexts[2].lnum.'lcontextsctxs[2].cnum.'c.\{'.
-        "     \   strchars(contexts[2].replaccontextsctxs[2].repcontextsl : ctxs[2].match_val).'\}"'
-        let pmatch = 'match FarPreviewMatch "\%'.ctxs[2].lnum.'l\%'.ctxs[2].cnum.'c'.
-            \   escape(ctxs[0].pattern, '"').(&ignorecase? '\c"' : '"')
-        call s:log('preview match: '.pmatch)
-        exec pmatch
+        if !ctxs[2].replaced
+            let pmatch = 'match FarPreviewMatch "\%'.ctxs[2].lnum.'l\%'.ctxs[2].cnum.'c'.
+                \   escape(ctxs[0].pattern, '"').(&ignorecase? '\c"' : '"')
+            call s:log('preview match: '.pmatch)
+            exec pmatch
+        endif
     endif
 
     call win_gotoid(far_winid)
@@ -289,6 +286,8 @@ endfunction "}}}
 
 
 function! g:far#close_preview_window() abort "{{{
+    call s:log('far#close_preview_window()')
+
     if !exists('b:far_preview_winid')
         call s:echo_err('Not preview window for current buffer')
         return
@@ -304,6 +303,8 @@ endfunction "}}}
 
 
 function! g:far#jump_buffer_under_cursor() abort "{{{
+    call s:log('far#jump_buffer_under_cursor()')
+
     let ctxs = s:get_contexts_under_cursor()
     let win_params = getbufvar('%', 'win_params')
 
@@ -330,6 +331,8 @@ endfunction "}}}
 
 
 function! g:far#change_collapse_all(cmode) abort "{{{
+    call s:log('far#change_collapse_all('.a:cmode.')')
+
     let bufnr = bufnr('%')
     let far_ctx = s:get_buf_far_ctx(bufnr)
 
@@ -346,6 +349,8 @@ endfunction "}}}
 
 
 function! g:far#change_collapse_under_cursor(cmode) abort "{{{
+    call s:log('far#change_collapse_under_cursor('.a:cmode.')')
+
     let bufnr = bufnr('%')
     let far_ctx = s:get_buf_far_ctx(bufnr)
 
@@ -383,6 +388,8 @@ endfunction "}}}
 
 
 function! g:far#change_exclude_all(cmode) abort "{{{
+    call s:log('far#change_exclude_all('.a:cmode.')')
+
     let bufnr = bufnr('%')
     let far_ctx = s:get_buf_far_ctx(bufnr)
 
@@ -399,6 +406,8 @@ endfunction "}}}
 
 
 function! g:far#change_exclude_under_cursor(cmode) abort "{{{
+    call s:log('far#change_exclude_under_cursor('.a:cmode.')')
+
     let bufnr = bufnr('%')
     let far_ctx = s:get_buf_far_ctx(bufnr)
     let pos = getcurpos()[1]
@@ -722,8 +731,7 @@ endfunction
 
 
 function! s:do_replace(far_ctx, repl_params) abort "{{{
-    call s:log('=============== DO REPLACE ================')
-    call s:log('args: '.a:far_ctx.replace_with.', '.string(a:repl_params))
+    call s:log('do_replace('.a:far_ctx.replace_with.', '.string(a:repl_params).')')
 
     let ts = localtime()
     let bufnr = bufnr('%')
