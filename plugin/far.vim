@@ -77,8 +77,8 @@ let s:win_params = {
     \   }
 
 let s:repl_params = {
-    \   'auto_write': exists('far#auto_write_replaced_buffers')? g:far#auto_write_replaced_buffers : 1,
-    \   'auto_delete': exists('far#auto_delete_replaced_buffers')? g:far#auto_delete_replaced_buffers : 1,
+    \   'auto_write': exists('far#auto_write_replaced_buffers')? g:far#auto_write_replaced_buffers : 0,
+    \   'auto_delete': exists('far#auto_delete_replaced_buffers')? g:far#auto_delete_replaced_buffers : 0,
     \   }
 "}}}
 
@@ -109,8 +109,8 @@ let s:win_params_meta = {
     \   }
 
 let s:repl_params_meta = {
-    \   '--write-bufs': {'param': 'auto_write', 'values': [0, 1]},
-    \   '--delete-bufs': {'param': 'auto_delete', 'values': [0, 1]},
+    \   '--auto-write-bufs': {'param': 'auto_write', 'values': [0, 1]},
+    \   '--auto-delete-bufs': {'param': 'auto_delete', 'values': [0, 1]},
     \   }
 "}}}
 
@@ -278,6 +278,8 @@ function! g:far#show_preview_window_under_cursor() abort "{{{
                 \   escape(ctxs[0].pattern, '"').(&ignorecase? '\c"' : '"')
             call s:log('preview match: '.pmatch)
             exec pmatch
+        else
+            exec 'match'
         endif
     endif
 
@@ -755,14 +757,21 @@ function! s:do_replace(far_ctx, repl_params) abort "{{{
             let buf_repls = 0
             let cmds = reverse(cmds)
 
-            if a:repl_params.auto_write
+            exec 'buffer! '.buf_ctx.bufname
+
+            if a:repl_params.auto_write && !(&mod)
                 call add(cmds, 'write')
+            endif
+            if a:repl_params.auto_delete && !bufexists(buf_ctx.bufnr)
+                call add(del_bufs, buf_ctx.bufnr)
             endif
 
             let bufcmd = join(cmds, '|')
             call s:log('bufdo: '.bufcmd)
 
-            exec 'buffer! '.buf_ctx.bufname
+            if !a:repl_params.auto_delete && !buflisted(buf_ctx.bufnr)
+                set buflisted
+            endif
 
             exec 'redir => s:bufdo_msgs'
             silent! exec bufcmd
@@ -795,19 +804,13 @@ function! s:do_replace(far_ctx, repl_params) abort "{{{
                     let item_ctx.broken = 1
                 endif
             endfor
-
-            if a:repl_params.auto_write
-                if a:repl_params.auto_delete && !buflisted(buf_ctx.bufnr)
-                    call add(del_bufs, buf_ctx.bufnr)
-                endif
-            endif
         endif
     endfor
 
     exec 'b! '.bufnr
     if !empty(del_bufs)
         call s:log('delete buffers: '.join(del_bufs, ' '))
-        exec 'bd! '.join(del_bufs, ' ')
+        exec 'silent bd! '.join(del_bufs, ' ')
     endif
 
     call setbufvar('%', 'far_ctx', a:far_ctx)
