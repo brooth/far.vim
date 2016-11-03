@@ -1,7 +1,7 @@
 " File: far.vim
 " Description: Find And Replace
 " Author: Oleg Khalidov <brooth@gmail.com>
-" License: MIT license
+" License: MIT
 
 if exists('g:loaded_far') "{{{
     finish
@@ -11,6 +11,7 @@ endif "}}}
 " TODO {{{
 " Farundo
 " statusline (done in Xms stat, number of matches)
+" Find in <range> if pattern is not *
 "}}}
 
 

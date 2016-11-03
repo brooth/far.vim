@@ -1,0 +1,74 @@
+*far.txt*   Find And Replace
+
+Author:         Oleg Khalidov <brooth@gmail.com>
+License:        MIT
+Description:    Find And Replace
+Homepage:       https://github.com/brooth/far.vim/
+Version:        beta1
+
+==============================================================================
+CONTENTS                                                   	*far-contents*
+    1. Intro ................................ |far-intro|
+    2. Usage ................................ |far-usage|
+	2.1  Far ............................ |:Far|
+	2.2  Farp ........................... |:Farp|
+	2.3  Fardo .......................... |:Fardo|
+	2.4  Refar .......................... |:Refar|
+	2.5  Multiline replacement .......... |far-multiline|
+    3. Params ............................... |far-params|
+        3.1  Far/Farp params................. |far-cmd-params|
+        3.2  Fardo .......................... |far-fardo-params|
+    4. Configuration ........................ |far-config|
+        4.1  Window Layout .................. |far-win-layout|
+        4.2  Preview Window Layout .......... |far-preview-win-layout|
+        4.3  Jump Window Layout ............. |far-jump-win-layout|
+    5. Bugs ................................. |far-bugs|
+    6. Changelog ............................ |far-changelog|
+
+==============================================================================
+1. Intro                                                      	*far-intro*
+
+Far.vim plugin makes it easier to find and replaces text over the project.
+It's inspired by fancy IDEs, like IntellyJ and Eclipse, which provide
+cozy tools for such tasks. Far.vim shows all the matches it found and preview 
+the result. It's allowed to exclude matched items, preview them, jump to its 
+source and more.
+
+==============================================================================
+2. Usage                                                      	*far-usage*
+
+
+2.1 Far								*:Far*
+:Far {patterm} {replace-with} {file-maks} [params]
+	Find text to replace. Similar to *:substitute* command. 
+	The arguments are separated by space sign (" "). To escape space 
+	sigh use "\s" or "\ ". 
+	For the {pattern} see |pattern|. 
+	{replace-with} can be a literal string, or |sub-replace-special|.
+	{file-maks} simple file mask pattern, see |:vimgrep| for examples.
+	[params] see |far-cmd-params|
+
+
+2.1 Farp							*:Farp*
+:Farp [params]
+
+Use |Farp| command to enter the "pattern", "replace with" and "file mask" 
+one after the other:
+>
+ :Farp [<params>]<CR>
+ >Search (pattern): {patterm}<CR>
+ >Replace with: [replace-with]<CR>
+ >File mask: {file-maks}<CR>
+<
+Note: |Farp| allows to enter the arguments without escaping space symbol "\ ". 
+It's usuful to yank and paste multiline text to.
+Note: |Farp| allows empty [replace-with] to be able to remove matched text.
+For the {patterm}, {replace-with}, {file-maks} and [params] see |Far| command
+
+
+2.3 Fardo							*:Fardo*
+Use |Fardo| to replace matched items:
+
+
+2.4 Multiline replacement					*far-multiline*
+

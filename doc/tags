@@ -1,0 +1,12 @@
+far.vim	far.txt	/*far.txt*
+far-intro	far.txt	/*far-intro*
+far-usage	far.txt	/*far-usage*
+:Far	far.txt	/*:Far*
+:Farp	far.txt	/*:Farp*
+:Fardo	far.txt	/*:Fardo*
+far-multiline	far.txt	/*far-multiline*
+:substitude	$VIM/runtime/doc/change.txt	/*:substitute*
+pattern	$VIM/runtime/doc/pattern.txt	/*pattern*
+sub-replace-special	$VIM/runtime/doc/change.txt	/*sub-replace-special*
+vimgrep	$VIM/runtime/doc/quickfix.txt	/*:vimgrep*
+
