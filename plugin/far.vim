@@ -463,14 +463,17 @@ function! FarPrompt(...) abort range "{{{
     call s:log('============ FAR PROMPT ================')
 
     let pattern = input('Search (pattern): ', '', 'customlist,FarSearchComplete')
+    call s:log('>pattern: '.pattern)
     if empty(pattern)
         call s:echo_err('No pattern')
         return
     endif
 
     let replace_with = input('Replace with: ', '', 'customlist,FarReplaceComplete')
+    call s:log('>replace_with: '.replace_with)
 
     let file_mask = input('File mask: ', '', 'customlist,FarFileMaskComplete')
+    call s:log('>file_mask: '.file_mask)
     if empty(file_mask)
         call s:echo_err('No file mask')
         return
@@ -705,8 +708,12 @@ function! s:do_find(pattern, replace_with, file_mask, fline, lline, xargs) "{{{
             let lnum += 1
         endwhile
         call s:log('*pattern:'.pattern)
+    else
+        let pattern = substitute(pattern, '', '\\n', 'g')
     endif
-    let replace_with = a:replace_with
+
+    let replace_with = substitute(a:replace_with, '', '\\r', 'g')
+
     let file_mask = a:file_mask
     if file_mask == '%'
         let file_mask = bufname('%')
@@ -739,6 +746,7 @@ function! s:do_replace(far_ctx, repl_params) abort "{{{
     let ts = localtime()
     let bufnr = bufnr('%')
     let del_bufs = []
+    let lines_to_repl = len(substitute(a:far_ctx.replace_with, '[^\\r]', '','g'))/2
     for k in keys(a:far_ctx.items)
         let buf_ctx = a:far_ctx.items[k]
         call s:log('replacing buffer '.buf_ctx.bufnr.' '.buf_ctx.bufname)
@@ -793,7 +801,7 @@ function! s:do_replace(far_ctx, repl_params) abort "{{{
 
             for item_ctx in items
                 for idx in range(len(repl_lines))
-                    if item_ctx.lnum == repl_lines[idx][0]
+                    if (item_ctx.lnum + lines_to_repl) == repl_lines[idx][0]
                         let item_ctx.replaced = 1
                         let item_ctx.text = repl_lines[idx][1]
                         let buf_repls += 1

@@ -4,6 +4,9 @@ far-usage	far.txt	/*far-usage*
 :Far	far.txt	/*:Far*
 :Farp	far.txt	/*:Farp*
 :Fardo	far.txt	/*:Fardo*
+:Refar	far.txt	/*:Refar*
+far-config	far.txt	/*far-config*
+
 far-multiline	far.txt	/*far-multiline*
 :substitude	$VIM/runtime/doc/change.txt	/*:substitute*
 pattern	$VIM/runtime/doc/pattern.txt	/*pattern*
