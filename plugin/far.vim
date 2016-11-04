@@ -61,7 +61,9 @@ let g:far#check_window_resize_period = exists('g:far#check_window_resize_period'
 let g:far#file_mask_favorites = exists('g:far#file_mask_favorites')?
     \   g:far#file_mask_favorites : ['%', '**/*.*', '**/*.html', '**/*.js', '**/*.css']
 
-let s:win_params = {
+
+function! s:create_win_params() abort
+    return {
     \   'layout': exists('g:far#window_layout')? g:far#window_layout : 'right',
     \   'width': exists('g:far#window_width')? g:far#window_width : 100,
     \   'height': exists('g:far#window_height')? g:far#window_height : 20,
@@ -76,11 +78,14 @@ let s:win_params = {
     \   'collapse_result': exists('far#collapse_result')? g:far#collapse_result : 0,
     \   'result_preview': exists('far#result_preview')? g:far#result_preview : 1,
     \   }
+endfunction
 
-let s:repl_params = {
+function! s:create_repl_params() abort
+    return {
     \   'auto_write': exists('far#auto_write_replaced_buffers')? g:far#auto_write_replaced_buffers : 0,
     \   'auto_delete': exists('far#auto_delete_replaced_buffers')? g:far#auto_delete_replaced_buffers : 0,
     \   }
+endfunction
 "}}}
 
 
@@ -518,7 +523,7 @@ function! FarDo(...) abort "{{{
         return
     endif
 
-    let repl_params = copy(s:repl_params)
+    let repl_params = s:create_repl_params()
     for xarg in a:000
         for k in keys(s:repl_params_meta)
             if match(xarg, k) == 0
@@ -719,7 +724,7 @@ function! s:do_find(pattern, replace_with, file_mask, fline, lline, xargs) "{{{
         let file_mask = bufname('%')
     endif
 
-    let win_params = copy(s:win_params)
+    let win_params = s:create_win_params()
     for xarg in a:xargs
         for k in keys(s:win_params_meta)
             if match(xarg, k) == 0
