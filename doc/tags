@@ -5,12 +5,15 @@ far-usage	far.txt	/*far-usage*
 :Farp	far.txt	/*:Farp*
 :Fardo	far.txt	/*:Fardo*
 :Refar	far.txt	/*:Refar*
-far-features	far.txt	/*far-features*
+far-extras	far.txt	/*far-extras*
 far-multiline	far.txt	/*far-multiline*
+far-highlight	far.txt	/*far-highlight*
 far-complete	far.txt	/*far-complete*
 far-preview	far.txt	/*far-preview*
 far-jump	far.txt	/*far-jump*
+far-consistency	far.txt	/*far-consistency*
 far-config	far.txt	/*far-config*
+far-highlight-config	far.txt	/*far-highlight-config*
 far-mappings	far.txt	/*far-mappings*
 far-params	far.txt	/*far-params*
 far-bugs	far.txt	/*far-bugs*
@@ -39,6 +42,8 @@ far-license	far.txt	/*far-license*
 *g:far#window_min_content_width	far.txt	/*g:far#window_min_content_width*
 *g:far#check_window_resize_period	far.txt	/*g:far#check_window_resize_period*
 
+FarBrokenItem	far.txt	/*FarBrokenItem*
+
 --win-layout	far.txt	/*--win-layout*
 --win-width	far.txt	/*--win-width*
 --win-height	far.txt	/*--win-height*
@@ -59,5 +64,6 @@ far-license	far.txt	/*far-license*
 
 :substitude	$VIM/runtime/doc/change.txt	/*:substitute*
 pattern	$VIM/runtime/doc/pattern.txt	/*pattern*
+'wildmenu'	$VIM/runtime/doc/options.txt	/*'wildmenu'*
 sub-replace-special	$VIM/runtime/doc/change.txt	/*sub-replace-special*
 vimgrep	$VIM/runtime/doc/quickfix.txt	/*:vimgrep*

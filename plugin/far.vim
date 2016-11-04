@@ -58,8 +58,8 @@ let g:far#preview_window_scroll_step = exists('g:far#preview_window_scroll_step'
     \   g:far#preview_window_scroll_step : 1
 let g:far#check_window_resize_period = exists('g:far#check_window_resize_period')?
     \   g:far#check_window_resize_period : 2000
-let g:far#file_mask_favorits = exists('g:far#file_mask_favorits')?
-    \   g:far#file_mask_favorits : ['%', '**/*.*', '**/*.html', '**/*.js', '**/*.css']
+let g:far#file_mask_favorites = exists('g:far#file_mask_favorites')?
+    \   g:far#file_mask_favorites : ['%', '**/*.*', '**/*.html', '**/*.js', '**/*.css']
 
 let s:win_params = {
     \   'layout': exists('g:far#window_layout')? g:far#window_layout : 'right',
@@ -585,7 +585,7 @@ function! FarReplaceComplete(arglead, cmdline, cursorpos) abort
 endfunction
 
 function! FarFileMaskComplete(arglead, cmdline, cursorpos) abort
-    return s:find_matches(g:far#file_mask_favorits + g:far#file_mask_history, a:arglead)
+    return s:find_matches(g:far#file_mask_favorites + g:far#file_mask_history, a:arglead)
 endfunction
 
 function! FarArgsComplete(arglead, cmdline, cursorpos) abort
@@ -683,7 +683,7 @@ function! s:do_find(pattern, replace_with, file_mask, fline, lline, xargs) "{{{
     if index(g:far#repl_history, a:replace_with) == -1
         call add(g:far#repl_history, a:replace_with)
     endif
-    if index(g:far#file_mask_favorits, a:file_mask) == -1 &&
+    if index(g:far#file_mask_favorites, a:file_mask) == -1 &&
             \   index(g:far#file_mask_history, a:file_mask) == -1
         call add(g:far#file_mask_history, a:file_mask)
     endif
@@ -982,7 +982,7 @@ function! s:build_buffer_content(bufnr) abort "{{{
                         let excl_syn = 'syn region FarExcludedItem start="\%'.line_num.'l^" end="$"'
                         call add(syntaxs, excl_syn)
                     elseif get(item_ctx, 'broken', 0)
-                        let excl_syn = 'syn region Error start="\%'.line_num.'l^" end="$"'
+                        let excl_syn = 'syn region FarBrokenItem start="\%'.line_num.'l^" end="$"'
                         call add(syntaxs, excl_syn)
                     else
                         if win_params.result_preview && !multiline && !item_ctx.replaced
@@ -1006,11 +1006,11 @@ function! s:build_buffer_content(bufnr) abort "{{{
                     endif
                 else
                     if get(item_ctx, 'broken', 0)
-                        let out = 'b'.out[1:]
+                        let out = 'B'.out[1:]
                     elseif item_ctx.replaced
-                        let out = 'r'.out[1:]
+                        let out = 'R'.out[1:]
                     elseif item_ctx.excluded
-                        let out = 'x'.out[1:]
+                        let out = 'X'.out[1:]
                     endif
                 endif
                 call add(content, out)

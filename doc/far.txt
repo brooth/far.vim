@@ -10,15 +10,18 @@ CONTENTS                                                        *far-contents*
 
     1. Intro .................................................. |far-intro|
     2. Usage .................................................. |far-usage|
+    2.1  Hello, World! ........................................ |far-quick-example|
     2.1  Far .................................................. |:Far|
     2.2  Farp ................................................. |:Farp|
     2.3  Fardo ................................................ |:Fardo|
     2.4  Refar ................................................ |:Refar|
-    3. Features ............................................... |far-features|
+    3. Extras ................................................. |far-extras|
     3.1  Multiline Replacement ................................ |far-multiline|
-    3.2  Command Completion ................................... |far-complete|
+    3.2  Highlighting ......................................... |far-highlight|
+    3.2  Command-Line Completion .............................. |far-complete|
     3.3  Preview Window ....................................... |far-preview|
     3.4  Jump Window .......................................... |far-jump|
+    3.5  Consistency Check .................................... |far-consistency|
     4. Configuration .......................................... |far-config|
     5. Mappings ............................................... |far-mappings|
     6. Command Params ......................................... |far-params|
@@ -29,28 +32,34 @@ CONTENTS                                                        *far-contents*
 ==============================================================================
 INTRO                                                           *far-intro*
 
-    Far.vim plugin makes it easier to find and replaces text over the project.
+    Far.vim makes it easier to find and replace text over the project.
     It's inspired by fancy IDEs, like IntellyJ and Eclipse, which provide
-    cozy tools for such tasks. Far.vim shows found items and preview of
-    the replacement result. It's allowed to exclude matched item,
-    see it's source snippet, jump to its position in file, and more.
+    cozy tools for such tasks. Far.vim shows found items and result preview.
+    It allows to exclude items, view its source code snippet,
+    jump to its buffer, and more.
 
 ==============================================================================
 USAGE                                                           *far-usage*
 
+"Hello, World!"                                                 *far-quick-example*
+    No time to read? Here is the quick example:
+>
+    :Far foo bar **/*.py<CR>
+    :Fardo<CR>
+<
 *:Far* {pattern} {replace-with} {file-mark} [params]
     Find text to replace. Similar to *:substitute* command.
     The arguments are separated by space (" "). To escape space
     character use "\s" or "\ ".
-    For the {pattern} see |pattern|. You can also use '*' as {pattern},
-    see |far-multiline| for details.
+    For the {pattern} see |pattern|. You can also use '*' as {pattern}
+    for multiline replacement. See |far-multiline|.
     {replace-with} can be a literal string, or |sub-replace-special|.
-    {file-mark} simple file mask pattern, see |:vimgrep| for examples.
-    Note: Use '%' to set current file as {file-mask}
+    {file-mark} is a simple file mask pattern, see |:vimgrep| for examples.
+    Note: Use '%' as {file-mask} if you want to "FAR" current file.
     For [params] see |far-params|
 
 *:Farp* [params]
-    Use |Farp| command to enter {pattern}, {replace-with} and {file-mask}
+    |Farp| command allows to enter {pattern}, {replace-with} and {file-mask}
     one after the other:
 >
      :Farp [<params>]
@@ -58,34 +67,34 @@ USAGE                                                           *far-usage*
      >Replace with: [replace-with]
      >File mask: {file-mark}
 <
-    Note: |Farp| allows you to enter arguments without escaping space character.
-    Note: |Farp| allows empty [replace-with] to be able to remove matched text.
-    For the {pattern}, {replace-with}, {file-mark} and [params] see |Far| command
+    Note: You don't have to escape space character.
+    Note: |Farp| allows empty [replace-with] if you need to remove matched text.
+    For {pattern}, {replace-with}, {file-mark} and [params] see |Far| command.
 
 *:Fardo* [params]
     |Fardo| starts the replacement task. This command must be executed in a FAR
-    buffer (buffer with |:Far| or |:Farp| results)
-    For [params] see |far-params|
+    buffer (buffer with |Far| or |Farp| result).
+    For [params] see |far-params|.
 
 *:Refar*
-    |Refar| reruns |:Far| or |:Farp| command with the same arguments.
+    |Refar| reruns |Far| or |Farp| command with the same arguments.
     Note: It must be executed in a FAR buffer.
-    Use |:Refar| in case the data's been changed so you need to update
+    Use |Refar| in case the data's been changed and you need to update
     the search result.
 
 ==============================================================================
-FEATURES                                                        *far-features*
+EXTRAS                                                          *far-extras*
 
 Multiline Replacement                                           *far-multiline*
-    You can use multiline text as {pattern} or/and {replace-with} expressions
-    for |:Far| and |:Farp| commands.
+    It's allowed to use multiline text as {pattern} or/and {replace-with}
+    expressions for |Far| and |Farp| commands.
 
     a) The first approach is to use visual selection. Go to Visual mode, highlight
-    the text you want to replace and hit ':'. Use '*' (asterisk) as {pattern}:
+    the text you want to replace and hit ':'. Use '*' as {pattern}:
 >
     :'<,'>Far * {replace-with} {file-mask} [params]
 <
-    and resp.:
+    and resp. for |Farp|:
 >
      :'<,'>Farp [<params>]
      >Search (pattern): *
@@ -94,22 +103,77 @@ Multiline Replacement                                           *far-multiline*
 <
     b) The second approach is simply to paste yanked text.
 >
-    :Far <^R-"> <^R-"> {file-mask} [params]
+    :Far <^r"> <^r"> {file-mask} [params]
 <
-    And resp.:
+     and resp. for |Farp|:
 >
      :Farp [<params>]
-     >Search (pattern): <^R-">
-     >Replace with: <^R-">
+     >Search (pattern): <^r">
+     >Replace with: <^r">
      >File mask: {file-mark}
 <
     Note: you need to explicitly escape all space characters with "\".
 
-Command Completion                                              *far-complete*
+
+Highlighting                                                    *far-highlight*
+    If |g:far#highlight_match| flag is set, far.vim adds per line
+    highlighting for each matched and result item. Since per line highlighting
+    is a CPU depending feature in vim, it's better sometimes to turn it off
+    for big amount of data (avg. 200+ items).
+
+    If the highlighting feature is off, the following abbreviations are added
+    to the beggining of resp. lines:
+        *X* - Item excluded
+        *R* - Item replaced
+        *B* - Item broken (see |far-consistency|)
+
+    See |far-highlight-config|.
+
+
+Command-Line Completion                                         *far-complete*
+    Far.vim supports built-in command-line completion (see |'wildmenu'|).
+    Hit <tab> while entering |Far|, |Farp| or |Fardo| command to auto-complete
+    predefined and previously used arguments.
+    Far.vim also supports auto-completion of |far-params| values. Hit <tab>
+    after '=' character is entered.
+>
+    :Far foo bar % --win-l<tab>         ->  :Far foo bar % --win-layout
+    :Far foo bar % --win-layout=c<tab>  ->  :Far foo bar % --win-layout=current
+<
+    See also |g:far#file_mask_favorites|.
+
 
 Preview Window                                                  *far-preview*
+    Far.vim allows to preview the code snippet where the item was found.
+    If |g:far#auto_preview| flag is set, far.vim automatically opens and scrolls
+    the preview window on cursor movement. If |g:far#auto_preview| is set to 0,
+    you can control preview window manually (see |far-mappings|).
+    You can also scroll preview window up and down from a FAR buffer
+    (no need to change focus to preview window).
+    By default <c-p> scrolls up and <c-n> scrolls down.
+
+    See |far-mappings|, |g:far#preview_window_scroll_step|, |g:far#auto_preview|,
+        |g:far#preview_window_layout|, |g:far#preview_window_width|,
+        |g:far#preview_window_height|.
+
 
 Jump Window                                                     *far-jump*
+    If there is an open buffer for a matched item, you can jump to this
+    buffer from a FAR window by hitting <CR> (by default) button. If there
+    is no such buffer, far.vim opens it in a new window.
+
+    See |far-mappings|, |g:far#jump_window_layout|, |g:far#jump_window_width|,
+        |g:far#jump_window_height|.
+
+
+Consistency Check                                               *far-consistency*
+    Since the search (|Far| or |Farp| command) until the replacement (|Fardo|) task,
+    the file content can be modified. While the replacement far.vim is checking
+    that respective item's been replaced successfully. If not, this item is marked
+    as 'broken'. You can see these items in |FarBrokenItem| highlighting
+    or with *B* prefix if |g:far#highlight_match| is set to 0.
+
+    See |far-highlight|, |g:far#highlight_match|.
 
 ==============================================================================
 CONFIGURATION                                                   *far-config*
@@ -117,7 +181,7 @@ CONFIGURATION                                                   *far-config*
     You can change next variables in order to configure far.vim behavior.
 
 *g:far#default_mappings*
-    Apply default mappings to FAR buffers. See |far-mappings|.
+    Apply default mappings to each FAR buffer. See |far-mappings|.
 
     Options: 0, 1
     Default: 1
@@ -137,10 +201,8 @@ CONFIGURATION                                                   *far-config*
     Default: 1
 
 *g:far#highlight_match*
-    Highlight matched and result text in FAR buffers.
-    Note: Per line highlighting is a CPU demanding feature. You should
-    turn it off when you replace big amount of data.
-    See |--hl-match|.
+    Enable highlight feature in FAR buffers.
+    See |far-highlight|, |--hl-match|.
 
     Options: 0, 1
     Default: 1
@@ -202,53 +264,53 @@ CONFIGURATION                                                   *far-config*
 
     Default: 15
 
-*g:far#file_mask_favorits*
-    List of favorit file masks which far offers in complition.
+*g:far#file_mask_favorites*
+    List of favorite file masks provided for command-line completion.
     See |far-complete|
 
     Default: ['%', '**/*.*', '**/*.html', '**/*.js', '**/*.css']
 
 *g:far#collapse_result*
-    Auto collapse result tree. Useful if you replace big amount of data.
+    Auto collapse result tree.
     See |--collapse|
 
     Options: 0, 1
     Default: 0
 
 *g:far#confirm_fardo*
-    Confirm |:Fardo| command.
+    Confirm |Fardo| command.
 
     Options: 0, 1
     Default: 1
 
 *g:far#preview_window_scroll_step*
-    Step size of preview window scrolling.
-    See |far-mappings|.
+    Step size for preview window scrolling.
+    See |far-preview|, |far-mappings|.
 
     Default: 1
 
 *g:far#auto_write_replaced_buffers*
-    Automatically write replaced buffer if it hasn't had unsaved data.
+    Automatically write replaced buffer (if it hadn't been unsaved)
     See |--auto-write-bufs|
 
     Options: 0, 1
     Default: 0
 
 *g:far#auto_delete_replaced_buffers*
-    Automatically delete replaced buffer if it hasn't been loaded.
+    Automatically delete replaced buffer (if it hadn't been loaded)
     See |--auto-delete-bufs|
 
     Options: 0, 1
     Default: 0
 
 *g:far#window_min_content_width*
-    Minimal width of FAR content.
+    Minimal width of a FAR buffer content.
 
     Default: 60
 
 *g:far#check_window_resize_period*
     The period of time in millis in which timer checks FAR buffer width
-    and updates its content if the width is changed.
+    and updates its content if the width has been changed.
 
     Default: 2000
 
@@ -283,13 +345,80 @@ CONFIGURATION                                                   *far-config*
 
     Default: '+'
 
+------------------------------------------------------------------------------
+Highlighting Groups:                                               *far-highlight-config*
+    In order to configure FAR buffer appearance you can modify next
+    highlight groups.
+
+*FarFileStats*
+    Controls buffer statistic appearance.
+
+    Default:
+>
+    hi def link FarFileStats Comment
+<
+*FarFilePath*
+    Controls buffer name (path) appearance.
+
+    Default:
+>
+    hi def link FarFilePath Directory
+<
+*FarSearchVal*
+    Controls matched item appearance.
+
+    Default:
+>
+    hi def link FarSearchVal Keyword
+<
+*FarReplaceVal*
+    Controls result item appearance.
+
+    Default:
+>
+    hi def link FarReplaceVal String
+<
+*FarExcludedItem*
+    Controls excluded item appearance.
+
+    Default:
+>
+    hi def link FarExcludedItem NonText
+<
+*FarReplacedItem*
+    Controls replaced item appearance.
+>
+    hi def link FarReplacedItem String
+>
+*FarBrokenItem*
+    Controls broken items appearance.
+    See |far-consistency|
+
+    Default:
+>
+    hi def link FarBrokenItem Error
+<
+*FarLineCol*
+    Controls line number text appearance.
+
+    Default:
+>
+    hi def link FarLineCol LineNr
+<
+*FarPreviewMatch*
+    Controls |:match| highlighting in preview windows.
+
+    Default:
+>
+    hi def link FarPreviewMatch Search
+<
 ==============================================================================
 MAPPINGS                                                         *far-mappings*
 
-    Next mappings are applied to each FAR buffer if |g:far#default_mappings|
-    is set to 1.
-    Note: If you want to define custom mapping you need to turn off
-    |g:far#default_mappings| and explicitly set up all the bindings.
+    Next bindings are applied to new FAR buffers if |g:far#default_mappings|
+    is set.
+    Note: If you want to define custom mapping, you need to set to 0
+    |g:far#default_mappings| variable and explicitly config all bindings.
 
 *x*
 *v_x*
@@ -333,14 +462,14 @@ MAPPINGS                                                         *far-mappings*
     nnoremap <buffer><silent> <KEY> :call g:far#change_exclude_all(0)<cr>
 <
 *T*
-    Toogle all items exclusion.
+    Toogle exclusion for all items.
 
     For custom mapping:
 >
     nnoremap <buffer><silent> <KEY> :call g:far#change_exclude_all(-1)<cr>
 <
 *<CR>*
-    Jump to the source code of item under cursor.
+    Jump to the source code of the item under cursor.
     See |far-jump|
 
     For custom mapping:
@@ -382,7 +511,7 @@ MAPPINGS                                                         *far-mappings*
         \   :call g:far#scroll_preview_window(g:far#preview_window_scroll_step)<cr>
 <
 *zo*
-    Expande node under cursor.
+    Expand node under cursor.
 >
     nnoremap <buffer><silent> <KEY> :call g:far#change_collapse_under_cursor(0)<cr>
 <
@@ -397,7 +526,7 @@ MAPPINGS                                                         *far-mappings*
     nnoremap <buffer><silent> <KEY> :call g:far#change_collapse_under_cursor(-1)<cr>
 <
 *zr*
-    Expande all nodes.
+    Expand all nodes.
 >
     nnoremap <buffer><silent> <KEY> :call g:far#change_collapse_all(0)<cr>
 <
@@ -407,76 +536,75 @@ MAPPINGS                                                         *far-mappings*
     nnoremap <buffer><silent> <KEY> :call g:far#change_collapse_all(1)<cr>
 <
 *zA*
-    Toogle all nodes expanding.
+    Toogle exclusion for all nodes.
 >
     nnoremap <buffer><silent> <KEY> :call g:far#change_collapse_all(-1)<cr>
 <
 
 ==============================================================================
 COMMAND PARAMS                                                   *far-params*
-
-    Command (|Far|, |Farp| and |Fardo|) params is used to temporarily define
-    some |far-config| variables, i.e. for current execution only.
+    Command (|Far|, |Farp| and |Fardo|) params is used to temporarily
+    (for current execution only) define several |far-config| variables.
 
 *--win-layout*
     |Far| and |Farp| param. Changes |g:far#window_layout| value for current
-    execution only.
+    execution.
 
 *--win-width*
     |Far| and |Farp| param. Changes |g:far#window_width| value for current
-    execution only.
+    execution.
 
 *--win-height*
     |Far| and |Farp| param. Changes |g:far#window_height| value for current
-    execution only.
+    execution.
 
 *--preview-win-layout*
     |Far| and |Farp| param. Changes |g:far#preview_window_layout| value for
-    current execution only.
+    current execution.
 
 *--preview-win-width*
     |Far| and |Farp| param. Changes |g:far#preview_window_width| value for
-    current execution only.
+    current execution.
 
 *--preview-win-height*
     |Far| and |Farp| param. Changes |g:far#preview_window_height| value for
-    current execution only.
+    current execution.
 
 *--jump-win-layout*
     |Far| and |Farp| param. Changes |g:far#jump_window_layout| value for
-    current execution only.
+    current execution.
 
 *--jump-win-width*
     |Far| and |Farp| param. Changes |g:far#jump_window_width| value for
-    current execution only.
+    current execution.
 
 *--jump-win-height*
     |Far| and |Farp| param. Changes |g:far#jump_window_height| value for
-    current execution only.
+    current execution.
 
 *--auto-preview*
     |Far| and |Farp| param. Changes |g:far#auto_preview| value for
-    current execution only.
+    current execution.
 
 *--hl-match*
     |Far| and |Farp| param. Changes |g:far#highlight_match| value for
-    current execution only.
+    current execution.
 
 *--collapse*
     |Far| and |Farp| param. Changes |g:far#collapse_result| value for
-    current execution only.
+    current execution.
 
 *--result-preview*
     |Far| and |Farp| param. Changes |g:far#result_preview| value for
-    current execution only.
+    current execution.
 
 *--auto-write-bufs*
     |Fardo| param. Changes |g:far#auto_write_replaced_buffers| value for
-    current execution only.
+    current execution.
 
 *--auto-delete-bufs*
     |Fardo| param. Changes |g:far#auto_delete_replaced_buffers| value for
-    current execution only.
+    current execution.
 
 ==============================================================================
 BUGS                                                            *far-bugs*
@@ -487,15 +615,17 @@ BUGS                                                            *far-bugs*
         If there is no any, follow to step 2.
         If there is one and it's open, submit a reply as described in step 3.
 
-    2)  Turn on debug mode in your '.vimrc' ('init.vim'):
+    2)  Turn on debug mode. In '.vimrc' ('init.vim') set this flag:
 >
-    let g:far#debug = 1
+        let g:far#debug = 1
 <
-        restart vim and reproduce bug.
+        restart vim and reproduce the bug.
 
-    3)  Create new issue (or submit a reply to existing) on github
-        https://github.com/brooth/far.vim/issues.
-        Add short description and attach '~/far.vim.log' file.
+    3)  Create new issue (or submit a reply to existing) on
+        https://github.com/brooth/far.vim/issues. Add short description
+        and attach '~/far.vim.log' log file.
+
+    4) Turn off debug mode.
 
     Thank you in advance!
 
