@@ -706,7 +706,7 @@ function! s:do_find(pattern, replace_with, file_mask, fline, lline, xargs) "{{{
             elseif lnum == a:lline
                 let line = line[:p2[1]-1]
             endif
-            let pattern = pattern.escape(line, '\ /[]*')
+            let pattern = pattern.escape(line, '\ []*')
             if lnum != a:lline
                 let pattern = pattern.'\n'
             endif
@@ -761,7 +761,8 @@ function! s:do_replace(far_ctx, repl_params) abort "{{{
         for item_ctx in buf_ctx.items
             if !item_ctx.excluded && !item_ctx.replaced
                 let cmd = item_ctx.lnum.'s/\%'.item_ctx.cnum.'c'.
-                    \   escape(a:far_ctx.pattern, '/').'/'.a:far_ctx.replace_with.'/e#'
+                    \   escape(a:far_ctx.pattern, '/').'/'.
+                    \   escape(a:far_ctx.replace_with, '/').'/e#'
                 call add(cmds, cmd)
                 call add(items, item_ctx)
             endif

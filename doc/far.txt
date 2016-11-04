@@ -112,7 +112,7 @@ Multiline Replacement                                           *far-multiline*
      >Replace with: <^r">
      >File mask: {file-mark}
 <
-    Note: you need to explicitly escape all space characters with "\".
+    Note: you need to explicitly escape all special characters. See |pattern|.
 
 
 Highlighting                                                    *far-highlight*
