@@ -1,7 +1,6 @@
 *far.txt*   Find And Replace
 
 Author:         Oleg Khalidov <brooth@gmail.com>
-License:        MIT
 Description:    Find And Replace
 Homepage:       https://github.com/brooth/far.vim/
 Version:        beta1
@@ -25,15 +24,16 @@ CONTENTS                                                        *far-contents*
     6. Command Params ......................................... |far-params|
     7. Bugs ................................................... |far-bugs|
     8. Changelog .............................................. |far-changelog|
+    9. License ................................................ |far-license|
 
 ==============================================================================
 INTRO                                                           *far-intro*
 
     Far.vim plugin makes it easier to find and replaces text over the project.
     It's inspired by fancy IDEs, like IntellyJ and Eclipse, which provide
-    cozy tools for such tasks. Far.vim shows all the matches it found and
-    preview the result. It's allowed to exclude matched items, preview them,
-    jump to its source and more.
+    cozy tools for such tasks. Far.vim shows found items and preview of
+    the replacement result. It's allowed to exclude matched item,
+    see it's source snippet, jump to its position in file, and more.
 
 ==============================================================================
 USAGE                                                           *far-usage*
@@ -50,7 +50,6 @@ USAGE                                                           *far-usage*
     For [params] see |far-params|
 
 *:Farp* [params]
-
     Use |Farp| command to enter {pattern}, {replace-with} and {file-mask}
     one after the other:
 >
@@ -64,13 +63,11 @@ USAGE                                                           *far-usage*
     For the {pattern}, {replace-with}, {file-mark} and [params] see |Far| command
 
 *:Fardo* [params]
-
     |Fardo| starts the replacement task. This command must be executed in a FAR
     buffer (buffer with |:Far| or |:Farp| results)
     For [params] see |far-params|
 
 *:Refar*
-
     |Refar| reruns |:Far| or |:Farp| command with the same arguments.
     Note: It must be executed in a FAR buffer.
     Use |:Refar| in case the data's been changed so you need to update
@@ -116,7 +113,8 @@ Jump Window                                                     *far-jump*
 
 ==============================================================================
 CONFIGURATION                                                   *far-config*
-    Use next variables to configure far.vim behavior.
+
+    You can change next variables in order to configure far.vim behavior.
 
 *g:far#default_mappings*
     Apply default mappings to FAR buffers. See |far-mappings|.
@@ -254,77 +252,259 @@ CONFIGURATION                                                   *far-config*
 
     Default: 2000
 
+*g:far#repl_devider*
+    This variable controls the icon between matched and result text.
+
+    Default: '  ➝  '
+
+*g:far#multiline_sign*
+    This variable controls multiline node icon.
+    See |far-multiline|
+
+    Default: '⬎'
+
+*g:far#left_cut_text_sign*
+    This variable controls the icon of cut in the begining text.
+
+    Default: '…'
+
+*g:far#right_cut_text_sign*
+    This variable controls the icon of cut in the end text.
+
+    Default: '…'
+
+*g:far#collapse_sign*
+    This variable controls expanded node icon.
+
+    Default: '-'
+
+*g:far#expand_sign*
+    This variable controls collapsed node icon.
+
+    Default: '+'
+
 ==============================================================================
 MAPPINGS                                                         *far-mappings*
 
+    Next mappings are applied to each FAR buffer if |g:far#default_mappings|
+    is set to 1.
+    Note: If you want to define custom mapping you need to turn off
+    |g:far#default_mappings| and explicitly set up all the bindings.
+
+*x*
+*v_x*
+    Exclude item under cursor.
+
+    For custom mapping:
+>
+    nnoremap <buffer><silent> <KEY> :call g:far#change_exclude_under_cursor(1)<cr>
+    vnoremap <buffer><silent> <KEY> :call g:far#change_exclude_under_cursor(1)<cr>
+<
+*i*
+*v_i*
+    Include item under cursor.
+
+    For custom mapping:
+>
+    nnoremap <buffer><silent> <KEY> :call g:far#change_exclude_under_cursor(0)<cr>
+    vnoremap <buffer><silent> <KEY> :call g:far#change_exclude_under_cursor(0)<cr>
+<
+*t*
+*v_t*
+    Toogle item exclusion under cursor.
+
+    For custom mapping:
+>
+    nnoremap <buffer><silent> <KEY> :call g:far#change_exclude_under_cursor(-1)<cr>
+    vnoremap <buffer><silent> <KEY> :call g:far#change_exclude_under_cursor(-1)<cr>
+<
+*X*
+    Exclude all items.
+
+    For custom mapping:
+>
+    nnoremap <buffer><silent> <KEY> :call g:far#change_exclude_all(1)<cr>
+<
+*I*
+    Include all items.
+
+    For custom mapping:
+>
+    nnoremap <buffer><silent> <KEY> :call g:far#change_exclude_all(0)<cr>
+<
+*T*
+    Toogle all items exclusion.
+
+    For custom mapping:
+>
+    nnoremap <buffer><silent> <KEY> :call g:far#change_exclude_all(-1)<cr>
+<
+*<CR>*
+    Jump to the source code of item under cursor.
+    See |far-jump|
+
+    For custom mapping:
+>
+    nnoremap <buffer><silent> <KEY> :call g:far#jump_buffer_under_cursor()<cr>
+<
+*p*
+    Open preview window (if not) and scroll to the item under cursor.
+    See |far-preview|
+
+    For custom mapping:
+>
+    nnoremap <buffer><silent> <KEY> :call g:far#show_preview_window_under_cursor()<cr>
+<
+*P*
+    Close preview window.
+    See |far-preview|
+
+    For custom mapping:
+>
+    nnoremap <buffer><silent> <KEY> :call g:far#close_preview_window()<cr>
+<
+*CTRL-P*
+    Scroll preview window up (if open).
+    See |far-preview|, |g:far#preview_window_scroll_step|
+
+    For custom mapping:
+>
+    nnoremap <buffer><silent> <KEY>
+        \   :call g:far#scroll_preview_window(-g:far#preview_window_scroll_step)<cr>
+<
+*CTRL-N*
+    Scroll preview window down (if open).
+    See |far-preview|, |g:far#preview_window_scroll_step|
+
+    For custom mapping:
+>
+    nnoremap <buffer><silent> <KEY>
+        \   :call g:far#scroll_preview_window(g:far#preview_window_scroll_step)<cr>
+<
+*zo*
+    Expande node under cursor.
+>
+    nnoremap <buffer><silent> <KEY> :call g:far#change_collapse_under_cursor(0)<cr>
+<
+*zc*
+    Collapse node under cursor.
+>
+    nnoremap <buffer><silent> <KEY> :call g:far#change_collapse_under_cursor(1)<cr>
+<
+*za*
+    Toogle node expanding under cursor.
+>
+    nnoremap <buffer><silent> <KEY> :call g:far#change_collapse_under_cursor(-1)<cr>
+<
+*zr*
+    Expande all nodes.
+>
+    nnoremap <buffer><silent> <KEY> :call g:far#change_collapse_all(0)<cr>
+<
+*zm*
+    Collapse all nodes.
+>
+    nnoremap <buffer><silent> <KEY> :call g:far#change_collapse_all(1)<cr>
+<
+*zA*
+    Toogle all nodes expanding.
+>
+    nnoremap <buffer><silent> <KEY> :call g:far#change_collapse_all(-1)<cr>
+<
 
 ==============================================================================
 COMMAND PARAMS                                                   *far-params*
-    Command (|:Far|, |:Farp| and |:Fardo|) params is used to define |far-config|
-    variables temporarily, i.e. for current execution only.
+
+    Command (|Far|, |Farp| and |Fardo|) params is used to temporarily define
+    some |far-config| variables, i.e. for current execution only.
 
 *--win-layout*
-    |:Far| and |:Farp| param. Changes |g:far#window_layout| value for current
+    |Far| and |Farp| param. Changes |g:far#window_layout| value for current
     execution only.
 
 *--win-width*
-    |:Far| and |:Farp| param. Changes |g:far#window_width| value for current
+    |Far| and |Farp| param. Changes |g:far#window_width| value for current
     execution only.
 
 *--win-height*
-    |:Far| and |:Farp| param. Changes |g:far#window_height| value for current
+    |Far| and |Farp| param. Changes |g:far#window_height| value for current
     execution only.
 
 *--preview-win-layout*
-    |:Far| and |:Farp| param. Changes |g:far#preview_window_layout| value for
+    |Far| and |Farp| param. Changes |g:far#preview_window_layout| value for
     current execution only.
 
 *--preview-win-width*
-    |:Far| and |:Farp| param. Changes |g:far#preview_window_width| value for
+    |Far| and |Farp| param. Changes |g:far#preview_window_width| value for
     current execution only.
 
 *--preview-win-height*
-    |:Far| and |:Farp| param. Changes |g:far#preview_window_height| value for
+    |Far| and |Farp| param. Changes |g:far#preview_window_height| value for
     current execution only.
 
 *--jump-win-layout*
-    |:Far| and |:Farp| param. Changes |g:far#jump_window_layout| value for
+    |Far| and |Farp| param. Changes |g:far#jump_window_layout| value for
     current execution only.
 
 *--jump-win-width*
-    |:Far| and |:Farp| param. Changes |g:far#jump_window_width| value for
+    |Far| and |Farp| param. Changes |g:far#jump_window_width| value for
     current execution only.
 
 *--jump-win-height*
-    |:Far| and |:Farp| param. Changes |g:far#jump_window_height| value for
+    |Far| and |Farp| param. Changes |g:far#jump_window_height| value for
     current execution only.
 
 *--auto-preview*
-    |:Far| and |:Farp| param. Changes |g:far#auto_preview| value for
+    |Far| and |Farp| param. Changes |g:far#auto_preview| value for
     current execution only.
 
 *--hl-match*
-    |:Far| and |:Farp| param. Changes |g:far#highlight_match| value for
+    |Far| and |Farp| param. Changes |g:far#highlight_match| value for
     current execution only.
 
 *--collapse*
-    |:Far| and |:Farp| param. Changes |g:far#collapse_result| value for
+    |Far| and |Farp| param. Changes |g:far#collapse_result| value for
     current execution only.
 
 *--result-preview*
-    |:Far| and |:Farp| param. Changes |g:far#result_preview| value for
+    |Far| and |Farp| param. Changes |g:far#result_preview| value for
     current execution only.
 
 *--auto-write-bufs*
-    |:Fardo| param. Changes |g:far#auto_write_replaced_buffers| value for
+    |Fardo| param. Changes |g:far#auto_write_replaced_buffers| value for
     current execution only.
 
 *--auto-delete-bufs*
-    |:Fardo| param. Changes |g:far#auto_delete_replaced_buffers| value for
+    |Fardo| param. Changes |g:far#auto_delete_replaced_buffers| value for
     current execution only.
 
 ==============================================================================
 BUGS                                                            *far-bugs*
 
+    If you found a bug, please, follow this easy-peasy steps:
+
+    1)  Search for existing issues on https://github.com/brooth/far.vim/issues.
+        If there is no any, follow to step 2.
+        If there is one and it's open, submit a reply as described in step 3.
+
+    2)  Turn on debug mode in your '.vimrc' ('init.vim'):
+>
+    let g:far#debug = 1
+<
+        restart vim and reproduce bug.
+
+    3)  Create new issue (or submit a reply to existing) on github
+        https://github.com/brooth/far.vim/issues.
+        Add short description and attach '~/far.vim.log' file.
+
+    Thank you in advance!
+
 ==============================================================================
 CHANGELOG                                                       *far-changelog*
+
+    beta1       first public version.
+
+==============================================================================
+LICENSE                                                         *far-license*
+
+    MIT License. https://opensource.org/licenses/MIT

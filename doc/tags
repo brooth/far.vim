@@ -15,6 +15,29 @@ far-mappings	far.txt	/*far-mappings*
 far-params	far.txt	/*far-params*
 far-bugs	far.txt	/*far-bugs*
 far-changelog	far.txt	/*far-changelog*
+far-license	far.txt	/*far-license*
+
+*g:far#default_mappings	far.txt	/*g:far#default_mappings*
+*g:far#auto_preview	far.txt	/*g:far#auto_preview*
+*g:far#result_preview	far.txt	/*g:far#result_preview*
+*g:far#highlight_match	far.txt	/*g:far#highlight_match*
+*g:far#window_layout	far.txt	/*g:far#window_layout*
+*g:far#window_width	far.txt	/*g:far#window_width*
+*g:far#window_height	far.txt	/*g:far#window_height*
+*g:far#preview_window_layout	far.txt	/*g:far#preview_window_layout*
+*g:far#preview_window_width	far.txt	/*g:far#preview_window_width*
+*g:far#preview_window_height	far.txt	/*g:far#preview_window_height*
+*g:far#jump_window_layout	far.txt	/*g:far#jump_window_layout*
+*g:far#jump_window_width	far.txt	/*g:far#jump_window_width*
+*g:far#jump_window_height	far.txt	/*g:far#jump_window_height*
+*g:far#file_mask_favorits	far.txt	/*g:far#file_mask_favorits*
+*g:far#collapse_result	far.txt	/*g:far#collapse_result*
+*g:far#confirm_fardo	far.txt	/*g:far#confirm_fardo*
+*g:far#preview_window_scroll_step	far.txt	/*g:far#preview_window_scroll_step*
+*g:far#auto_write_replaced_buffers	far.txt	/*g:far#auto_write_replaced_buffers*
+*g:far#auto_delete_replaced_buffers	far.txt	/*g:far#auto_delete_replaced_buffers*
+*g:far#window_min_content_width	far.txt	/*g:far#window_min_content_width*
+*g:far#check_window_resize_period	far.txt	/*g:far#check_window_resize_period*
 
 --win-layout	far.txt	/*--win-layout*
 --win-width	far.txt	/*--win-width*
