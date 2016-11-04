@@ -9,18 +9,22 @@ Version:        beta1
 ==============================================================================
 CONTENTS                                                        *far-contents*
 
-    1. Intro ................................ |far-intro|
-    2. Usage ................................ |far-usage|
-    2.1  Far ................................ |:Far|
-    2.2  Farp ............................... |:Farp|
-    2.3  Fardo .............................. |:Fardo|
-    2.4  Refar .............................. |:Refar|
-    2.5  Multiline replacement .............. |far-multiline|
-    3. Configuration ........................ |far-config|
-    4. Mappings ............................. |far-mappings|
-    5. Params ............................... |far-params|
-    5. Bugs ................................. |far-bugs|
-    6. Changelog ............................ |far-changelog|
+    1. Intro .................................................. |far-intro|
+    2. Usage .................................................. |far-usage|
+    2.1  Far .................................................. |:Far|
+    2.2  Farp ................................................. |:Farp|
+    2.3  Fardo ................................................ |:Fardo|
+    2.4  Refar ................................................ |:Refar|
+    3. Features ............................................... |far-features|
+    3.1  Multiline Replacement ................................ |far-multiline|
+    3.2  Command Completion ................................... |far-complete|
+    3.3  Preview Window ....................................... |far-preview|
+    3.4  Jump Window .......................................... |far-jump|
+    4. Configuration .......................................... |far-config|
+    5. Mappings ............................................... |far-mappings|
+    6. Command Params ......................................... |far-params|
+    7. Bugs ................................................... |far-bugs|
+    8. Changelog .............................................. |far-changelog|
 
 ==============================================================================
 INTRO                                                           *far-intro*
@@ -34,8 +38,7 @@ INTRO                                                           *far-intro*
 ==============================================================================
 USAGE                                                           *far-usage*
 
-2.1 Far                                                         *:Far*
-:Far {pattern} {replace-with} {file-mark} [params]
+*:Far* {pattern} {replace-with} {file-mark} [params]
     Find text to replace. Similar to *:substitute* command.
     The arguments are separated by space (" "). To escape space
     character use "\s" or "\ ".
@@ -44,13 +47,11 @@ USAGE                                                           *far-usage*
     {replace-with} can be a literal string, or |sub-replace-special|.
     {file-mark} simple file mask pattern, see |:vimgrep| for examples.
     Note: Use '%' to set current file as {file-mask}
-    For [params] see |far-cmd-params|
+    For [params] see |far-params|
 
+*:Farp* [params]
 
-2.1 Farp                                                        *:Farp*
-:Farp [params]
-
-    Use |Farp| command to enter "pattern", "replace with" and "file mask"
+    Use |Farp| command to enter {pattern}, {replace-with} and {file-mask}
     one after the other:
 >
      :Farp [<params>]
@@ -58,60 +59,272 @@ USAGE                                                           *far-usage*
      >Replace with: [replace-with]
      >File mask: {file-mark}
 <
-    Note: |Farp| allows to enter arguments without escaping space symbol "\ ".
+    Note: |Farp| allows you to enter arguments without escaping space character.
     Note: |Farp| allows empty [replace-with] to be able to remove matched text.
     For the {pattern}, {replace-with}, {file-mark} and [params] see |Far| command
 
-
-2.3 Fardo                                                       *:Fardo*
-:Fardo [params]
+*:Fardo* [params]
 
     |Fardo| starts the replacement task. This command must be executed in a FAR
     buffer (buffer with |:Far| or |:Farp| results)
-    For [params] see |far-fardo-params|
+    For [params] see |far-params|
 
+*:Refar*
 
-2.4 Refar                                                       *:Refar*
-:Refar
-
-    |Refar| reruns |:Far| or |:Farp| command. Note: It must be executed in a FAR buffer.
+    |Refar| reruns |:Far| or |:Farp| command with the same arguments.
+    Note: It must be executed in a FAR buffer.
     Use |:Refar| in case the data's been changed so you need to update
     the search result.
 
+==============================================================================
+FEATURES                                                        *far-features*
 
-2.5 Multiline replacement                                       *far-multiline*
-    You can use multiline text as {pattern} or/and {replace-with} expressions.
+Multiline Replacement                                           *far-multiline*
+    You can use multiline text as {pattern} or/and {replace-with} expressions
+    for |:Far| and |:Farp| commands.
 
-    The first approach is to use visual selection. Go to Visual mode, highlight
-    the text you want to replace and hit ':'. Use '*' (asterisk) sign to use the
-    selected text as {pattern} for |:Far| or |:Farp| command:
+    a) The first approach is to use visual selection. Go to Visual mode, highlight
+    the text you want to replace and hit ':'. Use '*' (asterisk) as {pattern}:
 >
     :'<,'>Far * {replace-with} {file-mask} [params]
 <
     and resp.:
 >
-     :Farp [<params>]
+     :'<,'>Farp [<params>]
      >Search (pattern): *
      >Replace with: [replace-with]
      >File mask: {file-mark}
 <
+    b) The second approach is simply to paste yanked text.
+>
+    :Far <^R-"> <^R-"> {file-mask} [params]
+<
+    And resp.:
+>
+     :Farp [<params>]
+     >Search (pattern): <^R-">
+     >Replace with: <^R-">
+     >File mask: {file-mark}
+<
+    Note: you need to explicitly escape all space characters with "\".
 
-    The second approach is simple to yank and paste the text.
-    Note: you need to explicitly escape all the space characters.
+Command Completion                                              *far-complete*
+
+Preview Window                                                  *far-preview*
+
+Jump Window                                                     *far-jump*
 
 ==============================================================================
 CONFIGURATION                                                   *far-config*
     Use next variables to configure far.vim behavior.
 
 *g:far#default_mappings*
-    Apply default mappings for each FAR buffer. See |far-mappings| for details.
+    Apply default mappings to FAR buffers. See |far-mappings|.
 
-    Default value is 1
+    Options: 0, 1
+    Default: 1
+
+*g:far#auto_preview*
+    Automatically open/scroll preview window on cursor movement.
+    See |far-preview|, |--auto-preview|
+
+    Options: 0, 1
+    Default: 1
+
+*g:far#result_preview*
+    Show result preview to the right of matched text.
+    See |--result-preview|
+
+    Options: 0, 1
+    Default: 1
+
+*g:far#highlight_match*
+    Highlight matched and result text in FAR buffers.
+    Note: Per line highlighting is a CPU demanding feature. You should
+    turn it off when you replace big amount of data.
+    See |--hl-match|.
+
+    Options: 0, 1
+    Default: 1
+
+*g:far#window_layout*
+    FAR window layout.
+    See |--win-layout|.
+
+    Options: 'top', 'left', 'right', 'bottom', 'tab', 'current'
+    Default: 'right'
+
+*g:far#window_width*
+    FAR window width.
+    See |--win-width|.
+
+    Default: 100
+
+*g:far#window_height*
+    FAR window height.
+    See |--win-height|.
+
+    Default: 20
+
+*g:far#preview_window_layout*
+    Preview window layout (relative to FAR window).
+    See |far-preview|, |--preview-win-layout|.
+
+    Options: 'top', 'left', 'right', 'bottom'
+    Default: 'bottom'
+
+*g:far#preview_window_width*
+    Preview window width.
+    See |far-preview|, |--preview-win-width|.
+
+    Default: 100
+
+*g:far#preview_window_height*
+    Preview window height.
+    See |far-preview|, |--preview-win-height|.
+
+    Default: 11
+
+*g:far#jump_window_layout*
+    Jump window layout.
+    See |far-jump|, |--jump-win-layout|.
+
+    Options: 'top', 'left', 'right', 'bottom', 'tab', 'current'
+    Default: 'current'
+
+*g:far#jump_window_width*
+    Jump window width.
+    See |far-jump|, |--jump-win-width|.
+
+    Default: 100
+
+*g:far#jump_window_height*
+    Jump window height.
+    See |far-jump|, |--jump-win-height|.
+
+    Default: 15
+
+*g:far#file_mask_favorits*
+    List of favorit file masks which far offers in complition.
+    See |far-complete|
+
+    Default: ['%', '**/*.*', '**/*.html', '**/*.js', '**/*.css']
+
+*g:far#collapse_result*
+    Auto collapse result tree. Useful if you replace big amount of data.
+    See |--collapse|
+
+    Options: 0, 1
+    Default: 0
+
+*g:far#confirm_fardo*
+    Confirm |:Fardo| command.
+
+    Options: 0, 1
+    Default: 1
+
+*g:far#preview_window_scroll_step*
+    Step size of preview window scrolling.
+    See |far-mappings|.
+
+    Default: 1
+
+*g:far#auto_write_replaced_buffers*
+    Automatically write replaced buffer if it hasn't had unsaved data.
+    See |--auto-write-bufs|
+
+    Options: 0, 1
+    Default: 0
+
+*g:far#auto_delete_replaced_buffers*
+    Automatically delete replaced buffer if it hasn't been loaded.
+    See |--auto-delete-bufs|
+
+    Options: 0, 1
+    Default: 0
+
+*g:far#window_min_content_width*
+    Minimal width of FAR content.
+
+    Default: 60
+
+*g:far#check_window_resize_period*
+    The period of time in millis in which timer checks FAR buffer width
+    and updates its content if the width is changed.
+
+    Default: 2000
 
 ==============================================================================
-4. Mappings                                                     *far-mappings*
+MAPPINGS                                                         *far-mappings*
+
 
 ==============================================================================
-5. Params                                                       *far-params*
+COMMAND PARAMS                                                   *far-params*
     Command (|:Far|, |:Farp| and |:Fardo|) params is used to define |far-config|
-    temporarily, i.e. for current execution only.
+    variables temporarily, i.e. for current execution only.
+
+*--win-layout*
+    |:Far| and |:Farp| param. Changes |g:far#window_layout| value for current
+    execution only.
+
+*--win-width*
+    |:Far| and |:Farp| param. Changes |g:far#window_width| value for current
+    execution only.
+
+*--win-height*
+    |:Far| and |:Farp| param. Changes |g:far#window_height| value for current
+    execution only.
+
+*--preview-win-layout*
+    |:Far| and |:Farp| param. Changes |g:far#preview_window_layout| value for
+    current execution only.
+
+*--preview-win-width*
+    |:Far| and |:Farp| param. Changes |g:far#preview_window_width| value for
+    current execution only.
+
+*--preview-win-height*
+    |:Far| and |:Farp| param. Changes |g:far#preview_window_height| value for
+    current execution only.
+
+*--jump-win-layout*
+    |:Far| and |:Farp| param. Changes |g:far#jump_window_layout| value for
+    current execution only.
+
+*--jump-win-width*
+    |:Far| and |:Farp| param. Changes |g:far#jump_window_width| value for
+    current execution only.
+
+*--jump-win-height*
+    |:Far| and |:Farp| param. Changes |g:far#jump_window_height| value for
+    current execution only.
+
+*--auto-preview*
+    |:Far| and |:Farp| param. Changes |g:far#auto_preview| value for
+    current execution only.
+
+*--hl-match*
+    |:Far| and |:Farp| param. Changes |g:far#highlight_match| value for
+    current execution only.
+
+*--collapse*
+    |:Far| and |:Farp| param. Changes |g:far#collapse_result| value for
+    current execution only.
+
+*--result-preview*
+    |:Far| and |:Farp| param. Changes |g:far#result_preview| value for
+    current execution only.
+
+*--auto-write-bufs*
+    |:Fardo| param. Changes |g:far#auto_write_replaced_buffers| value for
+    current execution only.
+
+*--auto-delete-bufs*
+    |:Fardo| param. Changes |g:far#auto_delete_replaced_buffers| value for
+    current execution only.
+
+==============================================================================
+BUGS                                                            *far-bugs*
+
+==============================================================================
+CHANGELOG                                                       *far-changelog*

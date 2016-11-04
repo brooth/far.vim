@@ -5,11 +5,36 @@ far-usage	far.txt	/*far-usage*
 :Farp	far.txt	/*:Farp*
 :Fardo	far.txt	/*:Fardo*
 :Refar	far.txt	/*:Refar*
-far-config	far.txt	/*far-config*
-
+far-features	far.txt	/*far-features*
 far-multiline	far.txt	/*far-multiline*
+far-complete	far.txt	/*far-complete*
+far-preview	far.txt	/*far-preview*
+far-jump	far.txt	/*far-jump*
+far-config	far.txt	/*far-config*
+far-mappings	far.txt	/*far-mappings*
+far-params	far.txt	/*far-params*
+far-bugs	far.txt	/*far-bugs*
+far-changelog	far.txt	/*far-changelog*
+
+--win-layout	far.txt	/*--win-layout*
+--win-width	far.txt	/*--win-width*
+--win-height	far.txt	/*--win-height*
+--preview-win-layout	far.txt	/*--preview-win-layout*
+--preview-win-width	far.txt	/*--preview-win-width*
+--preview-win-height	far.txt	/*--preview-win-height*
+--jump-win-layout	far.txt	/*--jump-win-layout*
+--jump-win-width	far.txt	/*--jump-win-width*
+--jump-win-height	far.txt	/*--jump-win-height*
+--auto-preview	far.txt	/*--auto-preview*
+--hl-match	far.txt	/*--hl-match*
+--collapse	far.txt	/*--collapse*
+--result-preview	far.txt	/*--result-preview*
+--auto-write-bufs	far.txt	/*--auto-write-bufs*
+--auto-delete-bufs	far.txt	/*--auto-delete-bufs*
+--hl-match	far.txt	/*--hl-match*
+--auto-preview	far.txt	/*--auto-preview*
+
 :substitude	$VIM/runtime/doc/change.txt	/*:substitute*
 pattern	$VIM/runtime/doc/pattern.txt	/*pattern*
 sub-replace-special	$VIM/runtime/doc/change.txt	/*sub-replace-special*
 vimgrep	$VIM/runtime/doc/quickfix.txt	/*:vimgrep*
-
