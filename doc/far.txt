@@ -608,12 +608,12 @@ COMMAND PARAMS                                                   *far-params*
 
 ==============================================================================
 BUGS                                                            *far-bugs*
-
     If you found a bug, please, follow this easy-peasy steps:
 
+    0)  Make sure you're using latest far.vim version.
+
     1)  Search for existing issues on https://github.com/brooth/far.vim/issues.
-        If there is no any, follow to step 2.
-        If there is one and it's open, submit a reply as described in step 3.
+        If there is one and it's open, please, submit a reply.
 
     2)  Turn on debug mode. In '.vimrc' ('init.vim') set this flag:
 >
@@ -622,7 +622,7 @@ BUGS                                                            *far-bugs*
         restart vim and reproduce the bug.
 
     3)  Create new issue (or submit a reply to existing) on
-        https://github.com/brooth/far.vim/issues. Add short description
+        https://github.com/brooth/far.vim/issues. Add brief description
         and attach '~/far.vim.log' log file.
 
     4) Turn off debug mode.
