@@ -34,9 +34,9 @@ INTRO                                                           *far-intro*
 
     Far.vim makes it easier to find and replace text over the project.
     It's inspired by fancy IDEs, like IntellyJ and Eclipse, which provide
-    cozy tools for such tasks. Far.vim shows found items and result preview.
-    It allows to exclude items, view its source code snippet,
-    jump to its buffer, and more.
+    cozy tools for such tasks. Far.vim shows found items and previews
+    the replacement result. You can exclude items, view its source snippet,
+    jump to its buffer and more.
 
 ==============================================================================
 USAGE                                                           *far-usage*
@@ -48,7 +48,7 @@ USAGE                                                           *far-usage*
     :Fardo<CR>
 <
 *:Far* {pattern} {replace-with} {file-mark} [params]
-    Find text to replace. Similar to *:substitute* command.
+    Find the text to replace. Similar to *:substitute* command.
     The arguments are separated by space (" "). To escape space
     character use "\s" or "\ ".
     For the {pattern} see |pattern|. You can also use '*' as {pattern}
@@ -117,12 +117,12 @@ Multiline Replacement                                           *far-multiline*
 
 Highlighting                                                    *far-highlight*
     If |g:far#highlight_match| flag is set, far.vim adds per line
-    highlighting for each matched and result item. Since per line highlighting
+    highlighting for each matched and resulting item. Since per line highlighting
     is a CPU depending feature in vim, it's better sometimes to turn it off
-    for big amount of data (avg. 200+ items).
+    for a big amount of data (Avg. 200+ items).
 
     If the highlighting feature is off, the following abbreviations are added
-    to the beggining of resp. lines:
+    to the beginning of resp. lines:
         *X* - Item excluded
         *R* - Item replaced
         *B* - Item broken (see |far-consistency|)
@@ -144,7 +144,7 @@ Command-Line Completion                                         *far-complete*
 
 
 Preview Window                                                  *far-preview*
-    Far.vim allows to preview the code snippet where the item was found.
+    Far.vim allows previewing the code snippet where the item was found.
     If |g:far#auto_preview| flag is set, far.vim automatically opens and scrolls
     the preview window on cursor movement. If |g:far#auto_preview| is set to 0,
     you can control preview window manually (see |far-mappings|).
@@ -309,7 +309,7 @@ CONFIGURATION                                                   *far-config*
     Default: 60
 
 *g:far#check_window_resize_period*
-    The period of time in millis in which timer checks FAR buffer width
+    The period of time in milliseconds in which timer checks FAR buffer width
     and updates its content if the width has been changed.
 
     Default: 2000
@@ -326,7 +326,7 @@ CONFIGURATION                                                   *far-config*
     Default: '⬎'
 
 *g:far#left_cut_text_sign*
-    This variable controls the icon of cut in the begining text.
+    This variable controls the icon of cut in the beginning text.
 
     Default: '…'
 
@@ -372,7 +372,7 @@ Highlighting Groups:                                               *far-highligh
     hi def link FarSearchVal Keyword
 <
 *FarReplaceVal*
-    Controls result item appearance.
+    Controls resulting item appearance.
 
     Default:
 >
@@ -422,7 +422,7 @@ MAPPINGS                                                         *far-mappings*
 
 *x*
 *v_x*
-    Exclude item under cursor.
+    Exclude item under the cursor.
 
     For custom mapping:
 >
@@ -431,7 +431,7 @@ MAPPINGS                                                         *far-mappings*
 <
 *i*
 *v_i*
-    Include item under cursor.
+    Include item under the cursor.
 
     For custom mapping:
 >
@@ -440,7 +440,7 @@ MAPPINGS                                                         *far-mappings*
 <
 *t*
 *v_t*
-    Toogle item exclusion under cursor.
+    Toggle item exclusion under the cursor.
 
     For custom mapping:
 >
@@ -462,14 +462,14 @@ MAPPINGS                                                         *far-mappings*
     nnoremap <buffer><silent> <KEY> :call g:far#change_exclude_all(0)<cr>
 <
 *T*
-    Toogle exclusion for all items.
+    Toggle exclusion for all items.
 
     For custom mapping:
 >
     nnoremap <buffer><silent> <KEY> :call g:far#change_exclude_all(-1)<cr>
 <
 *<CR>*
-    Jump to the source code of the item under cursor.
+    Jump to the source code of the item under the cursor.
     See |far-jump|
 
     For custom mapping:
@@ -477,7 +477,7 @@ MAPPINGS                                                         *far-mappings*
     nnoremap <buffer><silent> <KEY> :call g:far#jump_buffer_under_cursor()<cr>
 <
 *p*
-    Open preview window (if not) and scroll to the item under cursor.
+    Open preview window (if not) and scroll to the item under the cursor.
     See |far-preview|
 
     For custom mapping:
@@ -511,17 +511,17 @@ MAPPINGS                                                         *far-mappings*
         \   :call g:far#scroll_preview_window(g:far#preview_window_scroll_step)<cr>
 <
 *zo*
-    Expand node under cursor.
+    Expand node under the cursor.
 >
     nnoremap <buffer><silent> <KEY> :call g:far#change_collapse_under_cursor(0)<cr>
 <
 *zc*
-    Collapse node under cursor.
+    Collapse node under the cursor.
 >
     nnoremap <buffer><silent> <KEY> :call g:far#change_collapse_under_cursor(1)<cr>
 <
 *za*
-    Toogle node expanding under cursor.
+    Toggle node expanding under the cursor.
 >
     nnoremap <buffer><silent> <KEY> :call g:far#change_collapse_under_cursor(-1)<cr>
 <
@@ -536,7 +536,7 @@ MAPPINGS                                                         *far-mappings*
     nnoremap <buffer><silent> <KEY> :call g:far#change_collapse_all(1)<cr>
 <
 *zA*
-    Toogle exclusion for all nodes.
+    Toggle exclusion for all nodes.
 >
     nnoremap <buffer><silent> <KEY> :call g:far#change_collapse_all(-1)<cr>
 <
