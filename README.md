@@ -27,7 +27,7 @@ Runs the replacement task.
 
 ### :Refar
 Reruns `Far` or `Farp` command with the same arguments.
-![refar](https://cloud.githubusercontent.com/assets/9823254/20029412/418db5ea-a364-11e6-8ace-c3559d3d600c.gif)
+![refar2](https://cloud.githubusercontent.com/assets/9823254/20029440/0e55432c-a365-11e6-918d-688295c5b14c.gif)
 
 ## Features
 ### Multiline Replacement
