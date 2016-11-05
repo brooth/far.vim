@@ -1,7 +1,7 @@
 # far.vim - FindAndReplace Vim plugin
 
 ## Intro
-Far.vim makes it easier to find and replace text through a project.
+Far.vim makes it easier to find and replace text through multiple files.
 It's inspired by fancy IDEs, like IntellyJ and Eclipse, that provide
 cozy tools for such tasks.
 

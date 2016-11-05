@@ -32,11 +32,9 @@ CONTENTS                                                        *far-contents*
 ==============================================================================
 INTRO                                                           *far-intro*
 
-    Far.vim makes it easier to find and replace text over the project.
+    Far.vim makes it easier to find and replace text through mulple files.
     It's inspired by fancy IDEs, like IntellyJ and Eclipse, that provide
-    cozy tools for such tasks. Far.vim shows found items and resulting
-    preview. It's allowed to exclude an item, view its source snippet,
-    jump to its buffer and more.
+    cozy tools for such tasks.
 
 ==============================================================================
 USAGE                                                           *far-usage*
