@@ -82,7 +82,7 @@ endfunction
 
 function! s:create_repl_params() abort
     return {
-    \   'auto_write': exists('far#auto_write_replaced_buffers')? g:far#auto_write_replaced_buffers : 0,
+    \   'auto_write': exists('far#auto_write_replaced_buffers')? g:far#auto_write_replaced_buffers : 1,
     \   'auto_delete': exists('far#auto_delete_replaced_buffers')? g:far#auto_delete_replaced_buffers : 0,
     \   }
 endfunction
@@ -549,7 +549,7 @@ function! FarDo(...) abort "{{{
                 let matches += excludes
             endif
         endfor
-        let answ = confirm('Replace '.matches.' matche(s) in '.files.' file(s)?', "&Yes\n&No")
+        let answ = confirm('Replace '.matches.' match(es) in '.files.' file(s)?', "&Yes\n&No")
         if answ != 1
             return
         endif
