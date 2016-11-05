@@ -31,7 +31,11 @@ Reruns `Far` or `Farp` command with the same arguments.
 
 ## Features
 ### Multiline Replacement
+![multiline](https://cloud.githubusercontent.com/assets/9823254/20029467/193b7f58-a366-11e6-9a22-05e8464ec0e4.gif)
+
 ### Command-Line Completion
+![complete](https://cloud.githubusercontent.com/assets/9823254/20029477/8076abd4-a366-11e6-8711-9b4e18367c80.gif)
+
 ### Preview & Jump Window 
 ### Consistency Check
 
