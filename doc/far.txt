@@ -1,4 +1,4 @@
-*far.txt*   Find And Replace
+*far.vim*   Find And Replace
 
 Author:         Oleg Khalidov <brooth@gmail.com>
 Description:    Find And Replace
