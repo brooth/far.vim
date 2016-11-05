@@ -12,6 +12,11 @@ cozy tools for such tasks.
 :Fardo
 ```
 
+Need help?
+```bash
+:help far.vim
+```
+
 ### :Far {pattern} {replace-with} {file-mark} [params]
 Find the text to replace.
 ![Far](https://cloud.githubusercontent.com/assets/9823254/20029339/aeb02132-a362-11e6-9396-088243bc6ff8.gif)
@@ -37,7 +42,10 @@ Reruns `Far` or `Farp` command with the same arguments.
 ![complete](https://cloud.githubusercontent.com/assets/9823254/20029477/8076abd4-a366-11e6-8711-9b4e18367c80.gif)
 
 ### Preview & Jump Window 
+![preview and jump](https://cloud.githubusercontent.com/assets/9823254/20029558/6bedca1a-a368-11e6-8ba9-1f9f6673bc1e.gif)
+
 ### Consistency Check
+![consistancy](https://cloud.githubusercontent.com/assets/9823254/20029514/70475168-a367-11e6-9a2d-53614730307b.gif)
 
 ## License
 MIT
