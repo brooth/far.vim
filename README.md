@@ -1,4 +1,4 @@
-# far.vim - FindAndReplace Vim plugin
+# far.vim - Find And Replace Vim plugin
 
 ## Intro
 Far.vim makes it easier to find and replace text through multiple files.
@@ -17,7 +17,7 @@ Need help?
 :help far.vim
 ```
 
-### :Far {pattern} {replace-with} {file-mark} [params]
+### :Far {pattern} {replace-with} {file-mask} [params]
 Find the text to replace.
 ![Far](https://cloud.githubusercontent.com/assets/9823254/20029339/aeb02132-a362-11e6-9396-088243bc6ff8.gif)
 
@@ -41,7 +41,7 @@ Reruns `Far` or `Farp` command with the same arguments.
 ### Command-Line Completion
 ![complete](https://cloud.githubusercontent.com/assets/9823254/20029477/8076abd4-a366-11e6-8711-9b4e18367c80.gif)
 
-### Preview & Jump Window 
+### Preview & Jump Window
 ![preview and jump](https://cloud.githubusercontent.com/assets/9823254/20029558/6bedca1a-a368-11e6-8ba9-1f9f6673bc1e.gif)
 
 ### Consistency Check
