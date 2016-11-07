@@ -19,11 +19,6 @@ Plug 'brooth/far.vim'
 ```
 ![far.vim](https://cloud.githubusercontent.com/assets/9823254/20070492/fe6037de-a539-11e6-9ee8-4b9a02c11c22.gif)
 
-Need help?
-```bash
-:help far.vim
-```
-
 #### :Far {pattern} {replace-with} {file-mask} [params]
 Find the text to replace.
 
@@ -36,6 +31,11 @@ Runs the replacement task.
 
 #### :Refar
 Reruns `Far` or `Farp` command with the same arguments.
+
+#### Need help?
+```bash
+:help far.vim
+```
 
 ## Extras
 ### Multiline Replacement
