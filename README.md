@@ -47,5 +47,19 @@ Reruns `Far` or `Farp` command with the same arguments.
 ### Consistency Check
 ![consistancy](https://cloud.githubusercontent.com/assets/9823254/20029514/70475168-a367-11e6-9a2d-53614730307b.gif)
 
+## Install
+#### VimPlug
+```vim
+Plug 'brooth/far.vim'
+```
+#### NeoBundle:
+```vim
+NeoBundle 'brooth/far.vim'
+```
+#### Vundle:
+```vim
+Plugin 'brooth/far.vim'
+```
+
 ## License
 MIT

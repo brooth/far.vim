@@ -10,6 +10,10 @@ endif "}}}
 
 " TODO {{{
 " Farundo
+" cut filename if long
+" FIXME: no match doesn't appear
+" show total found matches
+" do not subtract excluded matches
 " statusline (done in Xms stat, number of matches)
 " Find in <range> if pattern is not *
 "}}}
