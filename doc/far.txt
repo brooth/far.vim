@@ -45,14 +45,14 @@ USAGE                                                           *far-usage*
     :Far foo bar **/*.py<CR>
     :Fardo<CR>
 <
-*:Far* {pattern} {replace-with} {file-mark} [params]
+*:Far* {pattern} {replace-with} {file-mask} [params]
     Find the text to replace. Similar to *:substitute* command.
     The arguments are separated by space (" "). To escape space
     character use "\s" or "\ ".
     For the {pattern} see |pattern|. You can also use '*' as {pattern}
     for multiline replacement. See |far-multiline|.
     {replace-with} can be a literal string, or |sub-replace-special|.
-    {file-mark} is a simple file mask pattern, see |:vimgrep| for examples.
+    {file-mask} is a simple file mask pattern, see |:vimgrep| for examples.
     Note: Use '%' as {file-mask} if you want to "FAR" current file.
     For [params] see |far-params|
 
@@ -63,11 +63,11 @@ USAGE                                                           *far-usage*
      :Farp [<params>]
      >Search (pattern): {pattern}
      >Replace with: [replace-with]
-     >File mask: {file-mark}
+     >File mask: {file-mask}
 <
     Note: You don't have to escape space character.
     Note: |Farp| allows empty [replace-with] if you need to remove matched text.
-    For {pattern}, {replace-with}, {file-mark} and [params] see |Far| command.
+    For {pattern}, {replace-with}, {file-mask} and [params] see |Far| command.
 
 *:Fardo* [params]
     |Fardo| starts the replacement task. This command must be executed in a FAR
@@ -97,7 +97,7 @@ Multiline Replacement                                           *far-multiline*
      :'<,'>Farp [<params>]
      >Search (pattern): *
      >Replace with: [replace-with]
-     >File mask: {file-mark}
+     >File mask: {file-mask}
 <
     b) The second approach is simply to paste yanked text.
 >
@@ -108,7 +108,7 @@ Multiline Replacement                                           *far-multiline*
      :Farp [<params>]
      >Search (pattern): <^r">
      >Replace with: <^r">
-     >File mask: {file-mark}
+     >File mask: {file-mask}
 <
     Note: you need to explicitly escape all special characters. See |pattern|.
 
