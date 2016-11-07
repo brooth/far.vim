@@ -53,7 +53,7 @@ USAGE                                                           *far-usage*
     for multiline replacement. See |far-multiline|.
     {replace-with} can be a literal string, or |sub-replace-special|.
     {file-mask} is a simple file mask pattern, see |:vimgrep| for examples.
-    Note: Use '%' as {file-mask} if you want to "FAR" current file.
+    Note: Use '%' as {file-mask} to search in current buffer.
     For [params] see |far-params|
 
 *:Farp* [params]
@@ -288,14 +288,14 @@ CONFIGURATION                                                   *far-config*
     Default: 1
 
 *g:far#auto_write_replaced_buffers*
-    Automatically write replaced buffer (if it hadn't been unsaved)
+    Automatically write replaced buffer (if it hasn't been unsaved)
     See |--auto-write-bufs|
 
     Options: 0, 1
     Default: 0
 
 *g:far#auto_delete_replaced_buffers*
-    Automatically delete replaced buffer (if it hadn't been loaded)
+    Automatically delete replaced buffer (if it hasn't been loaded)
     See |--auto-delete-bufs|
 
     Options: 0, 1
@@ -413,7 +413,7 @@ Highlighting Groups:                                               *far-highligh
 ==============================================================================
 MAPPINGS                                                         *far-mappings*
 
-    Next bindings are applied to new FAR buffers if |g:far#default_mappings|
+    Next bindings are applied to each FAR buffer if |g:far#default_mappings|
     is set.
     Note: If you want to define custom mapping, you need to set to 0
     |g:far#default_mappings| variable and explicitly config all bindings.
@@ -606,7 +606,7 @@ COMMAND PARAMS                                                   *far-params*
 
 ==============================================================================
 BUGS                                                            *far-bugs*
-    If you found a bug, please, follow this easy-peasy steps:
+    If you find a bug, please, follow this easy-peasy steps:
 
     0)  Make sure you're using latest far.vim version.
 
