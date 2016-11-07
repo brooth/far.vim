@@ -46,10 +46,6 @@ Reruns `Far` or `Farp` command with the same arguments.
 ```vim
 Plug 'brooth/far.vim'
 ```
-#### Vundle:
-```vim
-Plugin 'brooth/far.vim'
-```
 
 ## License
 MIT
