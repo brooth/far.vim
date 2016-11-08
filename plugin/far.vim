@@ -11,10 +11,7 @@ endif "}}}
 " TODO {{{
 " Farundo
 " cut filename if long
-" FIXME: no match doesn't appear
-" show total found matches
-" do not subtract excluded matches
-" statusline (done in Xms stat, number of matches)
+" FIXME: no match doesn't appear if too match work?
 " Find in <range> if pattern is not *
 "}}}
 
@@ -40,31 +37,45 @@ endfunction
 
 
 " options {{{
-let g:far#default_mappings = exists('g:far#default_mappings')?
-    \   g:far#default_mappings : 1
-let g:far#multiline_sign = exists('g:far#multiline_sign')?
-    \   g:far#multiline_sign : '⬎'
-let g:far#repl_devider = exists('g:far#repl_devider')?
-    \   g:far#repl_devider : '  ➝  '
-let g:far#left_cut_text_sign = exists('g:far#left_cut_text_sign')?
-    \   g:far#left_cut_text_sign : '…'
-let g:far#right_cut_text_sign = exists('g:far#right_cut_text_sign')?
-    \   g:far#right_cut_text_sign : '…'
-let g:far#collapse_sign = exists('g:far#collapse_sign')?
-    \   g:far#collapse_sign : '-'
-let g:far#expand_sign = exists('g:far#expand_sign')?
-    \   g:far#expand_sign : '+'
-let g:far#confirm_fardo = exists('g:far#confirm_fardo')?
-    \   g:far#confirm_fardo : 1
-let g:far#window_min_content_width = exists('g:far#window_min_content_width')?
-    \   g:far#window_min_content_width : 60
-let g:far#preview_window_scroll_step = exists('g:far#preview_window_scroll_step')?
-    \   g:far#preview_window_scroll_step : 1
-let g:far#check_window_resize_period = exists('g:far#check_window_resize_period')?
-    \   g:far#check_window_resize_period : 2000
-let g:far#file_mask_favorites = exists('g:far#file_mask_favorites')?
-    \   g:far#file_mask_favorites : ['%', '**/*.*', '**/*.html', '**/*.js', '**/*.css']
-
+if !exists('g:far#default_mappings')
+    let g:far#default_mappings = 1
+endif
+if !exists('g:far#multiline_sign')
+    let g:far#multiline_sign = '⬎'
+endif
+if !exists('g:far#repl_devider')
+    let g:far#repl_devider = '  ➝  '
+endif
+if !exists('g:far#left_cut_text_sign')
+    let g:far#left_cut_text_sign = '…'
+endif
+if !exists('g:far#right_cut_text_sign')
+    let g:far#right_cut_text_sign = '…'
+endif
+if !exists('g:far#collapse_sign')
+    let g:far#collapse_sign = '-'
+endif
+if !exists('g:far#expand_sign')
+    let g:far#expand_sign = '+'
+endif
+if !exists('g:far#confirm_fardo')
+    let g:far#confirm_fardo = 1
+endif
+if !exists('g:far#window_min_content_width')
+    let g:far#window_min_content_width = 60
+endif
+if !exists('g:far#preview_window_scroll_step')
+    let g:far#preview_window_scroll_step = 1
+endif
+if !exists('g:far#check_window_resize_period')
+    let g:far#check_window_resize_period = 2000
+endif
+if !exists('g:far#file_mask_favorites')
+    let g:far#file_mask_favorites = ['%', '**/*.*', '**/*.html', '**/*.js', '**/*.css']
+endif
+if !exists('g:far#status_line')
+    let g:far#status_line = 1
+endif
 
 function! s:create_win_params() abort
     return {
@@ -367,7 +378,7 @@ function! g:far#change_collapse_under_cursor(cmode) abort "{{{
     let far_ctx = s:get_buf_far_ctx(bufnr)
 
     let pos = getcurpos()[1]
-    let index = 0
+    let index = g:far#status_line ? 1 : 0
     for k in keys(far_ctx.items)
         let buf_ctx = far_ctx.items[k]
         let index += 1
@@ -423,7 +434,7 @@ function! g:far#change_exclude_under_cursor(cmode) abort "{{{
     let bufnr = bufnr('%')
     let far_ctx = s:get_buf_far_ctx(bufnr)
     let pos = getcurpos()[1]
-    let index = 0
+    let index = g:far#status_line ? 1 : 0
     for k in keys(far_ctx.items)
         let buf_ctx = far_ctx.items[k]
         let index += 1
@@ -559,7 +570,9 @@ function! FarDo(...) abort "{{{
         endif
     endif
 
-    call s:do_replace(far_ctx, repl_params)
+    let far_ctx = s:do_replace(far_ctx, repl_params)
+    call setbufvar('%', 'far_ctx', far_ctx)
+    call s:update_far_buffer(bufnr)
 endfunction
 command! -complete=customlist,FardoComplete -nargs=* Fardo call FarDo(<f-args>)
 "}}}
@@ -741,7 +754,8 @@ function! s:do_find(pattern, replace_with, file_mask, fline, lline, xargs) "{{{
 
     let far_ctx = s:assemble_context(pattern, replace_with, file_mask, win_params)
     if empty(far_ctx.items)
-        call s:echo_err('No match')
+        echoerr 'No match'
+        " call s:echo_err('No match')
         return
     endif
     call s:open_far_buff(far_ctx, win_params)
@@ -752,7 +766,7 @@ endfunction
 function! s:do_replace(far_ctx, repl_params) abort "{{{
     call s:log('do_replace('.a:far_ctx.replace_with.', '.string(a:repl_params).')')
 
-    let ts = localtime()
+    let start_ts = reltimefloat(reltime())
     let bufnr = bufnr('%')
     let del_bufs = []
     let lines_to_repl = len(substitute(a:far_ctx.replace_with, '[^\\r]', '','g'))/2
@@ -832,8 +846,9 @@ function! s:do_replace(far_ctx, repl_params) abort "{{{
         exec 'silent bd! '.join(del_bufs, ' ')
     endif
 
-    call setbufvar('%', 'far_ctx', a:far_ctx)
-    call s:update_far_buffer(bufnr)
+    let far_ctx = a:far_ctx
+    let far_ctx.repl_time = printf('%.3fms', reltimefloat(reltime()) - start_ts)
+    return far_ctx
 endfunction "}}}
 
 
@@ -881,11 +896,15 @@ endfunction "}}}
 function! s:assemble_context(pattern, replace_with, file_mask, win_params) abort "{{{
     call s:log('assemble_context('.a:pattern.','.a:replace_with.','.a:file_mask.')')
 
+    let start_ts = reltimefloat(reltime())
     let items = s:vimgrep_source(a:pattern, a:file_mask)
+    let grep_ts = reltimefloat(reltime()) - start_ts
+
     let far_ctx = {
                 \ 'pattern': a:pattern,
                 \ 'file_mask': a:file_mask,
                 \ 'replace_with': a:replace_with,
+                \ 'search_time': printf('%.3fms', grep_ts),
                 \ 'items': items}
 
     for buf_ctx in values(far_ctx.items)
@@ -917,6 +936,50 @@ function! s:build_buffer_content(bufnr) abort "{{{
     let content = []
     let syntaxs = []
     let line_num = 0
+
+    let far_window_width = winwidth(bufwinnr(a:bufnr))
+    if far_window_width < g:far#window_min_content_width
+        let far_window_width = g:far#window_min_content_width
+    endif
+    call setbufvar(a:bufnr, 'far_window_width', far_window_width)
+
+    if g:far#status_line
+        let line_num += 1
+        let total_matches = 0
+        let total_excludes = 0
+        let total_repls = 0
+
+        for ctx_key in keys(far_ctx.items)
+            let buf_ctx = far_ctx.items[ctx_key]
+            for item_ctx in buf_ctx.items
+                let total_matches += 1
+                let total_excludes += item_ctx.excluded
+                let total_repls += item_ctx.replaced
+            endfor
+        endfor
+
+        let statusline = 'Files:'.len(far_ctx.items).
+            \   '   Matches:'.total_matches.
+            \   '   Excludes:'.total_excludes.
+            \   '   Search Time:'.far_ctx.search_time
+
+        if !empty(get(far_ctx, 'repl_time', ''))
+            let statusline = statusline.
+                \   '   Replaced:'.total_repls.
+                \   '   Replace Time:'.far_ctx.repl_time
+        endif
+
+        if strchars(statusline) < far_window_width
+            let statusline = statusline.repeat(' ', far_window_width - strchars(statusline))
+        endif
+        call add(content, statusline)
+
+        if win_params.highlight_match
+            let sl_syn = 'syn region FarStatusLine start="\%1l^" end="$"'
+            call add(syntaxs, sl_syn)
+        endif
+    endif
+
     for ctx_key in keys(far_ctx.items)
         let buf_ctx = far_ctx.items[ctx_key]
         let collapse_sign = buf_ctx.collapsed? g:far#expand_sign : g:far#collapse_sign
@@ -942,7 +1005,7 @@ function! s:build_buffer_content(bufnr) abort "{{{
             endif
         endif
 
-        let out = collapse_sign.' '.buf_ctx.bufname.' ['.buf_ctx.bufnr.'] ('.num_matches.' matches)'
+        let out = collapse_sign.' '.buf_ctx.bufname.' ['.buf_ctx.bufnr.'] ('.len(buf_ctx.items).' matches)'
         call add(content, out)
 
         if !buf_ctx.collapsed
@@ -951,13 +1014,6 @@ function! s:build_buffer_content(bufnr) abort "{{{
                 let line_num_text = '  '.item_ctx.lnum
                 let line_num_col_text = line_num_text.repeat(' ', 10-strchars(line_num_text))
                 let match_val = matchstr(item_ctx.text, far_ctx.pattern, item_ctx.cnum-1)
-
-                let far_window_width = winwidth(bufwinnr(a:bufnr))
-                if far_window_width < g:far#window_min_content_width
-                    let far_window_width = g:far#window_min_content_width
-                endif
-                call setbufvar(a:bufnr, 'far_window_width', far_window_width)
-
                 let multiline = match(far_ctx.pattern, '\\n') >= 0
                 if multiline
                     let match_val = item_ctx.text[item_ctx.cnum:]
@@ -1174,7 +1230,7 @@ function! s:get_contexts_under_cursor() abort "{{{
     let bufnr = bufnr('%')
     let far_ctx = s:get_buf_far_ctx(bufnr)
     let pos = getcurpos()[1]
-    let index = 0
+    let index = g:far#status_line ? 1 : 0
     for k in keys(far_ctx.items)
         let buf_ctx = far_ctx.items[k]
         let index += 1
