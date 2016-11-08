@@ -8,12 +8,14 @@ if exists('g:loaded_far') "{{{
 endif "}}}
 
 
-" TODO {{{
+" TODO beta2 {{{
 " cut filename if long
 " FIXME: no match doesn't appear if too match work?
 " Find in <range> if pattern is not *
 " FIXME: closing preview window should disable auto preview
 " FIXME: remember preview window size
+" Ag, Ack, fzf
+" Async, Neovim, Vim8
 "}}}
 
 
@@ -281,6 +283,7 @@ function! g:far#show_preview_window_under_cursor() abort "{{{
     let far_bufnr = bufnr('%')
     let far_winid = win_getid(winnr())
     let win_params = getbufvar(far_bufnr, 'win_params')
+    let win_pos = winsaveview()
     let preview_winnr = -1
 
     if exists('b:far_preview_winid')
@@ -324,6 +327,7 @@ function! g:far#show_preview_window_under_cursor() abort "{{{
     endif
 
     call win_gotoid(far_winid)
+    call winrestview(win_pos)
 endfunction "}}}
 
 
