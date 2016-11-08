@@ -13,6 +13,7 @@ endif "}}}
 " FIXME: no match doesn't appear if too match work?
 " Find in <range> if pattern is not *
 " FIXME: closing preview window should disable auto preview
+" FIXME: remember preview window size
 "}}}
 
 
@@ -97,15 +98,19 @@ endfunction
 
 function! s:create_repl_params() abort
     return {
-    \   'auto_write': exists('g:far#auto_write_replaced_buffers')? g:far#auto_write_replaced_buffers : 1,
-    \   'auto_delete': exists('g:far#auto_delete_replaced_buffers')? g:far#auto_delete_replaced_buffers : 0,
+    \   'auto_write': exists('g:far#auto_write_replaced_buffers')?
+    \       g:far#auto_write_replaced_buffers : 1,
+    \   'auto_delete': exists('g:far#auto_delete_replaced_buffers')?
+    \       g:far#auto_delete_replaced_buffers : 0,
     \   }
 endfunction
 
 function! s:create_undo_params() abort
     return {
-    \   'auto_write': exists('far#auto_write_undo_buffers')? g:far#auto_write_undo_buffers : 1,
-    \   'auto_delete': exists('far#auto_delete_undo_buffers')? g:far#auto_delete_undo_buffers : 0,
+    \   'auto_write': exists('g:far#auto_write_undo_buffers')?
+    \       g:far#auto_write_undo_buffers : 1,
+    \   'auto_delete': exists('g:far#auto_delete_undo_buffers')?
+    \       g:far#auto_delete_undo_buffers : 0,
     \   'all': 0,
     \   }
 endfunction
@@ -865,7 +870,18 @@ function! s:do_replace(far_ctx, repl_params) abort "{{{
 
             exec 'buffer! '.buf_ctx.bufname
 
-            call add(buf_ctx.undos, {'num': changenr(), 'items': items})
+            " find current undo?!?!?!?
+            let undonum = changenr()
+            let curhead = 0
+            for undoentry in reverse(undotree().entries)
+                if curhead
+                    call s:log('undo seq:'.undoentry.seq)
+                    let undonum = undoentry.seq
+                    break
+                endif
+                let curhead = get(undoentry, 'curhead', 0)
+            endfor
+            call add(buf_ctx.undos, {'num': undonum, 'items': items})
 
             if a:repl_params.auto_write && !(&mod)
                 call add(cmds, 'write')
@@ -1096,14 +1112,14 @@ function! s:build_buffer_content(bufnr) abort "{{{
         endfor
 
         let statusline = 'Files:'.len(far_ctx.items).
-            \   '   Matches:'.total_matches.
-            \   '   Excludes:'.total_excludes.
-            \   '   Search Time:'.far_ctx.search_time
+            \   '  Matches:'.total_matches.
+            \   '  Excludes:'.total_excludes.
+            \   '  Time:'.far_ctx.search_time
 
         if !empty(get(far_ctx, 'repl_time', ''))
             let statusline = statusline.
-                \   '   Replaced:'.total_repls.
-                \   '   Replace Time:'.far_ctx.repl_time
+                \   ' ~ Replaced:'.total_repls.
+                \   '  Time:'.far_ctx.repl_time
         endif
 
         if strchars(statusline) < far_window_width
