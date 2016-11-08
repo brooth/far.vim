@@ -89,16 +89,16 @@ function! s:create_win_params() abort
     \   'jump_win_width': exists('g:far#jump_window_width')? g:far#jump_window_width : 100,
     \   'jump_win_height': exists('g:far#jump_window_height')? g:far#jump_window_height : 15,
     \   'auto_preview': exists('g:far#auto_preview')? g:far#auto_preview : 1,
-    \   'highlight_match': exists('far#highlight_match')? g:far#highlight_match : 1,
-    \   'collapse_result': exists('far#collapse_result')? g:far#collapse_result : 0,
-    \   'result_preview': exists('far#result_preview')? g:far#result_preview : 1,
+    \   'highlight_match': exists('g:far#highlight_match')? g:far#highlight_match : 1,
+    \   'collapse_result': exists('g:far#collapse_result')? g:far#collapse_result : 0,
+    \   'result_preview': exists('g:far#result_preview')? g:far#result_preview : 1,
     \   }
 endfunction
 
 function! s:create_repl_params() abort
     return {
-    \   'auto_write': exists('far#auto_write_replaced_buffers')? g:far#auto_write_replaced_buffers : 1,
-    \   'auto_delete': exists('far#auto_delete_replaced_buffers')? g:far#auto_delete_replaced_buffers : 0,
+    \   'auto_write': exists('g:far#auto_write_replaced_buffers')? g:far#auto_write_replaced_buffers : 1,
+    \   'auto_delete': exists('g:far#auto_delete_replaced_buffers')? g:far#auto_delete_replaced_buffers : 0,
     \   }
 endfunction
 
