@@ -9,10 +9,10 @@ endif "}}}
 
 
 " TODO {{{
-" Farundo
 " cut filename if long
 " FIXME: no match doesn't appear if too match work?
 " Find in <range> if pattern is not *
+" FIXME: closing preview window should disable auto preview
 "}}}
 
 
@@ -101,6 +101,14 @@ function! s:create_repl_params() abort
     \   'auto_delete': exists('far#auto_delete_replaced_buffers')? g:far#auto_delete_replaced_buffers : 0,
     \   }
 endfunction
+
+function! s:create_undo_params() abort
+    return {
+    \   'auto_write': exists('far#auto_write_undo_buffers')? g:far#auto_write_undo_buffers : 1,
+    \   'auto_delete': exists('far#auto_delete_undo_buffers')? g:far#auto_delete_undo_buffers : 0,
+    \   'all': 0,
+    \   }
+endfunction
 "}}}
 
 
@@ -132,6 +140,12 @@ let s:win_params_meta = {
 let s:repl_params_meta = {
     \   '--auto-write-bufs': {'param': 'auto_write', 'values': [0, 1]},
     \   '--auto-delete-bufs': {'param': 'auto_delete', 'values': [0, 1]},
+    \   }
+
+let s:undo_params_meta = {
+    \   '--auto-write-bufs': {'param': 'auto_write', 'values': [0, 1]},
+    \   '--auto-delete-bufs': {'param': 'auto_delete', 'values': [0, 1]},
+    \   '--all': {'param': 'all', 'values': [0, 1]},
     \   }
 "}}}
 
@@ -578,6 +592,36 @@ command! -complete=customlist,FardoComplete -nargs=* Fardo call FarDo(<f-args>)
 "}}}
 
 
+function! FarUndo(...) abort "{{{
+    call s:log('============= FAR UNDO ================')
+
+    let bufnr = bufnr('%')
+    let far_ctx = getbufvar(bufnr, 'far_ctx', {})
+    if empty(far_ctx)
+        call s:echo_err('Not a FAR buffer!')
+        return
+    endif
+    let win_params = getbufvar(bufnr, 'win_params')
+
+    let undo_params = s:create_undo_params()
+    for xarg in a:000
+        for k in keys(s:undo_params_meta)
+            if match(xarg, k) == 0
+                let val = xarg[len(k)+1:]
+                let undo_params[s:undo_params_meta[k].param] = val
+                break
+            endif
+        endfor
+    endfor
+
+    let far_ctx = s:do_undo(far_ctx, undo_params)
+    call setbufvar(bufnr, 'far_ctx', far_ctx)
+    call s:update_far_buffer(bufnr)
+endfunction
+command! -complete=customlist,FarundoComplete -nargs=* Farundo call FarUndo(<f-args>)
+"}}}
+
+
 "command complete functions {{{
 function! s:find_matches(items, key) abort
     call s:log('find matches: "'.a:key.'" in '.string(a:items))
@@ -680,6 +724,35 @@ function! FardoComplete(arglead, cmdline, cursorpos) abort
         endfor
         if !exclude
             call add(wargs, repl_arg)
+        endif
+    endfor
+    return s:find_matches(wargs, a:arglead)
+endfunction
+
+function! FarundoComplete(arglead, cmdline, cursorpos) abort
+    call s:log('farundo-complete:'.a:arglead.','.a:cmdline.','.a:cursorpos)
+    let items = s:splitcmd(a:cmdline)
+
+    let wargs = []
+    for undo_arg in keys(s:undo_params_meta)
+        "complete values?
+        if a:arglead == undo_arg.'='
+            for val in get(s:undo_params_meta[undo_arg], 'values', [])
+                call add(wargs, undo_arg.'='.val)
+            endfor
+            return s:find_matches(wargs, a:arglead)
+        endif
+
+        "exclude existing?
+        let exclude = 0
+        for item in items
+            if match(item, undo_arg) == 0
+                let exclude = 1
+                break
+            endif
+        endfor
+        if !exclude
+            call add(wargs, undo_arg)
         endif
     endfor
     return s:find_matches(wargs, a:arglead)
@@ -792,6 +865,8 @@ function! s:do_replace(far_ctx, repl_params) abort "{{{
 
             exec 'buffer! '.buf_ctx.bufname
 
+            call add(buf_ctx.undos, {'num': changenr(), 'items': items})
+
             if a:repl_params.auto_write && !(&mod)
                 call add(cmds, 'write')
             endif
@@ -827,7 +902,7 @@ function! s:do_replace(far_ctx, repl_params) abort "{{{
                 for idx in range(len(repl_lines))
                     if (item_ctx.lnum + lines_to_repl) == repl_lines[idx][0]
                         let item_ctx.replaced = 1
-                        let item_ctx.text = repl_lines[idx][1]
+                        let item_ctx.repl_text = repl_lines[idx][1]
                         let buf_repls += 1
                         unlet repl_lines[idx]
                         break
@@ -848,6 +923,67 @@ function! s:do_replace(far_ctx, repl_params) abort "{{{
 
     let far_ctx = a:far_ctx
     let far_ctx.repl_time = printf('%.3fms', reltimefloat(reltime()) - start_ts)
+    return far_ctx
+endfunction "}}}
+
+
+function! s:do_undo(far_ctx, undo_params) abort "{{{
+    call s:log('do_undo('.string(a:undo_params).')')
+
+    let start_ts = reltimefloat(reltime())
+    let bufnr = bufnr('%')
+    let del_bufs = []
+
+    for k in keys(a:far_ctx.items)
+        let buf_ctx = a:far_ctx.items[k]
+        if empty(buf_ctx.undos)
+            continue
+        endif
+
+        call s:log('undo buf, undos:'.string(buf_ctx.undos))
+
+        exec 'buffer! '.buf_ctx.bufname
+
+        let write_buf = a:undo_params.auto_write && !(&mod)
+
+        if a:undo_params.auto_delete && !bufexists(buf_ctx.bufnr)
+            call add(del_bufs, buf_ctx.bufnr)
+        endif
+
+        let items = []
+        if a:undo_params.all
+            exec 'silent! undo '.buf_ctx.undos[0].num
+            for undo in buf_ctx.undos
+                let items += undo.items
+            endfor
+            let buf_ctx.undos = []
+        else
+            let undo = remove(buf_ctx.undos, len(buf_ctx.undos)-1)
+            exec 'silent! undo '.undo.num
+            let items = undo.items
+        endif
+
+        if write_buf
+            exec 'silent! write'
+        endif
+
+        for item_ctx in items
+            let item_ctx.replaced = 0
+            unlet item_ctx.repl_text
+        endfor
+    endfor
+
+    exec 'b! '.bufnr
+    if !empty(del_bufs)
+        call s:log('delete buffers: '.join(del_bufs, ' '))
+        exec 'silent bd! '.join(del_bufs, ' ')
+    endif
+
+    let far_ctx = a:far_ctx
+    if !empty(get(far_ctx, 'repl_time', ''))
+        unlet far_ctx.repl_time
+    endif
+    let far_ctx.undo_time = printf('%.3fms', reltimefloat(reltime()) - start_ts)
     return far_ctx
 endfunction "}}}
 
@@ -909,6 +1045,7 @@ function! s:assemble_context(pattern, replace_with, file_mask, win_params) abort
 
     for buf_ctx in values(far_ctx.items)
         let buf_ctx.collapsed = a:win_params.collapse_result
+        let buf_ctx.undos = []
 
         for item_ctx in buf_ctx.items
             let item_ctx.excluded = 0
@@ -1031,7 +1168,8 @@ function! s:build_buffer_content(bufnr) abort "{{{
                     let out = line_num_col_text.match_text.text.g:far#repl_devider.repl_text.text
                 else
                     let max_text_len = far_window_width - strchars(line_num_col_text)
-                    let match_text = s:centrify_text(item_ctx.text, max_text_len, item_ctx.cnum)
+                    let match_text = s:centrify_text((item_ctx.replaced ? item_ctx.repl_text : item_ctx.text),
+                        \   max_text_len, item_ctx.cnum)
                     if multiline
                         let match_text.text = match_text.text[:strchars(match_text.text)-
                                     \   strchars(g:far#multiline_sign)-1].g:far#multiline_sign
