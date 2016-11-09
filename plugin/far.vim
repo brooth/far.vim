@@ -47,7 +47,7 @@ if !exists('g:far#multiline_sign')
     let g:far#multiline_sign = '⬎'
 endif
 if !exists('g:far#repl_devider')
-    let g:far#repl_devider = '  ➝  '
+    let g:far#repl_devider = ' ➝  '
 endif
 if !exists('g:far#left_cut_text_sign')
     let g:far#left_cut_text_sign = '…'
@@ -60,9 +60,6 @@ if !exists('g:far#collapse_sign')
 endif
 if !exists('g:far#expand_sign')
     let g:far#expand_sign = '+'
-endif
-if !exists('g:far#confirm_fardo')
-    let g:far#confirm_fardo = 1
 endif
 if !exists('g:far#window_min_content_width')
     let g:far#window_min_content_width = 60
@@ -571,27 +568,6 @@ function! FarDo(...) abort "{{{
             endif
         endfor
     endfor
-
-    if g:far#confirm_fardo
-        let files = 0
-        let matches = 0
-        for bufctx in values(far_ctx.items)
-            let excludes = 0
-            for item in bufctx.items
-                if !item.excluded
-                    let excludes += 1
-                endif
-            endfor
-            if !empty(excludes)
-                let files += 1
-                let matches += excludes
-            endif
-        endfor
-        let answ = confirm('Replace '.matches.' match(es) in '.files.' file(s)?', "&Yes\n&No")
-        if answ != 1
-            return
-        endif
-    endif
 
     let far_ctx = s:do_replace(far_ctx, repl_params)
     call setbufvar('%', 'far_ctx', far_ctx)
@@ -1169,7 +1145,7 @@ function! s:build_buffer_content(bufnr) abort "{{{
             for item_ctx in buf_ctx.items
                 let line_num += 1
                 let line_num_text = '  '.item_ctx.lnum
-                let line_num_col_text = line_num_text.repeat(' ', 10-strchars(line_num_text))
+                let line_num_col_text = line_num_text.repeat(' ', 8-strchars(line_num_text))
                 let match_val = matchstr(item_ctx.text, far_ctx.pattern, item_ctx.cnum-1)
                 let multiline = match(far_ctx.pattern, '\\n') >= 0
                 if multiline

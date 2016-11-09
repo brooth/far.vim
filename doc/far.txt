@@ -275,12 +275,6 @@ CONFIGURATION                                                   *far-config*
     Options: 0, 1
     Default: 0
 
-*g:far#confirm_fardo*
-    Confirm |Fardo| command.
-
-    Options: 0, 1
-    Default: 1
-
 *g:far#preview_window_scroll_step*
     Step size for preview window scrolling.
     See |far-preview|, |far-mappings|.
