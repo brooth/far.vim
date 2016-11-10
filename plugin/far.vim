@@ -13,12 +13,11 @@ endif "}}}
 " (X) cut filename if long
 " (X) FIXME: closing preview window should disable auto preview
 " (X) FIXME: jump to buffer fails on file names with spaces
-" FIXME: remember preview window size
-" Refar params [--pattern=,--replace-with, --file-mask]
+" (X) Refar params [--pattern=,--replace-with, --file-mask]
 " Ag, Ack, fzf
 " Async, Neovim, Vim8
-" FIXME: no match doesn't appear if too match work?
 " Find in <range> if pattern is not *
+" FIXME: remember preview window size ???
 "}}}
 
 
@@ -150,6 +149,12 @@ let s:undo_params_meta = {
     \   '--auto-write-bufs': {'param': 'auto_write', 'values': [0, 1]},
     \   '--auto-delete-bufs': {'param': 'auto_delete', 'values': [0, 1]},
     \   '--all': {'param': 'all', 'values': [0, 1]},
+    \   }
+
+let s:refar_params_meta = {
+    \   '--pattern': {'param': 'pattern', 'values': ['*']},
+    \   '--replace-with': {'param': 'replace_with'},
+    \   '--file-mask': {'param': 'file_mask', 'values': g:far#file_mask_favorites},
     \   }
 "}}}
 
@@ -299,7 +304,7 @@ function! g:far#show_preview_window_under_cursor() abort "{{{
         let splitcmd = s:get_new_split_layout(win_params.preview_layout, '| b'.ctxs[1].bufnr,
             \   win_params.preview_width, win_params.preview_height)
         call s:log('preview split: '.splitcmd)
-        exec splitcmd
+        silent exec splitcmd
         exec 'set filetype='.&filetype
         set nofoldenable
         let preview_winnr = winnr()
@@ -313,7 +318,7 @@ function! g:far#show_preview_window_under_cursor() abort "{{{
     endif
 
     if winbufnr(preview_winnr) != ctxs[1].bufnr
-        exec 'buffer! '.ctxs[1].bufnr
+        silent exec 'buffer! '.ctxs[1].bufnr
         exec 'set filetype='.&filetype
         set nofoldenable
     endif
@@ -346,7 +351,7 @@ function! g:far#close_preview_window() abort "{{{
     let winnr = win_id2win(b:far_preview_winid)
     if winnr > 0
         autocmd! FarAutoPreview CursorMoved <buffer>
-        exec 'quit '.win_id2win(b:far_preview_winid)
+        exec 'quit '.winnr
         unlet b:far_preview_winid
     endif
 endfunction "}}}
@@ -532,8 +537,8 @@ command! -complete=customlist,FarArgsComplete -nargs=* -range Farp <line1>,<line
 "}}}
 
 
-function! FarRepeat() abort "{{{
-    call s:log('=========== FAR REPEAT ==============')
+function! Refar(...) abort "{{{
+    call s:log('============== REFAR  ==============')
 
     let bufnr = bufnr('%')
     let far_ctx = getbufvar(bufnr, 'far_ctx', {})
@@ -543,15 +548,28 @@ function! FarRepeat() abort "{{{
     endif
     let win_params = getbufvar(bufnr, 'win_params')
 
+    for xarg in a:000
+        for k in keys(s:refar_params_meta)
+            if match(xarg, k) == 0
+                let val = xarg[len(k)+1:]
+                let far_ctx[s:refar_params_meta[k].param] = val
+                break
+            endif
+        endfor
+    endfor
+
+    if empty(far_ctx.pattern)
+        call s:echo_err('No pattern')
+        return
+    elseif empty(far_ctx.file_mask)
+        call s:echo_err('No file mask')
+        return
+    endif
     let far_ctx = s:assemble_context(far_ctx.pattern, far_ctx.replace_with, far_ctx.file_mask, win_params)
     call setbufvar(bufnr, 'far_ctx', far_ctx)
     call s:update_far_buffer(bufnr)
-
-    if empty(far_ctx.items)
-        call s:echo_err('No more matches')
-    endif
 endfunction
-command! -nargs=0 Refar call FarRepeat()
+command! -complete=customlist,RefarComplete -nargs=* Refar call Refar(<f-args>)
 "}}}
 
 
@@ -692,62 +710,45 @@ function! FarComplete(arglead, cmdline, cursorpos) abort
     endif
 endfunction
 
-function! FardoComplete(arglead, cmdline, cursorpos) abort
-    call s:log('fardo-complete:'.a:arglead.','.a:cmdline.','.a:cursorpos)
+function! s:metargs_complete(arglead, cmdline, cursorpos, params_meta) abort
+    call s:log('metargs_complete:'.a:arglead.','.a:cmdline.','.a:cursorpos.','.string(a:params_meta))
     let items = s:splitcmd(a:cmdline)
 
-    let wargs = []
-    for repl_arg in keys(s:repl_params_meta)
+    let all_args = []
+    for metarg in keys(a:params_meta)
         "complete values?
-        if a:arglead == repl_arg.'='
-            for val in get(s:repl_params_meta[repl_arg], 'values', [])
-                call add(wargs, repl_arg.'='.val)
+        if a:arglead == metarg.'='
+            for val in get(a:params_meta[metarg], 'values', [])
+                call add(all_args, metarg.'='.val)
             endfor
-            return s:find_matches(wargs, a:arglead)
+            return s:find_matches(all_args, a:arglead)
         endif
 
         "exclude existing?
         let exclude = 0
         for item in items
-            if match(item, repl_arg) == 0
+            if match(item, metarg) == 0
                 let exclude = 1
                 break
             endif
         endfor
         if !exclude
-            call add(wargs, repl_arg)
+            call add(all_args, metarg)
         endif
     endfor
-    return s:find_matches(wargs, a:arglead)
+    return s:find_matches(all_args, a:arglead)
+endfunction
+
+function! FardoComplete(arglead, cmdline, cursorpos) abort
+    return s:metargs_complete(a:arglead, a:cmdline, a:cursorpos, s:repl_params_meta)
 endfunction
 
 function! FarundoComplete(arglead, cmdline, cursorpos) abort
-    call s:log('farundo-complete:'.a:arglead.','.a:cmdline.','.a:cursorpos)
-    let items = s:splitcmd(a:cmdline)
+    return s:metargs_complete(a:arglead, a:cmdline, a:cursorpos, s:undo_params_meta)
+endfunction
 
-    let wargs = []
-    for undo_arg in keys(s:undo_params_meta)
-        "complete values?
-        if a:arglead == undo_arg.'='
-            for val in get(s:undo_params_meta[undo_arg], 'values', [])
-                call add(wargs, undo_arg.'='.val)
-            endfor
-            return s:find_matches(wargs, a:arglead)
-        endif
-
-        "exclude existing?
-        let exclude = 0
-        for item in items
-            if match(item, undo_arg) == 0
-                let exclude = 1
-                break
-            endif
-        endfor
-        if !exclude
-            call add(wargs, undo_arg)
-        endif
-    endfor
-    return s:find_matches(wargs, a:arglead)
+function! RefarComplete(arglead, cmdline, cursorpos) abort
+    return s:metargs_complete(a:arglead, a:cmdline, a:cursorpos, s:refar_params_meta)
 endfunction
 "}}}
 
@@ -818,11 +819,6 @@ function! s:do_find(pattern, replace_with, file_mask, fline, lline, xargs) "{{{
     endfor
 
     let far_ctx = s:assemble_context(pattern, replace_with, file_mask, win_params)
-    if empty(far_ctx.items)
-        echoerr 'No match'
-        " call s:echo_err('No match')
-        return
-    endif
     call s:open_far_buff(far_ctx, win_params)
 endfunction
 "}}}
@@ -1067,16 +1063,11 @@ function! s:build_buffer_content(bufnr) abort "{{{
         echoerr 'far context not found for '.a:bufnr.' buffer'
         return
     endif
-    if len(far_ctx.items) == 0
-        call s:log('empty context result')
-        return {'content': [], 'syntaxs': []}
-    endif
-    let win_params = getbufvar(a:bufnr, 'win_params')
 
     let content = []
     let syntaxs = []
     let line_num = 0
-
+    let win_params = getbufvar(a:bufnr, 'win_params')
     let far_window_width = winwidth(bufwinnr(a:bufnr))
     if far_window_width < g:far#window_min_content_width
         let far_window_width = g:far#window_min_content_width
@@ -1259,6 +1250,13 @@ function! s:update_far_buffer(bufnr) abort "{{{
 
     if winnr != winnr()
         exec 'norm! '.winnr.''
+    endif
+
+    if exists('b:far_preview_winid')
+        let preview_winnr = win_id2win(b:far_preview_winid)
+        if preview_winnr > 0
+            exec 'quit '.preview_winnr
+        endif
     endif
 
     let pos = winsaveview()
