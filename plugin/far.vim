@@ -14,6 +14,7 @@ endif "}}}
 " Find in <range> if pattern is not *
 " FIXME: closing preview window should disable auto preview
 " FIXME: remember preview window size
+" Refar params [--pattern=,--replace-with, --file-mask]
 " Ag, Ack, fzf
 " Async, Neovim, Vim8
 "}}}
@@ -49,17 +50,14 @@ endif
 if !exists('g:far#repl_devider')
     let g:far#repl_devider = ' ➝  '
 endif
-if !exists('g:far#left_cut_text_sign')
-    let g:far#left_cut_text_sign = '…'
-endif
-if !exists('g:far#right_cut_text_sign')
-    let g:far#right_cut_text_sign = '…'
+if !exists('g:far#cut_text_sign')
+    let g:far#cut_text_sign = '…'
 endif
 if !exists('g:far#collapse_sign')
-    let g:far#collapse_sign = '-'
+    let g:far#collapse_sign = '- '
 endif
 if !exists('g:far#expand_sign')
-    let g:far#expand_sign = '+'
+    let g:far#expand_sign = '+ '
 endif
 if !exists('g:far#window_min_content_width')
     let g:far#window_min_content_width = 60
@@ -1124,22 +1122,28 @@ function! s:build_buffer_content(bufnr) abort "{{{
             endif
         endfor
 
+        let file_sep = has('unix')? '/' : '\'
+        let filestats = ' ['.buf_ctx.bufnr.'] ('.len(buf_ctx.items).' matches)'
+        let maxfilewidth = far_window_width - strchars(filestats) - strchars(collapse_sign) + 1
+        let fileidx = strridx(buf_ctx.bufname, file_sep)
+        let filepath = s:cut_text_middle(buf_ctx.bufname[:fileidx-1], maxfilewidth/2 - (maxfilewidth % 2? 0 : 1) - 1).
+            \ file_sep.s:cut_text_middle(buf_ctx.bufname[fileidx+1:], maxfilewidth/2)
+        let out = collapse_sign.filepath.filestats
+        call add(content, out)
+
         if win_params.highlight_match
             if num_matches > 0
                 let bname_syn = 'syn region FarFilePath start="\%'.line_num.
-                            \   'l^.."hs=s+2 end=".\{'.(strchars(buf_ctx.bufname)).'\}"'
+                    \   'l^.."hs=s+'.strchars(collapse_sign).' end=".\{'.strchars(filepath).'\}"'
                 call add(syntaxs, bname_syn)
                 let bstats_syn = 'syn region FarFileStats start="\%'.line_num.'l^.\{'.
-                            \   (strchars(buf_ctx.bufname)+3).'\}"hs=e end="$" contains=FarFilePath keepend'
+                    \   (strchars(filepath)+strchars(collapse_sign)+2).'\}"hs=e end="$" contains=FarFilePath keepend'
                 call add(syntaxs, bstats_syn)
             else
                 let excl_syn = 'syn region FarExcludedItem start="\%'.line_num.'l^" end="$"'
                 call add(syntaxs, excl_syn)
             endif
         endif
-
-        let out = collapse_sign.' '.buf_ctx.bufname.' ['.buf_ctx.bufnr.'] ('.len(buf_ctx.items).' matches)'
-        call add(content, out)
 
         if !buf_ctx.collapsed
             for item_ctx in buf_ctx.items
@@ -1391,19 +1395,31 @@ function! s:centrify_text(text, width, val_col) abort "{{{
     let val_idx = a:val_col
     if strchars(text) > a:width && a:val_col > a:width/2 - 7
         let left_start = a:val_col - a:width/2 + 7
-        let val_col = a:val_col - left_start + strchars(g:far#left_cut_text_sign)
-        let val_idx = a:val_col - left_start + len(g:far#left_cut_text_sign)
-        let text = g:far#left_cut_text_sign.text[left_start:]
+        let val_col = a:val_col - left_start + strchars(g:far#cut_text_sign)
+        let val_idx = a:val_col - left_start + len(g:far#cut_text_sign)
+        let text = g:far#cut_text_sign.text[left_start:]
     endif
     if strchars(text) > a:width
         let wtf = -1-(len(text)-strchars(text))
-        let text = text[0:a:width-len(g:far#right_cut_text_sign)-wtf].g:far#right_cut_text_sign
+        let text = text[0:a:width-len(g:far#cut_text_sign)-wtf].g:far#cut_text_sign
     endif
     if strchars(text) < a:width
         let text = text.repeat(' ', a:width - strchars(text))
     endif
 
     return {'text': text, 'val_col': val_col, 'val_idx': val_idx}
+endfunction "}}}
+
+
+function! s:cut_text_middle(text, width) abort "{{{
+    if strchars(a:text) <= a:width
+        return a:text
+    endif
+
+    let text_size = len(a:text)
+    let sign_len = strchars(g:far#cut_text_sign)
+    let centr = (a:width - sign_len) / 2
+    return a:text[:centr-1].g:far#cut_text_sign.a:text[-centr - (a:width % 2? 0 : 1):]
 endfunction "}}}
 
 

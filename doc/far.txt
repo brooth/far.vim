@@ -317,13 +317,8 @@ CONFIGURATION                                                   *far-config*
 
     Default: '⬎'
 
-*g:far#left_cut_text_sign*
-    This variable controls the icon of cut in the beginning text.
-
-    Default: '…'
-
-*g:far#right_cut_text_sign*
-    This variable controls the icon of cut in the end text.
+*g:far#cut_text_sign*
+    This variable controls the icon of cut text.
 
     Default: '…'
 
