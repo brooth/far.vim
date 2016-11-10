@@ -9,14 +9,16 @@ endif "}}}
 
 
 " TODO beta2 {{{
-" cut filename if long
-" FIXME: no match doesn't appear if too match work?
-" Find in <range> if pattern is not *
-" FIXME: closing preview window should disable auto preview
+" (X) Farundo
+" (X) cut filename if long
+" (X) FIXME: closing preview window should disable auto preview
+" (X) FIXME: jump to buffer fails on file names with spaces
 " FIXME: remember preview window size
 " Refar params [--pattern=,--replace-with, --file-mask]
 " Ag, Ack, fzf
 " Async, Neovim, Vim8
+" FIXME: no match doesn't appear if too match work?
+" Find in <range> if pattern is not *
 "}}}
 
 
@@ -186,8 +188,14 @@ endfunction "}}}
 augroup faraugroup "{{{
     autocmd!
 
-    au BufHidden * if exists('b:far_preview_winid') |
+    " close preview window on far window closing
+    au BufHidden * if exists('b:far_preview_winid') && win_id2win(b:far_preview_winid) > 0 |
         \   exec win_id2win(b:far_preview_winid).'hide' | endif
+    " turn off auth preview on preview window closing
+    au BufHidden * if exists('w:far_preview_win') |
+        \   let win_params = getbufvar(w:far_bufnr, 'win_params') |
+        \   let win_params.auto_preview = 0 |
+        \   endif
 augroup END "}}}
 
 
@@ -296,6 +304,7 @@ function! g:far#show_preview_window_under_cursor() abort "{{{
         set nofoldenable
         let preview_winnr = winnr()
         let w:far_preview_win = 1
+        let w:far_bufnr = far_bufnr
         call setbufvar(far_bufnr, 'far_preview_winid', win_getid(preview_winnr))
         call setwinvar(win_id2win(far_winid), 'far_preview_winid', win_getid(preview_winnr))
         call g:far#check_far_window_to_resize(far_bufnr)
@@ -330,7 +339,7 @@ function! g:far#close_preview_window() abort "{{{
     call s:log('far#close_preview_window()')
 
     if !exists('b:far_preview_winid')
-        call s:echo_err('Not preview window for current buffer')
+        call s:echo_err('No preview window for current buffer')
         return
     endif
 
@@ -1271,7 +1280,7 @@ endfunction "}}}
 function! s:open_far_buff(far_ctx, win_params) abort "{{{
     call s:log('open_far_buff('.string(a:win_params).')')
 
-    let bufname = escape(printf(s:far_buffer_name, s:buffer_counter), ' ')
+    let bufname = printf(s:far_buffer_name, s:buffer_counter)
     let bufnr = bufnr(bufname)
     if bufnr != -1
         let s:buffer_counter += 1
@@ -1309,7 +1318,8 @@ function! s:open_far_buff(far_ctx, win_params) abort "{{{
         if v:version >= 704
             augroup FarAutoPreview
                 autocmd! * <buffer>
-                autocmd CursorMoved <buffer> :call g:far#show_preview_window_under_cursor()
+                autocmd CursorMoved <buffer> if b:win_params.auto_preview |
+                            \   call g:far#show_preview_window_under_cursor() | endif
             augroup END
         else
             call s:echo_err('auto preview is available on vim 7.4+')
@@ -1319,10 +1329,11 @@ endfunction "}}}
 
 
 function! s:get_new_buf_layout(win_params, param_prefix, bname) abort "{{{
+    let bname = escape(a:bname, ' ')
     if get(a:win_params, a:param_prefix.'layout') == 'current'
-        return 'edit '.a:bname
+        return 'edit '.bname
     elseif get(a:win_params, a:param_prefix.'layout') == 'tab'
-        return 'tabedit '.a:bname
+        return 'tabedit '.bname
     elseif get(a:win_params, a:param_prefix.'layout') == 'top'
         let layout = 'topleft '.get(a:win_params, a:param_prefix.'height')
     elseif get(a:win_params, a:param_prefix.'layout') == 'left'
@@ -1335,7 +1346,7 @@ function! s:get_new_buf_layout(win_params, param_prefix, bname) abort "{{{
         echoerr 'invalid window layout '.get(a:win_params, a:param_prefix.'layout')
         let layout = 'botright vertical '.a:width
     endif
-    return layout.' new '.a:bname
+    return layout.' new '.bname
 endfunction "}}}
 
 
