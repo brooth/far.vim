@@ -14,6 +14,7 @@ endif "}}}
 " (X) FIXME: closing preview window should disable auto preview
 " (X) FIXME: jump to buffer fails on file names with spaces
 " (X) Refar params [--pattern=,--replace-with, --file-mask]
+" (X) pass source as Far param
 " Ag, Ack, fzf
 " Async, Neovim, Vim8
 " Find in <range> if pattern is not *
@@ -91,6 +92,7 @@ function! s:create_win_params() abort
     \   'highlight_match': exists('g:far#highlight_match')? g:far#highlight_match : 1,
     \   'collapse_result': exists('g:far#collapse_result')? g:far#collapse_result : 0,
     \   'result_preview': exists('g:far#result_preview')? g:far#result_preview : 1,
+    \   'source': exists('g:far#source')? g:far#source : 'vimgrep',
     \   }
 endfunction
 
@@ -124,6 +126,9 @@ let g:far#search_history = []
 let g:far#repl_history = []
 let g:far#file_mask_history = []
 
+let g:far#sources = {}
+let g:far#sources['vimgrep'] = 'far#sources#vimgrep#search'
+
 let s:win_params_meta = {
     \   '--win-layout': {'param': 'layout', 'values': ['top', 'left', 'right', 'bottom', 'tab', 'current']},
     \   '--win-width': {'param': 'width', 'values': [60, 70, 80, 90, 100, 110, 120, 130, 140, 150]},
@@ -138,6 +143,7 @@ let s:win_params_meta = {
     \   '--hl-match': {'param': 'highlight_match', 'values': [0, 1]},
     \   '--collapse': {'param': 'collapse_result', 'values': [0, 1]},
     \   '--result-preview': {'param': 'result_preview', 'values': [0, 1]},
+    \   '--source': {'param': 'source', 'values': keys(g:far#sources)},
     \   }
 
 let s:repl_params_meta = {
@@ -987,60 +993,32 @@ function! s:do_undo(far_ctx, undo_params) abort "{{{
 endfunction "}}}
 
 
-function! s:vimgrep_source(pattern, file_mask) abort "{{{
-    call s:log('vimgrep_source('.a:pattern.','.a:file_mask.')')
-
-    try
-        let cmd = 'silent! vimgrep! /'.escape(a:pattern, '/').'/gj '.a:file_mask
-        call s:log('vimgrep cmd: '.cmd)
-        exec cmd
-    catch /.*/
-        call s:log('vimgrep error:'.v:exception)
-    endtry
-
-    let items = getqflist()
-    if empty(items)
-        return {}
-    endif
-
-    let result = {}
-    for item in items
-        if get(item, 'bufnr') == 0
-            call s:log('item '.item.text.' has no bufnr')
-            continue
-        endif
-
-        let buf_ctx = get(result, item.bufnr, {})
-        if empty(buf_ctx)
-            let buf_ctx.bufnr = item.bufnr
-            let buf_ctx.bufname = bufname(item.bufnr)
-            let buf_ctx.items = []
-            let result[item.bufnr] = buf_ctx
-        endif
-
-        let item_ctx = {}
-        let item_ctx.lnum = item.lnum
-        let item_ctx.cnum = item.col
-        let item_ctx.text = item.text
-        call add(buf_ctx.items, item_ctx)
-    endfor
-    return result
-endfunction "}}}
-
-
 function! s:assemble_context(pattern, replace_with, file_mask, win_params) abort "{{{
     call s:log('assemble_context('.a:pattern.','.a:replace_with.','.a:file_mask.')')
 
-    let start_ts = reltimefloat(reltime())
-    let items = s:vimgrep_source(a:pattern, a:file_mask)
-    let grep_ts = reltimefloat(reltime()) - start_ts
-
     let far_ctx = {
-                \ 'pattern': a:pattern,
-                \ 'file_mask': a:file_mask,
-                \ 'replace_with': a:replace_with,
-                \ 'search_time': printf('%.3fms', grep_ts),
-                \ 'items': items}
+        \ 'pattern': a:pattern,
+        \ 'file_mask': a:file_mask,
+        \ 'replace_with': a:replace_with
+        \ }
+
+    let fsource = get(g:far#sources, a:win_params.source, '')
+    if empty(fsource)
+        echoerr 'Unknown far source '.a:win_params.source
+        let far_ctx['items'] = {}
+        let far_ctx['search_time'] = 'failed'
+        return far_ctx
+    endif
+
+    let source_ctx = {
+        \   'pattern': a:pattern,
+        \   'file_mask': a:file_mask,
+        \   'logger': function('s:log')
+        \ }
+
+    let start_ts = reltimefloat(reltime())
+    let far_ctx['items'] = call(function(fsource), [source_ctx])
+    let far_ctx['search_time'] = printf('%.3fms', reltimefloat(reltime()) - start_ts)
 
     for buf_ctx in values(far_ctx.items)
         let buf_ctx.collapsed = a:win_params.collapse_result
