@@ -14,11 +14,16 @@ endif "}}}
 " (X) FIXME: closing preview window should disable auto preview
 " (X) FIXME: jump to buffer fails on file names with spaces
 " (X) Refar params [--pattern=,--replace-with, --file-mask]
-" (X) pass source as Far param
-" Ag, Ack, fzf
+" (X) alternative sources. pass source as Far param
+" (X) rename buf_ctx -> file_ctx, bufname -> fname, far_ctx.items -> list
+" (X) Ag
+" (X) remap review scrolling to <c-j><c-k>
+" Ack
+" fzf
 " Async, Neovim, Vim8
 " Find in <range> if pattern is not *
 " FIXME: remember preview window size ???
+" move all stuff to autoload
 "}}}
 
 
@@ -128,6 +133,8 @@ let g:far#file_mask_history = []
 
 let g:far#sources = {}
 let g:far#sources['vimgrep'] = 'far#sources#vimgrep#search'
+let g:far#sources['grepprg'] = 'far#sources#grepprg#search'
+let g:far#sources['ag'] = 'far#sources#ag#search'
 
 let s:win_params_meta = {
     \   '--win-layout': {'param': 'layout', 'values': ['top', 'left', 'right', 'bottom', 'tab', 'current']},
@@ -191,8 +198,8 @@ function! g:far#apply_default_mappings() abort "{{{
     nnoremap <buffer><silent> p :call g:far#show_preview_window_under_cursor()<cr>
     nnoremap <buffer><silent> P :call g:far#close_preview_window()<cr>
 
-    nnoremap <buffer><silent> <c-p> :call g:far#scroll_preview_window(-g:far#preview_window_scroll_step)<cr>
-    nnoremap <buffer><silent> <c-n> :call g:far#scroll_preview_window(g:far#preview_window_scroll_step)<cr>
+    nnoremap <buffer><silent> <c-k> :call g:far#scroll_preview_window(-g:far#preview_window_scroll_step)<cr>
+    nnoremap <buffer><silent> <c-j> :call g:far#scroll_preview_window(g:far#preview_window_scroll_step)<cr>
 endfunction "}}}
 
 
@@ -250,8 +257,6 @@ endfunction
 
 
 function! g:far#check_far_window_to_resize(bufnr) abort "{{{
-    call s:log('far#check_window_resize_period('.a:bufnr.')')
-
     let width = getbufvar(a:bufnr, 'far_window_width', -1)
     if width == -1
         call s:echo_err('Not a FAR buffer')
@@ -290,15 +295,18 @@ function! g:far#show_preview_window_under_cursor() abort "{{{
     call s:log('far#show_preview_window_under_cursor()')
 
     let ctxs = s:get_contexts_under_cursor()
-    if len(ctxs) < 2
+    if len(ctxs) < 3
         return
     endif
 
     let far_bufnr = bufnr('%')
     let far_winid = win_getid(winnr())
-    let win_params = getbufvar(far_bufnr, 'win_params')
+    let win_params = b:win_params
     let win_pos = winsaveview()
-    let preview_winnr = -1
+    let fname = escape(ctxs[1].fname, ' ')
+    let bufnr = bufnr(fname)
+    let bufcmd = bufnr != -1? 'buffer '.bufnr :
+        \ 'silent! hide edit '.fname.' | set nobuflisted | set filetype=off'
 
     if exists('b:far_preview_winid')
         let preview_winnr = win_id2win(b:far_preview_winid)
@@ -307,11 +315,11 @@ function! g:far#show_preview_window_under_cursor() abort "{{{
         endif
     endif
     if !exists('b:far_preview_winid')
-        let splitcmd = s:get_new_split_layout(win_params.preview_layout, '| b'.ctxs[1].bufnr,
+        let splitcmd = s:get_new_split_layout(win_params.preview_layout, ' | '.bufcmd,
             \   win_params.preview_width, win_params.preview_height)
         call s:log('preview split: '.splitcmd)
-        silent exec splitcmd
-        exec 'set filetype='.&filetype
+        silent! exec splitcmd
+        exec 'set syntax='.s:get_ft(expand('%:e'))
         set nofoldenable
         let preview_winnr = winnr()
         let w:far_preview_win = 1
@@ -321,24 +329,20 @@ function! g:far#show_preview_window_under_cursor() abort "{{{
         call g:far#check_far_window_to_resize(far_bufnr)
     else
         call win_gotoid(b:far_preview_winid)
-    endif
-
-    if winbufnr(preview_winnr) != ctxs[1].bufnr
-        silent exec 'buffer! '.ctxs[1].bufnr
-        exec 'set filetype='.&filetype
-        set nofoldenable
-    endif
-
-    if len(ctxs) > 2
-        exec 'norm! '.ctxs[2].lnum.'ggzz'.ctxs[2].cnum.'l'
-        if !ctxs[2].replaced
-            let pmatch = 'match FarPreviewMatch "\%'.ctxs[2].lnum.'l\%'.ctxs[2].cnum.'c'.
-                \   escape(ctxs[0].pattern, '"').(&ignorecase? '\c"' : '"')
-            call s:log('preview match: '.pmatch)
-            exec pmatch
-        else
-            exec 'match'
+        if winbufnr(preview_winnr) != bufnr
+            silent! exec bufcmd
+            exec 'set syntax='.s:get_ft(expand('%:e'))
         endif
+    endif
+
+    exec 'norm! '.ctxs[2].lnum.'ggzz'.ctxs[2].cnum.'l'
+    if !ctxs[2].replaced
+        let pmatch = 'match FarPreviewMatch "\%'.ctxs[2].lnum.'l\%'.ctxs[2].cnum.'c'.
+                    \   escape(ctxs[0].pattern, '"').(&ignorecase? '\c"' : '"')
+        call s:log('preview match: '.pmatch)
+        exec pmatch
+    else
+        exec 'match'
     endif
 
     call win_gotoid(far_winid)
@@ -356,9 +360,8 @@ function! g:far#close_preview_window() abort "{{{
 
     let winnr = win_id2win(b:far_preview_winid)
     if winnr > 0
-        autocmd! FarAutoPreview CursorMoved <buffer>
+        let b:win_params.auto_preview = 0
         exec 'quit '.winnr
-        unlet b:far_preview_winid
     endif
 endfunction "}}}
 
@@ -367,26 +370,28 @@ function! g:far#jump_buffer_under_cursor() abort "{{{
     call s:log('far#jump_buffer_under_cursor()')
 
     let ctxs = s:get_contexts_under_cursor()
-    let win_params = getbufvar('%', 'win_params')
+    if len(ctxs) < 2
+        return
+    endif
 
-    if len(ctxs) > 1
-        let new_win = 1
+    let new_win = 1
+    let bufnr = bufnr(ctxs[1].fname)
+    if bufnr > 0
         for winnr in range(1, winnr('$'))
-            if winbufnr(winnr) == ctxs[1].bufnr && !getwinvar(winnr, 'far_preview_win', 0)
+            if winbufnr(winnr) == bufnr && !getwinvar(winnr, 'far_preview_win', 0)
                 call win_gotoid(win_getid(winnr))
                 let new_win = 0
                 break
             endif
         endfor
-        if new_win
-            let cmd = s:get_new_buf_layout(win_params, 'jump_win_', ctxs[1].bufname)
-            call s:log('jump wincmd: '.cmd)
-            exec cmd
-        endif
-        if len(ctxs) == 3
-            exec 'norm! '.ctxs[2].lnum.'gg0'.(ctxs[2].cnum-1).'lzv'
-        endif
-        return
+    endif
+    if new_win
+        let cmd = s:get_new_buf_layout(b:win_params, 'jump_win_', ctxs[1].fname)
+        call s:log('jump wincmd: '.cmd)
+        exec cmd
+    endif
+    if len(ctxs) == 3
+        exec 'norm! '.ctxs[2].lnum.'gg0'.(ctxs[2].cnum-1).'lzv'
     endif
 endfunction "}}}
 
@@ -397,9 +402,8 @@ function! g:far#change_collapse_all(cmode) abort "{{{
     let bufnr = bufnr('%')
     let far_ctx = s:get_buf_far_ctx(bufnr)
 
-    for k in keys(far_ctx.items)
-        let buf_ctx = far_ctx.items[k]
-        let buf_ctx.collapsed = a:cmode == -1? !buf_ctx.collapsed : a:cmode
+    for file_ctx in far_ctx.items
+        let file_ctx.collapsed = a:cmode == -1? !file_ctx.collapsed : a:cmode
     endfor
 
     let pos = getcurpos()[1]
@@ -417,15 +421,14 @@ function! g:far#change_collapse_under_cursor(cmode) abort "{{{
 
     let pos = getcurpos()[1]
     let index = g:far#status_line ? 1 : 0
-    for k in keys(far_ctx.items)
-        let buf_ctx = far_ctx.items[k]
+    for file_ctx in far_ctx.items
         let index += 1
         let buf_curpos = index
         let this_buf = 0
         if pos == index
             let this_buf = 1
-        elseif !buf_ctx.collapsed
-            for item_ctx in buf_ctx.items
+        elseif !file_ctx.collapsed
+            for item_ctx in file_ctx.items
                 let index += 1
                 if pos == index
                     let this_buf = 1
@@ -434,9 +437,9 @@ function! g:far#change_collapse_under_cursor(cmode) abort "{{{
             endfor
         endif
         if this_buf
-            let collapsed = a:cmode == -1? !buf_ctx.collapsed : a:cmode
-            if buf_ctx.collapsed != collapsed
-                let buf_ctx.collapsed = collapsed
+            let collapsed = a:cmode == -1? !file_ctx.collapsed : a:cmode
+            if file_ctx.collapsed != collapsed
+                let file_ctx.collapsed = collapsed
                 call setbufvar('%', 'far_ctx', far_ctx)
                 call s:update_far_buffer(bufnr)
                 exec 'norm! '.buf_curpos.'gg'
@@ -454,9 +457,8 @@ function! g:far#change_exclude_all(cmode) abort "{{{
     let bufnr = bufnr('%')
     let far_ctx = s:get_buf_far_ctx(bufnr)
 
-    for k in keys(far_ctx.items)
-        let buf_ctx = far_ctx.items[k]
-        for item_ctx in buf_ctx.items
+    for file_ctx in far_ctx.items
+        for item_ctx in file_ctx.items
             let item_ctx.excluded = a:cmode == -1? (item_ctx.excluded == 0? 1 : 0) : a:cmode
         endfor
     endfor
@@ -473,11 +475,10 @@ function! g:far#change_exclude_under_cursor(cmode) abort "{{{
     let far_ctx = s:get_buf_far_ctx(bufnr)
     let pos = getcurpos()[1]
     let index = g:far#status_line ? 1 : 0
-    for k in keys(far_ctx.items)
-        let buf_ctx = far_ctx.items[k]
+    for file_ctx in far_ctx.items
         let index += 1
         if pos == index
-            for item_ctx in buf_ctx.items
+            for item_ctx in file_ctx.items
                 let item_ctx.excluded = a:cmode == -1? (item_ctx.excluded == 0? 1 : 0) : a:cmode
             endfor
             call setbufvar('%', 'far_ctx', far_ctx)
@@ -485,8 +486,8 @@ function! g:far#change_exclude_under_cursor(cmode) abort "{{{
             return
         endif
 
-        if !buf_ctx.collapsed
-            for item_ctx in buf_ctx.items
+        if !file_ctx.collapsed
+            for item_ctx in file_ctx.items
                 let index += 1
                 if pos == index
                     let item_ctx.excluded = a:cmode == -1? (item_ctx.excluded == 0? 1 : 0) : a:cmode
@@ -837,13 +838,12 @@ function! s:do_replace(far_ctx, repl_params) abort "{{{
     let bufnr = bufnr('%')
     let del_bufs = []
     let lines_to_repl = len(substitute(a:far_ctx.replace_with, '[^\\r]', '','g'))/2
-    for k in keys(a:far_ctx.items)
-        let buf_ctx = a:far_ctx.items[k]
-        call s:log('replacing buffer '.buf_ctx.bufnr.' '.buf_ctx.bufname)
+    for file_ctx in a:far_ctx.items
+        call s:log('replacing buffer '.file_ctx.fname)
 
         let cmds = []
         let items = []
-        for item_ctx in buf_ctx.items
+        for item_ctx in file_ctx.items
             if !item_ctx.excluded && !item_ctx.replaced
                 let cmd = item_ctx.lnum.'s/\%'.item_ctx.cnum.'c'.
                     \   escape(a:far_ctx.pattern, '/').'/'.
@@ -857,7 +857,7 @@ function! s:do_replace(far_ctx, repl_params) abort "{{{
             let buf_repls = 0
             let cmds = reverse(cmds)
 
-            exec 'buffer! '.buf_ctx.bufname
+            exec 'buffer! '.file_ctx.fname
 
             " find current undo?!?!?!?
             let undonum = changenr()
@@ -870,19 +870,19 @@ function! s:do_replace(far_ctx, repl_params) abort "{{{
                 endif
                 let curhead = get(undoentry, 'curhead', 0)
             endfor
-            call add(buf_ctx.undos, {'num': undonum, 'items': items})
+            call add(file_ctx.undos, {'num': undonum, 'items': items})
 
             if a:repl_params.auto_write && !(&mod)
                 call add(cmds, 'write')
             endif
-            if a:repl_params.auto_delete && !bufexists(buf_ctx.bufnr)
-                call add(del_bufs, buf_ctx.bufnr)
+            if a:repl_params.auto_delete && !bufexists(file_ctx.fname)
+                call add(del_bufs, bufnr(file_ctx.fname))
             endif
 
             let bufcmd = join(cmds, '|')
             call s:log('bufdo: '.bufcmd)
 
-            if !a:repl_params.auto_delete && !buflisted(buf_ctx.bufnr)
+            if !a:repl_params.auto_delete && !buflisted(file_ctx.fname)
                 set buflisted
             endif
 
@@ -939,31 +939,30 @@ function! s:do_undo(far_ctx, undo_params) abort "{{{
     let bufnr = bufnr('%')
     let del_bufs = []
 
-    for k in keys(a:far_ctx.items)
-        let buf_ctx = a:far_ctx.items[k]
-        if empty(buf_ctx.undos)
+    for file_ctx in a:far_ctx.items
+        if empty(file_ctx.undos)
             continue
         endif
 
-        call s:log('undo buf, undos:'.string(buf_ctx.undos))
+        call s:log('undo buf, undos:'.string(file_ctx.undos))
 
-        exec 'buffer! '.buf_ctx.bufname
+        exec 'buffer! '.file_ctx.fname
 
         let write_buf = a:undo_params.auto_write && !(&mod)
 
-        if a:undo_params.auto_delete && !bufexists(buf_ctx.bufnr)
-            call add(del_bufs, buf_ctx.bufnr)
+        if a:undo_params.auto_delete && !bufexists(file_ctx.fname)
+            call add(del_bufs, bufnr(file_ctx.fname))
         endif
 
         let items = []
         if a:undo_params.all
-            exec 'silent! undo '.buf_ctx.undos[0].num
-            for undo in buf_ctx.undos
+            exec 'silent! undo '.file_ctx.undos[0].num
+            for undo in file_ctx.undos
                 let items += undo.items
             endfor
-            let buf_ctx.undos = []
+            let file_ctx.undos = []
         else
-            let undo = remove(buf_ctx.undos, len(buf_ctx.undos)-1)
+            let undo = remove(file_ctx.undos, len(file_ctx.undos)-1)
             exec 'silent! undo '.undo.num
             let items = undo.items
         endif
@@ -1020,11 +1019,11 @@ function! s:assemble_context(pattern, replace_with, file_mask, win_params) abort
     let far_ctx['items'] = call(function(fsource), [source_ctx])
     let far_ctx['search_time'] = printf('%.3fms', reltimefloat(reltime()) - start_ts)
 
-    for buf_ctx in values(far_ctx.items)
-        let buf_ctx.collapsed = a:win_params.collapse_result
-        let buf_ctx.undos = []
+    for file_ctx in far_ctx.items
+        let file_ctx.collapsed = a:win_params.collapse_result
+        let file_ctx.undos = []
 
-        for item_ctx in buf_ctx.items
+        for item_ctx in file_ctx.items
             let item_ctx.excluded = 0
             let item_ctx.replaced = 0
         endfor
@@ -1052,15 +1051,20 @@ function! s:build_buffer_content(bufnr) abort "{{{
     endif
     call setbufvar(a:bufnr, 'far_window_width', far_window_width)
 
+    if win_params.highlight_match
+        call extend(syntaxs, [
+            \   'syn match FarNone ".*" contains=FarSearchVal,FarReplaceVal,FarItem',
+            \   'syn match FarLineCol "^..\d*" contains=FarSearchVal,FarReplaceVal,FarItem'])
+    endif
+
     if g:far#status_line
         let line_num += 1
         let total_matches = 0
         let total_excludes = 0
         let total_repls = 0
 
-        for ctx_key in keys(far_ctx.items)
-            let buf_ctx = far_ctx.items[ctx_key]
-            for item_ctx in buf_ctx.items
+        for file_ctx in far_ctx.items
+            for item_ctx in file_ctx.items
                 let total_matches += 1
                 let total_excludes += item_ctx.excluded
                 let total_repls += item_ctx.replaced
@@ -1089,23 +1093,22 @@ function! s:build_buffer_content(bufnr) abort "{{{
         endif
     endif
 
-    for ctx_key in keys(far_ctx.items)
-        let buf_ctx = far_ctx.items[ctx_key]
-        let collapse_sign = buf_ctx.collapsed? g:far#expand_sign : g:far#collapse_sign
+    for file_ctx in far_ctx.items
+        let collapse_sign = file_ctx.collapsed? g:far#expand_sign : g:far#collapse_sign
         let line_num += 1
         let num_matches = 0
-        for item_ctx in buf_ctx.items
+        for item_ctx in file_ctx.items
             if !item_ctx.excluded && !item_ctx.replaced
                 let num_matches += 1
             endif
         endfor
 
         let file_sep = has('unix')? '/' : '\'
-        let filestats = ' ['.buf_ctx.bufnr.'] ('.len(buf_ctx.items).' matches)'
+        let filestats = ' ('.len(file_ctx.items).' matches)'
         let maxfilewidth = far_window_width - strchars(filestats) - strchars(collapse_sign) + 1
-        let fileidx = strridx(buf_ctx.bufname, file_sep)
-        let filepath = s:cut_text_middle(buf_ctx.bufname[:fileidx-1], maxfilewidth/2 - (maxfilewidth % 2? 0 : 1) - 1).
-            \ file_sep.s:cut_text_middle(buf_ctx.bufname[fileidx+1:], maxfilewidth/2)
+        let fileidx = strridx(file_ctx.fname, file_sep)
+        let filepath = s:cut_text_middle(file_ctx.fname[:fileidx-1], maxfilewidth/2 - (maxfilewidth % 2? 0 : 1) - 1).
+            \ file_sep.s:cut_text_middle(file_ctx.fname[fileidx+1:], maxfilewidth/2)
         let out = collapse_sign.filepath.filestats
         call add(content, out)
 
@@ -1123,8 +1126,8 @@ function! s:build_buffer_content(bufnr) abort "{{{
             endif
         endif
 
-        if !buf_ctx.collapsed
-            for item_ctx in buf_ctx.items
+        if !file_ctx.collapsed
+            for item_ctx in file_ctx.items
                 let line_num += 1
                 let line_num_text = '  '.item_ctx.lnum
                 let line_num_col_text = line_num_text.repeat(' ', 8-strchars(line_num_text))
@@ -1256,15 +1259,15 @@ endfunction "}}}
 function! s:open_far_buff(far_ctx, win_params) abort "{{{
     call s:log('open_far_buff('.string(a:win_params).')')
 
-    let bufname = printf(s:far_buffer_name, s:buffer_counter)
-    let bufnr = bufnr(bufname)
+    let fname = printf(s:far_buffer_name, s:buffer_counter)
+    let bufnr = bufnr(fname)
     if bufnr != -1
         let s:buffer_counter += 1
         call s:open_far_buff(a:far_ctx, a:win_params)
         return
     endif
 
-    let cmd = s:get_new_buf_layout(a:win_params, '', bufname)
+    let cmd = s:get_new_buf_layout(a:win_params, '', fname)
     call s:log('new bufcmd: '.cmd)
     exec cmd
     let bufnr = bufnr('%')
@@ -1292,11 +1295,8 @@ function! s:open_far_buff(far_ctx, win_params) abort "{{{
 
     if a:win_params.auto_preview
         if v:version >= 704
-            augroup FarAutoPreview
-                autocmd! * <buffer>
-                autocmd CursorMoved <buffer> if b:win_params.auto_preview |
-                            \   call g:far#show_preview_window_under_cursor() | endif
-            augroup END
+            autocmd CursorMoved <buffer> if b:win_params.auto_preview |
+                \   call g:far#show_preview_window_under_cursor() | endif
         else
             call s:echo_err('auto preview is available on vim 7.4+')
         endif
@@ -1356,18 +1356,17 @@ function! s:get_contexts_under_cursor() abort "{{{
     let far_ctx = s:get_buf_far_ctx(bufnr)
     let pos = getcurpos()[1]
     let index = g:far#status_line ? 1 : 0
-    for k in keys(far_ctx.items)
-        let buf_ctx = far_ctx.items[k]
+    for file_ctx in far_ctx.items
         let index += 1
         if pos == index
-            return [far_ctx, buf_ctx]
+            return [far_ctx, file_ctx]
         endif
 
-        if !buf_ctx.collapsed
-            for item_ctx in buf_ctx.items
+        if !file_ctx.collapsed
+            for item_ctx in file_ctx.items
                 let index += 1
                 if pos == index
-                    return [far_ctx, buf_ctx, item_ctx]
+                    return [far_ctx, file_ctx, item_ctx]
                 endif
             endfor
         endif
@@ -1450,14 +1449,14 @@ function! s:echo_msg(msg) abort "{{{
 endfunction "}}}
 
 
-function! s:exec_silent(cmd) abort "{{{
-    call s:log("s:exec_silent() ".a:cmd)
-    let ei_bak= &eventignore
-    set eventignore=BufEnter,BufLeave,BufWinLeave,InsertLeave,CursorMoved,BufWritePost
-    silent exe a:cmd
-    let &eventignore = ei_bak
-endfunction "}}}
+function! s:get_ft(ext) abort "{{{
+    let matching = filter(split(execute('autocmd filetypedetect'), "\n"), 'v:val =~ "\*\.'.a:ext.'setf"')
 
+    if len(matching) > 0
+        return matchstr(matching[0], 'setf\s\+\zs\k\+')
+    endif
+    return 'txt'
+endfunction
 
 if !s:debug "{{{
     let g:loaded_far = 0

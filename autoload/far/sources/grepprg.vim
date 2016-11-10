@@ -1,18 +1,18 @@
-" File: vimgrep.vim
-" Description: vimgrep source for far.vim
+" File: grepprg.vim
+" Description: grepprg source for far.vim
 " Author: Oleg Khalidov <brooth@gmail.com>
 " License: MIT
 
 
-function! far#sources#vimgrep#search(ctx) abort "{{{
-    call a:ctx.logger('vimgrep_source('.a:ctx.pattern.','.a:ctx.file_mask.')')
+function! far#sources#grepprg#search(ctx) abort "{{{
+    call a:ctx.logger('grepprg#search('.a:ctx.pattern.','.a:ctx.file_mask.')')
 
     try
-        let cmd = 'silent! vimgrep! /'.escape(a:ctx.pattern, '/').'/gj '.a:ctx.file_mask
-        call a:ctx.logger('vimgrep cmd: '.cmd)
-        exec cmd
+        let cmd = 'silent! grep! '.escape(a:ctx.pattern, ' ').' '.a:ctx.file_mask
+        call a:ctx.logger('grepprg cmd: '.cmd)
+        silent! exec cmd
     catch /.*/
-        call a:ctx.logger('vimgrep error:'.v:exception)
+        call a:ctx.logger('grepprg error:'.v:exception)
     endtry
 
     let items = getqflist()
