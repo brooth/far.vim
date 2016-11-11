@@ -35,7 +35,6 @@ function! far#sources#ag#search(ctx) abort "{{{
         return []
     endif
 
-    " 'test/guess.py:7:1:number = random.randint(1, 20)'
     let result = {}
     for line in lines
         let idx1 = stridx(line, ':')

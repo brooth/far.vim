@@ -18,12 +18,14 @@ endif "}}}
 " (X) rename buf_ctx -> file_ctx, bufname -> fname, far_ctx.items -> list
 " (X) Ag
 " (X) remap review scrolling to <c-j><c-k>
+" (X) auto 'vimgrep' source for multiline pattern
 " Ack
 " fzf
 " Async, Neovim, Vim8
 " Find in <range> if pattern is not *
 " FIXME: remember preview window size ???
 " move all stuff to autoload
+" /dev/shm for temp files
 "}}}
 
 
@@ -81,6 +83,12 @@ endif
 if !exists('g:far#status_line')
     let g:far#status_line = 1
 endif
+if !exists('g:far#source')
+    let g:far#source = executable('ag') ? 'ag' : 'vimgrep'
+endif
+if !exists('g:far#auto_vimgrep_source')
+    let g:far#auto_vimgrep_source = 1
+endif
 
 function! s:create_win_params() abort
     return {
@@ -97,7 +105,7 @@ function! s:create_win_params() abort
     \   'highlight_match': exists('g:far#highlight_match')? g:far#highlight_match : 1,
     \   'collapse_result': exists('g:far#collapse_result')? g:far#collapse_result : 0,
     \   'result_preview': exists('g:far#result_preview')? g:far#result_preview : 1,
-    \   'source': exists('g:far#source')? g:far#source : 'vimgrep',
+    \   'source': g:far#source,
     \   }
 endfunction
 
@@ -305,8 +313,9 @@ function! g:far#show_preview_window_under_cursor() abort "{{{
     let win_pos = winsaveview()
     let fname = escape(ctxs[1].fname, ' ')
     let bufnr = bufnr(fname)
-    let bufcmd = bufnr != -1? 'buffer '.bufnr :
-        \ 'silent! hide edit '.fname.' | set nobuflisted | set filetype=off'
+    let transbuf = bufnr == -1
+    let refrbuf = 0
+    let bufcmd = !transbuf? 'buffer! '.bufnr : 'edit! '.fname
 
     if exists('b:far_preview_winid')
         let preview_winnr = win_id2win(b:far_preview_winid)
@@ -319,8 +328,7 @@ function! g:far#show_preview_window_under_cursor() abort "{{{
             \   win_params.preview_width, win_params.preview_height)
         call s:log('preview split: '.splitcmd)
         silent! exec splitcmd
-        exec 'set syntax='.s:get_ft(expand('%:e'))
-        set nofoldenable
+        let refrbuf = 1
         let preview_winnr = winnr()
         let w:far_preview_win = 1
         let w:far_bufnr = far_bufnr
@@ -330,9 +338,20 @@ function! g:far#show_preview_window_under_cursor() abort "{{{
     else
         call win_gotoid(b:far_preview_winid)
         if winbufnr(preview_winnr) != bufnr
+            call s:log('change preview buf cmd: '.bufcmd)
             silent! exec bufcmd
-            exec 'set syntax='.s:get_ft(expand('%:e'))
+            let refrbuf = 1
         endif
+    endif
+
+    if transbuf
+        set nobuflisted
+        set filetype=off
+        set bufhidden=unload
+    endif
+    if refrbuf
+        set nofoldenable
+        exec 'set syntax='.s:get_ft(expand('%:e'))
     endif
 
     exec 'norm! '.ctxs[2].lnum.'ggzz'.ctxs[2].cnum.'l'
@@ -824,6 +843,12 @@ function! s:do_find(pattern, replace_with, file_mask, fline, lline, xargs) "{{{
             endif
         endfor
     endfor
+
+    if g:far#auto_vimgrep_source && win_params.source != 'vimgrep' &&
+                \   (a:pattern == '*' || stridx(pattern, '\n') != -1)
+        call s:log('multiline pattern, auto switch to vimgrep source')
+        let win_params.source = 'vimgrep'
+    endif
 
     let far_ctx = s:assemble_context(pattern, replace_with, file_mask, win_params)
     call s:open_far_buff(far_ctx, win_params)
