@@ -5,14 +5,14 @@
 
 
 function! far#sources#grepprg#search(ctx) abort "{{{
-    call a:ctx.logger('grepprg#search('.a:ctx.pattern.','.a:ctx.file_mask.')')
+    call far#tools#log('grepprg#search('.a:ctx.pattern.','.a:ctx.file_mask.')')
 
     try
         let cmd = 'silent! grep! '.escape(a:ctx.pattern, ' ').' '.a:ctx.file_mask
-        call a:ctx.logger('grepprg cmd: '.cmd)
+        call far#tools#log('grepprg cmd: '.cmd)
         silent! exec cmd
     catch /.*/
-        call a:ctx.logger('grepprg error:'.v:exception)
+        call far#tools#log('grepprg error:'.v:exception)
     endtry
 
     let items = getqflist()
@@ -23,7 +23,7 @@ function! far#sources#grepprg#search(ctx) abort "{{{
     let result = {}
     for item in items
         if get(item, 'bufnr') == 0
-            call a:ctx.logger('item '.item.text.' has no bufnr')
+            call far#tools#log('item '.item.text.' has no bufnr')
             continue
         endif
 

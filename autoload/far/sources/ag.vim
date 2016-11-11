@@ -5,7 +5,7 @@
 
 
 function! far#sources#ag#search(ctx) abort "{{{
-    call a:ctx.logger('ag#search('.a:ctx.pattern.','.a:ctx.file_mask.')')
+    call far#tools#log('ag#search('.a:ctx.pattern.','.a:ctx.file_mask.')')
 
     if !executable('ag')
         echoerr 'ag not executable'
@@ -16,10 +16,10 @@ function! far#sources#ag#search(ctx) abort "{{{
     try
         let cmd = 'silent! !ag --nogroup --column --nocolor '.
             \   escape(a:ctx.pattern, ' ').' '.a:ctx.file_mask.' > '.tmpfile
-        call a:ctx.logger('ag cmd: '.cmd)
+        call far#tools#log('ag cmd: '.cmd)
         exec cmd
     catch /.*/
-        call a:ctx.logger('ag error:'.v:exception)
+        call far#tools#log('ag error:'.v:exception)
         throw v:exception
     endtry
 
@@ -27,11 +27,11 @@ function! far#sources#ag#search(ctx) abort "{{{
         try
             let lines = readfile(tmpfile)
         catch /.*/
-            call a:ctx.logger('read ag result file error:'.v:exception)
+            call far#tools#log('read ag result file error:'.v:exception)
             throw v:exception
         endtry
     else
-        call a:ctx.logger('file not readable '.tmpfile)
+        call far#tools#log('file not readable '.tmpfile)
         return []
     endif
 

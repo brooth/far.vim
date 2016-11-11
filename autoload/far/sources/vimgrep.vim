@@ -5,14 +5,14 @@
 
 
 function! far#sources#vimgrep#search(ctx) abort "{{{
-    call a:ctx.logger('vimgrep_source('.a:ctx.pattern.','.a:ctx.file_mask.')')
+    call far#tools#log('vimgrep_source('.a:ctx.pattern.','.a:ctx.file_mask.')')
 
     try
         let cmd = 'silent! vimgrep! /'.escape(a:ctx.pattern, '/').'/gj '.a:ctx.file_mask
-        call a:ctx.logger('vimgrep cmd: '.cmd)
+        call far#tools#log('vimgrep cmd: '.cmd)
         exec cmd
     catch /.*/
-        call a:ctx.logger('vimgrep error:'.v:exception)
+        call far#tools#log('vimgrep error:'.v:exception)
     endtry
 
     let items = getqflist()
@@ -23,7 +23,7 @@ function! far#sources#vimgrep#search(ctx) abort "{{{
     let result = {}
     for item in items
         if get(item, 'bufnr') == 0
-            call a:ctx.logger('item '.item.text.' has no bufnr')
+            call far#tools#log('item '.item.text.' has no bufnr')
             continue
         endif
 
