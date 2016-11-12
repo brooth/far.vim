@@ -4,14 +4,7 @@
 " License: MIT
 
 function! far#executors#basic#execute(exec_ctx, callback) abort "{{{
-    let ctx = a:exec_ctx
-    if empty(get(ctx.source, 'vim', ''))
-        let ctx['error'] = 'given source is not support basic execution'
-        call call(a:callback, [ctx])
-        return
-    endif
-
-    let ctx.far_ctx['items'] = call(function(ctx.source.vim), [ctx.far_ctx])
+    let ctx.far_ctx['items'] = call(function(a:exec_ctx.source.fn), [ctx.far_ctx])
     call call(a:callback, [ctx])
 endfunction "}}}
 

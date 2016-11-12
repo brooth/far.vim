@@ -20,6 +20,10 @@ function! far#sources#grepprg#search(ctx) abort "{{{
         return {}
     endif
 
+    if len(items) > a:ctx.limit
+        let items = items[:a:ctx.limit-1]
+    endif
+
     let result = {}
     for item in items
         if get(item, 'bufnr') == 0

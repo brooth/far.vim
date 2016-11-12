@@ -63,6 +63,7 @@ g:far#auto_write_replaced_buffers	far.txt	/*g:far#auto_write_replaced_buffers*
 g:far#check_window_resize_period	far.txt	/*g:far#check_window_resize_period*
 g:far#collapse_result	far.txt	/*g:far#collapse_result*
 g:far#collapse_sign	far.txt	/*g:far#collapse_sign*
+g:far#cut_text_sign	far.txt	/*g:far#cut_text_sign*
 g:far#default_mappings	far.txt	/*g:far#default_mappings*
 g:far#expand_sign	far.txt	/*g:far#expand_sign*
 g:far#file_mask_favorites	far.txt	/*g:far#file_mask_favorites*
@@ -70,7 +71,6 @@ g:far#highlight_match	far.txt	/*g:far#highlight_match*
 g:far#jump_window_height	far.txt	/*g:far#jump_window_height*
 g:far#jump_window_layout	far.txt	/*g:far#jump_window_layout*
 g:far#jump_window_width	far.txt	/*g:far#jump_window_width*
-g:far#left_cut_text_sign	far.txt	/*g:far#left_cut_text_sign*
 g:far#multiline_sign	far.txt	/*g:far#multiline_sign*
 g:far#preview_window_height	far.txt	/*g:far#preview_window_height*
 g:far#preview_window_layout	far.txt	/*g:far#preview_window_layout*
@@ -78,7 +78,6 @@ g:far#preview_window_scroll_step	far.txt	/*g:far#preview_window_scroll_step*
 g:far#preview_window_width	far.txt	/*g:far#preview_window_width*
 g:far#repl_devider	far.txt	/*g:far#repl_devider*
 g:far#result_preview	far.txt	/*g:far#result_preview*
-g:far#right_cut_text_sign	far.txt	/*g:far#right_cut_text_sign*
 g:far#window_height	far.txt	/*g:far#window_height*
 g:far#window_layout	far.txt	/*g:far#window_layout*
 g:far#window_min_content_width	far.txt	/*g:far#window_min_content_width*

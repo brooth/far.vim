@@ -1,17 +1,42 @@
 " File: autoload/far/executors/nvim.vim
-" Description: Asynchronous python executor
+" Description: Asynchronous python source executor
 " Author: Oleg Khalidov <brooth@gmail.com>
 " License: MIT
 
+
+let g:far#executors#nvim#contexts = {}
+let g:far#executors#nvim#context_idx = 0
+
 function! far#executors#nvim#execute(exec_ctx, callback) abort "{{{
     let ctx = a:exec_ctx
-    if empty(get(ctx.source, 'py', ''))
-        let ctx['error'] = 'given source is not support async execution'
-        call call(a:callback, [ctx])
-        return
-    endif
+    let ctx['async_callback'] = a:callback
+    let ctx_idx = g:far#executors#nvim#context_idx
+    let g:far#executors#nvim#context_idx += 1
+    let g:far#executors#nvim#contexts[ctx_idx] = ctx
+    let source = ctx.source.fn
+    let idx = strridx(source, '.')
+    let execlist = [
+        \   'mod = importlib.import_module("'.source[:idx-1].'")',
+        \   'res = mod.'.source[idx+1:]."(".json_encode(a:exec_ctx.far_ctx).")",
+        \   'self.nvim.command("call far#executors#nvim#callback("+str(res)+", '.ctx_idx.')")',
+        \   ]
 
-    call far#tools#log('>>>'.json_encode(a:exec_ctx.far_ctx))
+    let result = far#rpc#nvim_invoke(execlist)
+    if !result
+        let ctx['error'] = 'failed to execute source. unknown error'
+        call call(a:callback, [ctx])
+    endif
+endfunction "}}}
+
+function! far#executors#nvim#callback(result, ctx_idx) abort "{{{
+    let ctx = remove(g:far#executors#nvim#contexts, a:ctx_idx)
+    let error = get(a:result, 'error', '')
+    if !empty(error)
+        let ctx['error'] = 'source error:'.error
+    else
+        let ctx.far_ctx['items'] = a:result['items']
+    endif
+    call call(ctx.async_callback, [ctx])
 endfunction "}}}
 
 " vim: set et fdm=marker sts=4 sw=4:

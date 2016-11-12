@@ -43,4 +43,20 @@ function! far#rpc#invoke(imports, evalstr) abort "{{{
     return result
 endfunction "}}}
 
+function! far#rpc#nvim_invoke(execlist) abort "{{{
+    call far#tools#log('far#rpc#nvim_invoke('.string(a:execlist).')')
+    try
+        if !exists('g:loaded_remote_plugins')
+            runtime! plugin/rplugin.vim
+        endif
+        let result = _far_nvim_rpc_async_invoke(a:execlist)
+    catch
+        call far#tools#log('nvim invoke error:'.string(v:exception))
+        echoerr 'Failed to invoke nvim plugin. Try the :UpdateRemotePlugins and restart Neovim'
+        return
+    endtry
+    call far#tools#log('nvim invoke res:'.string(result))
+    return result
+endfunction "}}}
+
 " vim: set et fdm=marker sts=4 sw=4:

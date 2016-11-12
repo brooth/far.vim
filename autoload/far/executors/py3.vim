@@ -5,16 +5,10 @@
 
 function! far#executors#py3#execute(exec_ctx, callback) abort "{{{
     let ctx = a:exec_ctx
-    if empty(get(ctx.source, 'py', ''))
-        let ctx['error'] = 'source dosn`t support python execution'
-        call call(a:callback, [ctx])
-        return
-    endif
-
-    let source = ctx.source.py
+    let source = ctx.source.fn
     let idx = strridx(source, '.')
     let evalstr = source."(".json_encode(a:exec_ctx.far_ctx).")"
-    let result = far#rpc#invoke(['json', source[:idx-1]], evalstr)
+    let result = far#rpc#invoke([source[:idx-1]], evalstr)
     let error = get(result, 'error', '')
     if !empty(error)
         let ctx['error'] = 'source error:'.error

@@ -38,23 +38,23 @@ if !exists('g:far#status_line')
     let g:far#status_line = 1
 endif
 if !exists('g:far#source')
-    let g:far#source = executable('ag') ? 'ag' : 'vimgrep'
+    let g:far#source = 'vimgrep'
 endif
 if !exists('g:far#auto_vimgrep_source')
     let g:far#auto_vimgrep_source = 1
 endif
-if !exists('g:far#executor')
-    let g:far#executor = has('nvim') ? 'nvim' : 'basic'
-endif
 if !exists('g:far#cwd')
     let g:far#cwd = getcwd()
+endif
+if !exists('g:far#limit')
+    let g:far#limit = 500
 endif
 
 function! s:create_far_params() abort
     return {
     \   'source': g:far#source,
-    \   'executor': g:far#executor,
     \   'cwd': g:far#cwd,
+    \   'limit': g:far#limit,
     \   }
 endfunction
 
@@ -105,25 +105,26 @@ let g:far#search_history = []
 let g:far#repl_history = []
 let g:far#file_mask_history = []
 
-if !exists('g:far#sources')
-    let g:far#sources = {}
-endif
-let g:far#sources['vimgrep'] = {'vim': 'far#sources#vimgrep#search'}
-let g:far#sources['grepprg'] = {'vim': 'far#sources#grepprg#search'}
-let g:far#sources['ag'] = {'vim': 'far#sources#ag#search', 'py': 'far.sources.ag.search'}
-
 if !exists('g:far#executors')
     let g:far#executors = {}
 endif
-let g:far#executors['basic'] = 'far#executors#basic#execute'
+let g:far#executors['vim'] = 'far#executors#basic#execute'
 let g:far#executors['py3'] = 'far#executors#py3#execute'
 let g:far#executors['nvim'] = 'far#executors#nvim#execute'
 " let g:far#executors['vim8'] = 'far#executors#vim8#execute'
 
+if !exists('g:far#sources')
+    let g:far#sources = {}
+endif
+let g:far#sources['vimgrep'] = {'vim': 'far#sources#vimgrep#search', 'executor': 'vim'}
+let g:far#sources['grepprg'] = {'vim': 'far#sources#grepprg#search', 'executor': 'vim'}
+let g:far#sources['ag'] = {'fn': 'far.sources.ag.search', 'executor': 'py3'}
+let g:far#sources['ag-nvim'] = {'fn': 'far.sources.ag.search', 'executor': 'nvim'}
+
 let s:far_params_meta = {
     \   '--source': {'param': 'source', 'values': keys(g:far#sources)},
-    \   '--executor': {'param': 'executor', 'values': keys(g:far#executors)},
     \   '--cwd': {'param': 'cwd', 'values': [getcwd()]},
+    \   '--limit': {'param': 'limit', 'values': [g:far#limit]},
     \   }
 
 let s:win_params_meta = {
@@ -158,7 +159,7 @@ let s:refar_params_meta = {
     \   '--replace-with': {'param': 'replace_with'},
     \   '--file-mask': {'param': 'file_mask', 'values': g:far#file_mask_favorites},
     \   '--source': {'param': 'source', 'values': keys(g:far#sources)},
-    \   '--executor': {'param': 'executor', 'values': keys(g:far#executors)},
+    \   '--limit': {'param': 'limit', 'values': [g:far#limit]},
     \   }
 "}}}
 
@@ -631,15 +632,6 @@ function! far#find(pattern, replace_with, file_mask, fline, lline, xargs) "{{{
             let lnum += 1
         endwhile
         call far#tools#log('*pattern:'.far_params.pattern)
-    else
-        let far_params.pattern = substitute(far_params.pattern, '', '\\n', 'g')
-    endif
-
-    let replace_with = substitute(far_params.replace_with, '', '\\r', 'g')
-
-    let file_mask = far_params.file_mask
-    if file_mask == '%'
-        let file_mask = bufname('%')
     endif
 
     let win_params = s:create_win_params()
@@ -659,13 +651,6 @@ function! far#find(pattern, replace_with, file_mask, fline, lline, xargs) "{{{
             endif
         endfor
     endfor
-
-    if g:far#auto_vimgrep_source && far_params.source != 'vimgrep' &&
-                \   stridx(far_params.pattern, '\n') != -1
-        call far#tools#log('multiline pattern, auto switch to vimgrep source')
-        let far_params.source = 'vimgrep'
-        let far_params.executor = 'basic'
-    endif
 
     call s:assemble_context(far_params, win_params, function('s:open_far_buff'), [win_params])
 endfunction
@@ -883,12 +868,17 @@ function! s:assemble_context(far_params, win_params, callback, cbparams) abort "
         call far#tools#log('assemble_context('.string(a:far_params).','.string(a:win_params).')')
     endif
 
-    let executor = get(g:far#executors, a:far_params.executor, '')
-    if empty(executor)
-        echoerr 'Unknown executor '.a:far_params.executor
-        return {}
+    let a:far_params.pattern = substitute(a:far_params.pattern, '', '\\n', 'g')
+    let a:far_params.replace_with = substitute(a:far_params.replace_with, '', '\\r', 'g')
+    if a:far_params.file_mask == '%'
+        let a:far_params.file_mask = bufname('%')
     endif
-    call far#tools#log('executor: '.executor)
+
+    if g:far#auto_vimgrep_source && a:far_params.source != 'vimgrep' &&
+                \   stridx(a:far_params.pattern, '\n') != -1
+        call far#tools#log('multiline pattern, auto switch to vimgrep source')
+        let far_params.source = 'vimgrep'
+    endif
 
     let fsource = get(g:far#sources, a:far_params.source, '')
     if empty(fsource)
@@ -896,6 +886,14 @@ function! s:assemble_context(far_params, win_params, callback, cbparams) abort "
         return {}
     endif
     call far#tools#log('source: '.string(fsource))
+
+    let executor = get(g:far#executors, fsource.executor, '')
+    if empty(executor)
+        echoerr 'Unknown executor '.fsource.executor
+        return {}
+    endif
+    call far#tools#log('executor: '.executor)
+
 
     let exec_ctx = {
         \   'far_ctx': a:far_params,
@@ -1242,7 +1240,7 @@ function! s:check_far_window_to_resize(bufnr) abort "{{{
     if win_params.width != winwidth(bufwinnr(a:bufnr))
         call far#tools#log('resizing buf '.a:bufnr.' to '.winwidth(bufwinnr(a:bufnr)))
         let cur_winid = win_getid(winnr())
-        call s:update_far_buffer(a:bufnr)
+        call s:update_far_buffer(getbufvar(a:bufnr, 'far_ctx'), a:bufnr)
         call win_gotoid(cur_winid)
     endif
 endfunction "}}}

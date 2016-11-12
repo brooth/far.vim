@@ -8,7 +8,7 @@ function! far#sources#vimgrep#search(ctx) abort "{{{
     call far#tools#log('vimgrep_source('.a:ctx.pattern.','.a:ctx.file_mask.')')
 
     try
-        let cmd = 'silent! vimgrep! /'.escape(a:ctx.pattern, '/').'/gj '.a:ctx.file_mask
+        let cmd = 'silent! '.a:ctx.limit.'vimgrep! /'.escape(a:ctx.pattern, '/').'/gj '.a:ctx.file_mask
         call far#tools#log('vimgrep cmd: '.cmd)
         exec cmd
     catch /.*/

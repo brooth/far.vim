@@ -20,15 +20,23 @@ endif "}}}
 " (X) auto 'vimgrep' source for multiline pattern
 " (X) move business logic to autoload
 " (X) cwd param (current working directory)
-" complete Refar with current values
+" (X) limit
+" (X) Neovim async
 " FIXME: far#log -> far#log not working
 " FIXME: partial selecion in one line work as full line
 " FIXME: ag not find many matches in one line
+" FIXME: one jump window for each jump
+" FIXME: DA search by Activity fails on 500
+" --collapse in refar args and others which useful
+" builders (vim, py3, nvim)
+" arg processors (basic, ag)
+" return tmp file instead of items if big amount
+" complete Refar with current values
+" complete cwd
 " Ack
 " fzf
-" Async, Neovim, Vim8
+" Async Vim8
 " Find in <range> if pattern is not *
-" FIXME: one jump window for each jump
 " FIXME: remember preview window size ???
 " /dev/shm for temp files
 "}}}
