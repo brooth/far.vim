@@ -43,14 +43,18 @@ endif
 if !exists('g:far#auto_vimgrep_source')
     let g:far#auto_vimgrep_source = 1
 endif
-if !exists('g:far#async')
-    let g:far#async = has('nvim') ? 'nvim' : ''
+if !exists('g:far#executor')
+    let g:far#executor = has('nvim') ? 'nvim' : 'basic'
+endif
+if !exists('g:far#cwd')
+    let g:far#cwd = getcwd()
 endif
 
 function! s:create_far_params() abort
     return {
     \   'source': g:far#source,
-    \   'async': g:far#async,
+    \   'executor': g:far#executor,
+    \   'cwd': g:far#cwd,
     \   }
 endfunction
 
@@ -58,7 +62,6 @@ function! s:create_win_params() abort
     return {
     \   'layout': exists('g:far#window_layout')? g:far#window_layout : 'right',
     \   'width': exists('g:far#window_width')? g:far#window_width : 100,
-    \   'content_width': g:far#window_min_content_width,
     \   'height': exists('g:far#window_height')? g:far#window_height : 20,
     \   'preview_layout': exists('g:far#preview_window_layout')? g:far#preview_window_layout : 'bottom',
     \   'preview_width': exists('g:far#preview_window_width')? g:far#preview_window_width : 100,
@@ -97,7 +100,6 @@ endfunction
 let s:far_buffer_name = 'FAR %d'
 let s:far_preview_buffer_name = 'Preview'
 let s:buffer_counter = 1
-let s:async_modes = ['off', 'nvim']
 
 let g:far#search_history = []
 let g:far#repl_history = []
@@ -106,19 +108,22 @@ let g:far#file_mask_history = []
 if !exists('g:far#sources')
     let g:far#sources = {}
 endif
-if empty(get(g:far#sources, 'vimgrep', ''))
-    let g:far#sources['vimgrep'] = 'far#sources#vimgrep#search'
+let g:far#sources['vimgrep'] = {'vim': 'far#sources#vimgrep#search'}
+let g:far#sources['grepprg'] = {'vim': 'far#sources#grepprg#search'}
+let g:far#sources['ag'] = {'vim': 'far#sources#ag#search', 'py': 'far.sources.ag.search'}
+
+if !exists('g:far#executors')
+    let g:far#executors = {}
 endif
-if empty(get(g:far#sources, 'grepprg', ''))
-    let g:far#sources['grepprg'] = 'far#sources#grepprg#search'
-endif
-if empty(get(g:far#sources, 'ag', ''))
-    let g:far#sources['ag'] = 'far#sources#ag#search'
-endif
+let g:far#executors['basic'] = 'far#executors#basic#execute'
+let g:far#executors['py3'] = 'far#executors#py3#execute'
+let g:far#executors['nvim'] = 'far#executors#nvim#execute'
+" let g:far#executors['vim8'] = 'far#executors#vim8#execute'
 
 let s:far_params_meta = {
     \   '--source': {'param': 'source', 'values': keys(g:far#sources)},
-    \   '--async': {'param': 'async', 'values': s:async_modes},
+    \   '--executor': {'param': 'executor', 'values': keys(g:far#executors)},
+    \   '--cwd': {'param': 'cwd', 'values': [getcwd()]},
     \   }
 
 let s:win_params_meta = {
@@ -153,7 +158,7 @@ let s:refar_params_meta = {
     \   '--replace-with': {'param': 'replace_with'},
     \   '--file-mask': {'param': 'file_mask', 'values': g:far#file_mask_favorites},
     \   '--source': {'param': 'source', 'values': keys(g:far#sources)},
-    \   '--async': {'param': 'async', 'values': s:async_modes},
+    \   '--executor': {'param': 'executor', 'values': keys(g:far#executors)},
     \   }
 "}}}
 
@@ -381,8 +386,7 @@ function! far#change_collapse_all(cmode) abort "{{{
     endfor
 
     let pos = getcurpos()[1]
-    call setbufvar('%', 'far_ctx', far_ctx)
-    call s:update_far_buffer(bufnr)
+    call s:update_far_buffer(far_ctx, bufnr)
     exec 'norm! '.pos.'gg'
 endfunction "}}}
 
@@ -413,8 +417,7 @@ function! far#change_collapse_under_cursor(cmode) abort "{{{
             let collapsed = a:cmode == -1? !file_ctx.collapsed : a:cmode
             if file_ctx.collapsed != collapsed
                 let file_ctx.collapsed = collapsed
-                call setbufvar('%', 'far_ctx', far_ctx)
-                call s:update_far_buffer(bufnr)
+                call s:update_far_buffer(far_ctx, bufnr)
                 exec 'norm! '.buf_curpos.'gg'
             endif
             return
@@ -434,8 +437,7 @@ function! far#change_exclude_all(cmode) abort "{{{
             let item_ctx.excluded = a:cmode == -1? (item_ctx.excluded == 0? 1 : 0) : a:cmode
         endfor
     endfor
-    call setbufvar('%', 'far_ctx', far_ctx)
-    call s:update_far_buffer(bufnr)
+    call s:update_far_buffer(far_ctx, bufnr)
     return
 endfunction "}}}
 
@@ -452,8 +454,6 @@ function! far#change_exclude_under_cursor(cmode) abort "{{{
             for item_ctx in file_ctx.items
                 let item_ctx.excluded = a:cmode == -1? (item_ctx.excluded == 0? 1 : 0) : a:cmode
             endfor
-            call setbufvar('%', 'far_ctx', far_ctx)
-            call s:update_far_buffer(bufnr)
             return
         endif
 
@@ -462,8 +462,7 @@ function! far#change_exclude_under_cursor(cmode) abort "{{{
                 let index += 1
                 if pos == index
                     let item_ctx.excluded = a:cmode == -1? (item_ctx.excluded == 0? 1 : 0) : a:cmode
-                    call setbufvar('%', 'far_ctx', far_ctx)
-                    call s:update_far_buffer(bufnr)
+                    call s:update_far_buffer(far_ctx, bufnr)
                     exec 'norm! j'
                     return
                 endif
@@ -597,24 +596,24 @@ function! far#find(pattern, replace_with, file_mask, fline, lline, xargs) "{{{
     call far#tools#log('far#find('.a:pattern.','. a:replace_with.','.a:file_mask.','
         \   .a:fline.','. a:lline.','.string(a:xargs).')')
 
-    let far_ctx = s:create_far_params()
-    let far_ctx['pattern'] = a:pattern
-    let far_ctx['replace_with'] = a:replace_with
-    let far_ctx['file_mask'] = a:file_mask
+    let far_params = s:create_far_params()
+    let far_params['pattern'] = a:pattern
+    let far_params['replace_with'] = a:replace_with
+    let far_params['file_mask'] = a:file_mask
 
-    if far_ctx.pattern != '*' && index(g:far#search_history, far_ctx.pattern) == -1
-        call add(g:far#search_history, far_ctx.pattern)
+    if far_params.pattern != '*' && index(g:far#search_history, far_params.pattern) == -1
+        call add(g:far#search_history, far_params.pattern)
     endif
-    if index(g:far#repl_history, far_ctx.replace_with) == -1
-        call add(g:far#repl_history, far_ctx.replace_with)
+    if index(g:far#repl_history, far_params.replace_with) == -1
+        call add(g:far#repl_history, far_params.replace_with)
     endif
-    if index(g:far#file_mask_favorites, far_ctx.file_mask) == -1 &&
-            \   index(g:far#file_mask_history, far_ctx.file_mask) == -1
-        call add(g:far#file_mask_history, far_ctx.file_mask)
+    if index(g:far#file_mask_favorites, far_params.file_mask) == -1 &&
+            \   index(g:far#file_mask_history, far_params.file_mask) == -1
+        call add(g:far#file_mask_history, far_params.file_mask)
     endif
 
-    if far_ctx.pattern == '*'
-        let far_ctx.pattern = ''
+    if far_params.pattern == '*'
+        let far_params.pattern = ''
         let p1 = getpos("'<")[1:2]
         let p2 = getpos("'>")[1:2]
         let lnum = a:fline
@@ -625,20 +624,20 @@ function! far#find(pattern, replace_with, file_mask, fline, lline, xargs) "{{{
             elseif lnum == a:lline
                 let line = line[:p2[1]-1]
             endif
-            let far_ctx.pattern = far_ctx.pattern.escape(line, '\ []*')
+            let far_params.pattern = far_params.pattern.escape(line, '\ []*')
             if lnum != a:lline
-                let far_ctx.pattern = far_ctx.pattern.'\n'
+                let far_params.pattern = far_params.pattern.'\n'
             endif
             let lnum += 1
         endwhile
-        call far#tools#log('*pattern:'.far_ctx.pattern)
+        call far#tools#log('*pattern:'.far_params.pattern)
     else
-        let far_ctx.pattern = substitute(far_ctx.pattern, '', '\\n', 'g')
+        let far_params.pattern = substitute(far_params.pattern, '', '\\n', 'g')
     endif
 
-    let replace_with = substitute(far_ctx.replace_with, '', '\\r', 'g')
+    let replace_with = substitute(far_params.replace_with, '', '\\r', 'g')
 
-    let file_mask = far_ctx.file_mask
+    let file_mask = far_params.file_mask
     if file_mask == '%'
         let file_mask = bufname('%')
     endif
@@ -648,7 +647,7 @@ function! far#find(pattern, replace_with, file_mask, fline, lline, xargs) "{{{
         for k in keys(s:far_params_meta)
             if match(xarg, k) == 0
                 let val = xarg[len(k)+1:]
-                let far_ctx[s:far_params_meta[k].param] = val
+                let far_params[s:far_params_meta[k].param] = val
                 break
             endif
         endfor
@@ -661,14 +660,14 @@ function! far#find(pattern, replace_with, file_mask, fline, lline, xargs) "{{{
         endfor
     endfor
 
-    if g:far#auto_vimgrep_source && far_ctx.source != 'vimgrep' &&
-                \   (a:pattern == '*' || stridx(far_ctx.pattern, '\n') != -1)
+    if g:far#auto_vimgrep_source && far_params.source != 'vimgrep' &&
+                \   stridx(far_params.pattern, '\n') != -1
         call far#tools#log('multiline pattern, auto switch to vimgrep source')
-        let far_ctx.source = 'vimgrep'
+        let far_params.source = 'vimgrep'
+        let far_params.executor = 'basic'
     endif
 
-    let far_ctx = s:assemble_context(far_ctx, win_params)
-    call s:open_far_buff(far_ctx, win_params)
+    call s:assemble_context(far_params, win_params, function('s:open_far_buff'), [win_params])
 endfunction
 "}}}
 
@@ -698,8 +697,7 @@ function! far#refind(xargs) abort "{{{
         return
     endif
 
-    let b:far_ctx = s:assemble_context(b:far_ctx, b:win_params)
-    call s:update_far_buffer(bufnr('%'))
+    call s:assemble_context(b:far_ctx, b:win_params, function('s:update_far_buffer'), [bufnr('%')])
 endfunction "}}}
 
 function! far#replace(xargs) abort "{{{
@@ -804,7 +802,7 @@ function! far#replace(xargs) abort "{{{
     endif
 
     let b:far_ctx.repl_time = printf('%.3fms', reltimefloat(reltime()) - start_ts)
-    call s:update_far_buffer(bufnr)
+    call s:update_far_buffer(b:far_ctx, bufnr)
 endfunction "}}}
 
 function! far#undo(xargs) abort "{{{
@@ -877,29 +875,52 @@ function! far#undo(xargs) abort "{{{
         unlet b:far_ctx.repl_time
     endif
     let b:far_ctx.undo_time = printf('%.3fms', reltimefloat(reltime()) - start_ts)
-    call s:update_far_buffer(bufnr)
+    call s:update_far_buffer(b:far_ctx, bufnr)
 endfunction "}}}
 
-function! s:assemble_context(far_params, win_params) abort "{{{
+function! s:assemble_context(far_params, win_params, callback, cbparams) abort "{{{
     if far#tools#isdebug()
         call far#tools#log('assemble_context('.string(a:far_params).','.string(a:win_params).')')
     endif
 
-    let far_ctx = copy(a:far_params)
+    let executor = get(g:far#executors, a:far_params.executor, '')
+    if empty(executor)
+        echoerr 'Unknown executor '.a:far_params.executor
+        return {}
+    endif
+    call far#tools#log('executor: '.executor)
+
     let fsource = get(g:far#sources, a:far_params.source, '')
     if empty(fsource)
-        echoerr 'Unknown far source '.a:far_params.source
-        let far_ctx['items'] = {}
-        let far_ctx['search_time'] = 'failed'
-        return far_ctx
+        echoerr 'Unknown source '.a:far_params.source
+        return {}
+    endif
+    call far#tools#log('source: '.string(fsource))
+
+    let exec_ctx = {
+        \   'far_ctx': a:far_params,
+        \   'start_ts': reltimefloat(reltime()),
+        \   'source': fsource,
+        \   'callback': a:callback,
+        \   'callback_params': a:cbparams,
+        \   'win_params': a:win_params,
+        \   }
+    call call(function(executor), [exec_ctx, function('s:assemble_context_callback')])
+endfunction "}}}
+
+function! s:assemble_context_callback(exec_ctx) abort "{{{
+    call far#tools#log('assemble_context_callback()')
+
+    if !empty(get(a:exec_ctx, 'error', ''))
+        call far#tools#echo_err(a:exec_ctx.error)
+        return
     endif
 
-    let start_ts = reltimefloat(reltime())
-    let far_ctx['items'] = call(function(fsource), [a:far_params])
-    let far_ctx['search_time'] = printf('%.3fms', reltimefloat(reltime()) - start_ts)
+    let far_ctx = a:exec_ctx.far_ctx
+    let far_ctx['search_time'] = printf('%.3fms', reltimefloat(reltime()) - a:exec_ctx.start_ts)
 
     for file_ctx in far_ctx.items
-        let file_ctx.collapsed = a:win_params.collapse_result
+        let file_ctx.collapsed = a:exec_ctx.win_params.collapse_result
         let file_ctx.undos = []
 
         for item_ctx in file_ctx.items
@@ -907,7 +928,12 @@ function! s:assemble_context(far_params, win_params) abort "{{{
             let item_ctx.replaced = 0
         endfor
     endfor
-    return far_ctx
+
+    let params = [far_ctx]
+    if !empty(a:exec_ctx.callback_params)
+        call extend(params, a:exec_ctx.callback_params)
+    endif
+    call call(a:exec_ctx.callback, params)
 endfunction "}}}
 
 function! s:build_buffer_content(far_ctx, win_params) abort "{{{
@@ -948,8 +974,8 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
                 \   '  Time:'.a:far_ctx.repl_time
         endif
 
-        if strchars(statusline) < a:win_params.content_width
-            let statusline = statusline.repeat(' ', a:win_params.content_width - strchars(statusline))
+        if strchars(statusline) < a:win_params.width
+            let statusline = statusline.repeat(' ', a:win_params.width - strchars(statusline))
         endif
         call add(content, statusline)
 
@@ -971,7 +997,7 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
 
         let file_sep = has('unix')? '/' : '\'
         let filestats = ' ('.len(file_ctx.items).' matches)'
-        let maxfilewidth = a:win_params.content_width - strchars(filestats) - strchars(collapse_sign) + 1
+        let maxfilewidth = a:win_params.width - strchars(filestats) - strchars(collapse_sign) + 1
         let fileidx = strridx(file_ctx.fname, file_sep)
         let filepath = far#tools#cut_text_middle(file_ctx.fname[:fileidx-1], maxfilewidth/2 - (maxfilewidth % 2? 0 : 1) - 1).
             \ file_sep.far#tools#cut_text_middle(file_ctx.fname[fileidx+1:], maxfilewidth/2)
@@ -1005,8 +1031,8 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
                 endif
 
                 if a:win_params.result_preview && !multiline && !item_ctx.replaced
-                    let max_text_len = a:win_params.content_width / 2 - strchars(line_num_col_text)
-                    let max_repl_len = a:win_params.content_width / 2 - strchars(g:far#repl_devider)
+                    let max_text_len = a:win_params.width / 2 - strchars(line_num_col_text)
+                    let max_repl_len = a:win_params.width / 2 - strchars(g:far#repl_devider)
                     let repl_val = substitute(match_val, a:far_ctx.pattern, a:far_ctx.replace_with, "")
                     let repl_text = (item_ctx.cnum == 1? '' : item_ctx.text[0:item_ctx.cnum-2]).
                         \   repl_val.item_ctx.text[item_ctx.cnum+strchars(match_val)-1:]
@@ -1014,7 +1040,7 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
                     let repl_text = far#tools#centrify_text(repl_text, max_repl_len, item_ctx.cnum)
                     let out = line_num_col_text.match_text.text.g:far#repl_devider.repl_text.text
                 else
-                    let max_text_len = a:win_params.content_width - strchars(line_num_col_text)
+                    let max_text_len = a:win_params.width - strchars(line_num_col_text)
                     let match_text = far#tools#centrify_text((item_ctx.replaced ? item_ctx.repl_text : item_ctx.text),
                         \   max_text_len, item_ctx.cnum)
                     if multiline
@@ -1072,7 +1098,7 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
     return {'content': content, 'syntaxs': syntaxs}
 endfunction "}}}
 
-function! s:update_far_buffer(bufnr) abort "{{{
+function! s:update_far_buffer(far_ctx, bufnr) abort "{{{
     let winnr = bufwinnr(a:bufnr)
     call far#tools#log('update_far_buffer('.a:bufnr.', '.winnr.')')
 
@@ -1081,16 +1107,15 @@ function! s:update_far_buffer(bufnr) abort "{{{
         return
     endif
 
-    let far_ctx = getbufvar(a:bufnr, 'far_ctx')
     let win_params = getbufvar(a:bufnr, 'win_params')
     let far_win_width = winwidth(bufwinnr(a:bufnr))
-    if win_params.content_width != far_win_width
-        let win_params.content_width = far_win_width
+    if win_params.width != far_win_width
+        let win_params.width = far_win_width
     endif
-    if win_params.content_width < g:far#window_min_content_width
-        let win_params.content_width = g:far#window_min_content_width
+    if win_params.width < g:far#window_min_content_width
+        let win_params.width = g:far#window_min_content_width
     endif
-    let buff_content = s:build_buffer_content(far_ctx, win_params)
+    let buff_content = s:build_buffer_content(a:far_ctx, win_params)
 
     if far#tools#isdebug()
         call far#tools#log('content:')
@@ -1127,6 +1152,8 @@ function! s:update_far_buffer(bufnr) abort "{{{
     for buf_syn in buff_content.syntaxs
         exec buf_syn
     endfor
+
+    call setbufvar(a:bufnr, 'far_ctx', a:far_ctx)
 endfunction "}}}
 
 function! s:open_far_buff(far_ctx, win_params) abort "{{{
@@ -1161,9 +1188,8 @@ function! s:open_far_buff(far_ctx, win_params) abort "{{{
         call g:far#apply_default_mappings()
     endif
 
-    call setbufvar(bufnr, 'far_ctx', a:far_ctx)
     call setbufvar(bufnr, 'win_params', a:win_params)
-    call s:update_far_buffer(bufnr)
+    call s:update_far_buffer(a:far_ctx, bufnr)
     call s:start_resize_timer()
 
     if a:win_params.auto_preview
@@ -1213,7 +1239,7 @@ function! s:check_far_window_to_resize(bufnr) abort "{{{
         call far#tools#echo_err('Not a FAR buffer')
         return
     endif
-    if win_params.content_width != winwidth(bufwinnr(a:bufnr))
+    if win_params.width != winwidth(bufwinnr(a:bufnr))
         call far#tools#log('resizing buf '.a:bufnr.' to '.winwidth(bufwinnr(a:bufnr)))
         let cur_winid = win_getid(winnr())
         call s:update_far_buffer(a:bufnr)

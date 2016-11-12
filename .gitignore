@@ -1,1 +1,4 @@
 .vimsession
+__pycache__/
+
+*.pyc

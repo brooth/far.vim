@@ -19,6 +19,7 @@ endif "}}}
 " (X) remap review scrolling to <c-j><c-k>
 " (X) auto 'vimgrep' source for multiline pattern
 " (X) move business logic to autoload
+" (X) cwd param (current working directory)
 " complete Refar with current values
 " FIXME: far#log -> far#log not working
 " FIXME: partial selecion in one line work as full line
