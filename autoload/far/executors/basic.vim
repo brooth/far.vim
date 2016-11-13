@@ -5,7 +5,7 @@
 
 function! far#executors#basic#execute(exec_ctx, callback) abort
     let ctx = a:exec_ctx
-    let result = call(function(a:exec_ctx.source.fn), [ctx.far_ctx, ctx.fn_args])
+    let result = call(function(a:exec_ctx.source.fn), [ctx.far_ctx, ctx.fn_args, ctx.cmdargs])
     let error = get(result, 'error', '')
     if !empty(error)
         let ctx['error'] = 'source error:'.error

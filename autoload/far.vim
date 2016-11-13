@@ -129,7 +129,7 @@ let g:far#sources['ag'] = {
     \   'fn': 'far.sources.shell.search',
     \   'args': {
     \           'cmd': 'ag --nogroup --column --nocolor --silent --max-count={limit}'.
-    \               '{args} "{pattern}" -G "{file_mask}"',
+    \               ' {args} "{pattern}" -G "{file_mask}"',
     \       },
     \   'executor': 'py3'
     \   }
@@ -632,7 +632,7 @@ function! far#find(pattern, replace_with, file_mask, fline, lline, xargs) "{{{
         call add(g:far#file_mask_history, far_params.file_mask)
     endif
 
-    let fargs = []
+    let cmdargs = []
     let win_params = s:create_win_params()
     for xarg in a:xargs
         let d = stridx(xarg, '=')
@@ -650,9 +650,10 @@ function! far#find(pattern, replace_with, file_mask, fline, lline, xargs) "{{{
                 continue
             endif
         endif
-        call add(fargs, xarg)
+        call add(cmdargs, xarg)
     endfor
-    call s:assemble_context(far_params, win_params, function('s:open_far_buff'), [win_params])
+    call s:assemble_context(far_params, win_params, cmdargs,
+    \   function('s:open_far_buff'), [win_params])
 endfunction
 "}}}
 
@@ -664,7 +665,7 @@ function! far#refind(xargs) abort "{{{
         return
     endif
 
-    let fargs = []
+    let cmdargs = []
     for xarg in a:xargs
         let d = stridx(xarg, '=')
         if d != -1
@@ -676,7 +677,7 @@ function! far#refind(xargs) abort "{{{
                 continue
             endif
         endif
-        call add(fargs, xarg)
+        call add(cmdargs, xarg)
     endfor
 
     if empty(b:far_ctx.pattern)
@@ -687,7 +688,7 @@ function! far#refind(xargs) abort "{{{
         return
     endif
 
-    call s:assemble_context(b:far_ctx, b:win_params,
+    call s:assemble_context(b:far_ctx, b:win_params, cmdargs,
         \   function('s:update_far_buffer'), [bufnr('%')])
 endfunction "}}}
 
@@ -879,7 +880,7 @@ function! far#undo(xargs) abort "{{{
     call s:update_far_buffer(b:far_ctx, bufnr)
 endfunction "}}}
 
-function! s:assemble_context(far_params, win_params, callback, cbparams) abort "{{{
+function! s:assemble_context(far_params, win_params, cmdargs, callback, cbparams) abort "{{{
     if far#tools#isdebug()
         call far#tools#log('assemble_context('.string(a:far_params).','.string(a:win_params).')')
     endif
@@ -911,6 +912,7 @@ function! s:assemble_context(far_params, win_params, callback, cbparams) abort "
 
     let exec_ctx = {
         \   'fn_args': get(fsource, 'args', {}),
+        \   'cmdargs': a:cmdargs,
         \   'far_ctx': a:far_params,
         \   'start_ts': reltimefloat(reltime()),
         \   'source': fsource,

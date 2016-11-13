@@ -9,7 +9,8 @@ function! far#executors#py3#execute(exec_ctx, callback) abort
     let idx = strridx(source, '.')
     let sourcectx = json_encode(a:exec_ctx.far_ctx)
     let sourceargs = json_encode(a:exec_ctx.fn_args)
-    let evalstr = source."(".sourcectx.", ".sourceargs.")"
+    let sourcecmdargs = json_encode(a:exec_ctx.cmdargs)
+    let evalstr = source."(".sourcectx.",".sourceargs.",".sourcecmdargs.")"
     let result = far#rpc#invoke([source[:idx-1]], evalstr)
     let error = get(result, 'error', '')
     if !empty(error)

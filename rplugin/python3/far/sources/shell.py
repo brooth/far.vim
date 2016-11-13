@@ -11,8 +11,8 @@ import subprocess
 logger = logging.getLogger('far')
 
 
-def search(ctx, args):
-    logger.debug('search(%s, %s)', str(ctx), str(args))
+def search(ctx, args, cmdargs):
+    logger.debug('search(%s, %s, %s)', str(ctx), str(args), str(cmdargs))
 
     if not args.get('cmd'):
         return {'error': 'no cmd in args'}
@@ -21,7 +21,7 @@ def search(ctx, args):
     cmd = args['cmd'].format(limit=limit,
                              pattern=ctx['pattern'].replace(' ', '\"'),
                              file_mask=ctx['file_mask'],
-                             args='')
+                             args=' '.join(cmdargs))
     logger.debug('cmd:' + str(cmd))
 
     try:
@@ -29,6 +29,12 @@ def search(ctx, args):
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     except Exception as e:
         return {'error': str(e)}
+
+    err = proc.stderr.readline()
+    if err:
+        err = err.decode('utf-8')
+        logger.debug('error:' + err)
+        return {'error': err}
 
     result = {}
     while limit > 0:

@@ -30,6 +30,7 @@ endif "}}}
 " (X) FIXME: DA search by Activity fails on 500
 " (X) shell.py instead of ag.py. pass cmd and configs via 'args'
 " (X) vimcmd.vim instead of vimgrep and greppg
+" (X) cmdargs: pass to source not processed cmd params
 " complete Refar with current values
 " builders (vim, py3, nvim)
 " arg processors (basic, ag)

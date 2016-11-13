@@ -4,8 +4,9 @@
 " License: MIT
 
 
-function! far#sources#qf#search(ctx, fargs) abort "{{{
-    call far#tools#log('qf.search('.a:ctx.pattern.','.a:ctx.file_mask.','.string(a:fargs).')')
+function! far#sources#qf#search(ctx, fargs, cmdargs) abort "{{{
+    call far#tools#log('qf.search('.a:ctx.pattern.','.a:ctx.file_mask.
+        \   ','.string(a:fargs).','.string(a:cmdargs).')')
 
     let cmd = get(a:fargs, 'cmd', '')
     if empty(cmd)
@@ -14,7 +15,7 @@ function! far#sources#qf#search(ctx, fargs) abort "{{{
     let cmd = substitute(cmd, '{pattern}', a:ctx.pattern, '')
     let cmd = substitute(cmd, '{file_mask}', a:ctx.file_mask, '')
     let cmd = substitute(cmd, '{limit}', a:ctx.limit, '')
-    let cmd = substitute(cmd, '{args}', '', '')
+    let cmd = substitute(cmd, '{args}', join(a:cmdargs, ''), '')
     call far#tools#log('qfcmd: '.cmd)
 
     let backcwd = getcwd()
@@ -65,5 +66,5 @@ function! far#sources#qf#search(ctx, fargs) abort "{{{
         let item_ctx.text = item.text
         call add(file_ctx.items, item_ctx)
     endfor
-    return {'items': values(result)
+    return {'items': values(result)}
 endfunction "}}}
