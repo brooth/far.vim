@@ -1,23 +1,35 @@
-" File: vimgrep.vim
-" Description: vimgrep source for far.vim
+" File: qf.vim
+" Description: quick fix source for far.vim
 " Author: Oleg Khalidov <brooth@gmail.com>
 " License: MIT
 
 
-function! far#sources#vimgrep#search(ctx) abort "{{{
-    call far#tools#log('vimgrep_source('.a:ctx.pattern.','.a:ctx.file_mask.')')
+function! far#sources#qf#search(ctx, fargs) abort "{{{
+    call far#tools#log('qf.search('.a:ctx.pattern.','.a:ctx.file_mask.','.string(a:fargs).')')
+
+    let cmd = get(a:fargs, 'cmd', '')
+    if empty(cmd)
+        echoerr 'no cmd in args'
+        return
+    endif
+
+    let cmd = substitute(cmd, '{pattern}', a:ctx.pattern, '')
+    let cmd = substitute(cmd, '{file_mask}', a:ctx.file_mask, '')
+    let cmd = substitute(cmd, '{limit}', a:ctx.limit, '')
+    let cmd = substitute(cmd, '{args}', '', '')
+    call far#tools#log('qfcmd: '.cmd)
 
     try
-        let cmd = 'silent! '.a:ctx.limit.'vimgrep! /'.escape(a:ctx.pattern, '/').'/gj '.a:ctx.file_mask
-        call far#tools#log('vimgrep cmd: '.cmd)
         exec cmd
     catch
-        call far#tools#log('vimgrep error:'.v:exception)
+        call far#tools#log('qfcmd error:'.v:exception)
     endtry
 
     let items = getqflist()
     if empty(items)
         return []
+    elseif len(items) > a:ctx.limit
+        let items = items[:a:ctx.limit-1]
     endif
 
     let result = {}

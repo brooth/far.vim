@@ -1,6 +1,6 @@
 """
-File: ag.py
-Description: Ag (Silver searcher) source for far.vim
+File: shell.py
+Description: shell command source
 Author: Oleg Khalidov <brooth@gmail.com>
 License: MIT
 """
@@ -10,21 +10,23 @@ import subprocess
 
 logger = logging.getLogger('far')
 
-AG_CMD = 'ag --nogroup --column --nocolor --silent --max-count={limit}' + \
-         ' --multiline "{pattern}" -G "{file_mask}"'
 
-def search(ctx):
-    logger.debug('search(%s)', str(ctx))
+def search(ctx, args):
+    logger.debug('search(%s, %s)', str(ctx), str(args))
 
-    cmd = AG_CMD.format(limit=ctx['limit'],
-                      pattern=ctx['pattern'].replace(' ', '\"'),
-                      file_mask=ctx['file_mask'])
-    logger.debug('ag cmd:' + str(cmd))
+    if not args.get('cmd'):
+        return {'error': 'no cmd in args'}
+
+    limit = int(ctx['limit'])
+    cmd = args['cmd'].format(limit=limit,
+                             pattern=ctx['pattern'].replace(' ', '\"'),
+                             file_mask=ctx['file_mask'],
+                             args='')
+    logger.debug('cmd:' + str(cmd))
 
     proc = subprocess.Popen(cmd, shell=True, cwd=ctx['cwd'],
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     result = {}
-    limit = int(ctx['limit'])
     while limit > 0:
         line = proc.stdout.readline()
         line = line.decode('utf-8').rstrip()
@@ -36,7 +38,7 @@ def search(ctx):
             continue
 
         limit -= 1
-        logger.debug('ag line:' + line)
+        logger.debug('line:' + line)
         idx1 = line.find(':')
         if idx1 == -1:
             return {'error': 'broken outout'}
@@ -65,16 +67,3 @@ def search(ctx):
         logger.error('failed to terminate proc: ' + str(e))
 
     return {'items': list(result.values())}
-
-
-def test(pattern='number'):
-    import sys
-    import json
-
-    logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
-
-    far_ctx = json.loads('{"pattern": "' + pattern + '", "file_mask": "**/*.py", \
-                         "replace_with": "num", "cwd": "/home/brooth/Projects/far.vim"}')
-    res = search(far_ctx)
-    logger.debug('search res:' + str(res))
-    return res

@@ -105,23 +105,39 @@ endif
 let g:far#executors['vim'] = 'far#executors#basic#execute'
 let g:far#executors['py3'] = 'far#executors#py3#execute'
 let g:far#executors['nvim'] = 'far#executors#nvim#execute'
-" let g:far#executors['vim8'] = 'far#executors#vim8#execute'
+"let g:far#executors['vim8'] = 'far#executors#vim8#execute'
 
 if !exists('g:far#sources')
     let g:far#sources = {}
 endif
-let g:far#sources['vimgrep'] = {'fn': 'far#sources#vimgrep#search', 'executor': 'vim'}
-let g:far#sources['grepprg'] = {'fn': 'far#sources#grepprg#search', 'executor': 'vim'}
-let g:far#sources['ag'] = {'fn': 'far.sources.ag.search', 'executor': 'py3'}
-"TODO: pass in this map xargs not defined in metas? or via --args='wfew'?
-let g:far#sources['ag-nvim'] = {
-    \   'fn': 'far.sources.ag.search',
+let g:far#sources['vimgrep'] = {
+    \   'fn': 'far#sources#qf#search',
     \   'args': {
-    \           'cmd': 'ag --nogroup --column --nocolor --silent --max-count={limit} "{pattern}" -G "{file_mask}"',
+    \           'cmd': 'silent! {limit}vimgrep! /{pattern}/gj {file_mask}',
+    \           'escape_pattern': '/',
     \       },
-    \   'executor': 'nvim'
+    \   'executor': 'vim'
     \   }
+let g:far#sources['grepprg'] = {
+    \   'fn': 'far#sources#qf#search',
+    \   'args': {
+    \           'cmd': 'silent! grep! {pattern} {file_mask} {args}',
+    \           'escape_pattern': ' ',
+    \       },
+    \   'executor': 'vim'}
+let g:far#sources['ag'] = {
+    \   'fn': 'far.sources.shell.search',
+    \   'args': {
+    \           'cmd': 'ag --nogroup --column --nocolor --silent --max-count={limit}'.
+    \               '{args} "{pattern}" -G "{file_mask}"',
+    \       },
+    \   'executor': 'py3'
+    \   }
+let g:far#sources['ag-nvim'] = copy(g:far#sources.ag)
+let g:far#sources['ag-nvim'].executor = 'nvim'
+"}}}
 
+" metas {{{
 let s:far_params_meta = {
     \   '--source': {'param': 'source', 'values': keys(g:far#sources)},
     \   '--cwd': {'param': 'cwd', 'values': [getcwd()]},
@@ -884,8 +900,8 @@ function! s:assemble_context(far_params, win_params, callback, cbparams) abort "
     endif
     call far#tools#log('executor: '.executor)
 
-
     let exec_ctx = {
+        \   'fn_args': get(fsource, 'args', {}),
         \   'far_ctx': a:far_params,
         \   'start_ts': reltimefloat(reltime()),
         \   'source': fsource,

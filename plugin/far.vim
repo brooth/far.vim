@@ -27,10 +27,10 @@ endif "}}}
 " (X) FIXME: partial selecion in one line work as full line, syn is broken as well
 " (?) FIXME: undo issue: far-fardo, manual undo, farundo
 " (X) remove jump setting, always open in far window
-" 'enabled' source flag. to be able to disable
 " (X) FIXME: DA search by Activity fails on 500
+" (X) shell.py instead of ag.py. pass cmd and configs via 'args'
+" vimcmd.vim instead of vimgrep and greppg
 " --collapse in refar args and others which useful
-"  ag supports --multiline
 " builders (vim, py3, nvim)
 " arg processors (basic, ag)
 " return tmp file instead of items if big amount
@@ -38,6 +38,7 @@ endif "}}}
 " complete cwd
 " support manual? column definition (full - grep, next modes -ag,ack)
 " (^) FIXME: ag not find many matches in one line
+" 'enabled' source flag. to be able to disable
 " Ack
 " fzf
 " Async Vim8

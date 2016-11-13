@@ -15,9 +15,11 @@ function! far#executors#nvim#execute(exec_ctx, callback) abort "{{{
     let g:far#executors#nvim#contexts[ctx_idx] = ctx
     let source = ctx.source.fn
     let idx = strridx(source, '.')
+    let sourcectx = json_encode(a:exec_ctx.far_ctx)
+    let sourceargs = json_encode(a:exec_ctx.fn_args)
     let execlist = [
         \   'mod = importlib.import_module("'.source[:idx-1].'")',
-        \   'res = mod.'.source[idx+1:]."(".json_encode(a:exec_ctx.far_ctx).")",
+        \   'res = mod.'.source[idx+1:]."(".sourcectx.", ".sourceargs.")",
         \   'self.nvim.command("call far#executors#nvim#callback("+str(res)+", '.ctx_idx.')")',
         \   ]
 
