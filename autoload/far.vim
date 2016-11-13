@@ -40,9 +40,6 @@ endif
 if !exists('g:far#source')
     let g:far#source = 'vimgrep'
 endif
-if !exists('g:far#auto_vimgrep_source')
-    let g:far#auto_vimgrep_source = 1
-endif
 if !exists('g:far#cwd')
     let g:far#cwd = getcwd()
 endif
@@ -66,9 +63,6 @@ function! s:create_win_params() abort
     \   'preview_layout': exists('g:far#preview_window_layout')? g:far#preview_window_layout : 'bottom',
     \   'preview_width': exists('g:far#preview_window_width')? g:far#preview_window_width : 100,
     \   'preview_height': exists('g:far#preview_window_height')? g:far#preview_window_height : 11,
-    \   'jump_win_layout': exists('g:far#jump_window_layout')? g:far#jump_window_layout : 'current',
-    \   'jump_win_width': exists('g:far#jump_window_width')? g:far#jump_window_width : 100,
-    \   'jump_win_height': exists('g:far#jump_window_height')? g:far#jump_window_height : 15,
     \   'auto_preview': exists('g:far#auto_preview')? g:far#auto_preview : 1,
     \   'highlight_match': exists('g:far#highlight_match')? g:far#highlight_match : 1,
     \   'collapse_result': exists('g:far#collapse_result')? g:far#collapse_result : 0,
@@ -116,10 +110,17 @@ let g:far#executors['nvim'] = 'far#executors#nvim#execute'
 if !exists('g:far#sources')
     let g:far#sources = {}
 endif
-let g:far#sources['vimgrep'] = {'vim': 'far#sources#vimgrep#search', 'executor': 'vim'}
-let g:far#sources['grepprg'] = {'vim': 'far#sources#grepprg#search', 'executor': 'vim'}
+let g:far#sources['vimgrep'] = {'fn': 'far#sources#vimgrep#search', 'executor': 'vim'}
+let g:far#sources['grepprg'] = {'fn': 'far#sources#grepprg#search', 'executor': 'vim'}
 let g:far#sources['ag'] = {'fn': 'far.sources.ag.search', 'executor': 'py3'}
-let g:far#sources['ag-nvim'] = {'fn': 'far.sources.ag.search', 'executor': 'nvim'}
+"TODO: pass in this map xargs not defined in metas? or via --args='wfew'?
+let g:far#sources['ag-nvim'] = {
+    \   'fn': 'far.sources.ag.search',
+    \   'args': {
+    \           'cmd': 'ag --nogroup --column --nocolor --silent --max-count={limit} "{pattern}" -G "{file_mask}"',
+    \       },
+    \   'executor': 'nvim'
+    \   }
 
 let s:far_params_meta = {
     \   '--source': {'param': 'source', 'values': keys(g:far#sources)},
@@ -134,9 +135,6 @@ let s:win_params_meta = {
     \   '--preview-win-layout': {'param': 'preview_layout', 'values': ['top', 'left', 'right', 'bottom']},
     \   '--preview-win-width': {'param': 'preview_width', 'values': [60, 70, 80, 90, 100, 110, 120, 130, 140, 150]},
     \   '--preview-win-height': {'param': 'preview_height', 'values': [5, 7, 10, 15, 20, 25, 30]},
-    \   '--jump-win-layout': {'param': 'jump_win_layout', 'values': ['top', 'left', 'right', 'bottom', 'tab', 'current']},
-    \   '--jump-win-width': {'param': 'jump_win_width', 'values': [60, 70, 80, 90, 100, 110, 120, 130, 140, 150]},
-    \   '--jump-win-height': {'param': 'jump_win_height', 'values': [5, 7, 10, 15, 20, 25, 30]},
     \   '--auto-preview': {'param': 'auto_preview', 'values': [0, 1]},
     \   '--hl-match': {'param': 'highlight_match', 'values': [0, 1]},
     \   '--collapse': {'param': 'collapse_result', 'values': [0, 1]},
@@ -279,6 +277,7 @@ function! far#show_preview_window_under_cursor() abort "{{{
     let bufnr = bufnr(fname)
     let transbuf = bufnr == -1
     let refrbuf = 0
+    let synbuf = bufnr == -1 || !bufloaded(bufnr)
     let bufcmd = !transbuf? 'buffer! '.bufnr : 'edit! '.fname
 
     if exists('b:far_preview_winid')
@@ -315,7 +314,11 @@ function! far#show_preview_window_under_cursor() abort "{{{
     endif
     if refrbuf
         set nofoldenable
-        exec 'set syntax='.far#tools#ftlookup(expand('%:e'))
+    endif
+    if synbuf
+        let syncmd = 'set syntax='.far#tools#ftlookup(expand('%:e'))
+        call far#tools#log('synbuf:'.syncmd)
+        exec syncmd
     endif
 
     exec 'norm! '.ctxs[2].lnum.'ggzz'.ctxs[2].cnum.'l'
@@ -355,7 +358,7 @@ function! far#jump_buffer_under_cursor() abort "{{{
         return
     endif
 
-    let new_win = 1
+    let nowin = 1
     let bufnr = bufnr(ctxs[1].fname)
     if bufnr > 0
         for winnr in range(1, winnr('$'))
@@ -366,8 +369,8 @@ function! far#jump_buffer_under_cursor() abort "{{{
             endif
         endfor
     endif
-    if new_win
-        let cmd = far#tools#win_layout(b:win_params, 'jump_win_', ctxs[1].fname)
+    if nowin
+        let cmd = bufnr != -1 ? 'buffer '.bufnr : 'edit '.fname
         call far#tools#log('jump wincmd: '.cmd)
         exec cmd
     endif
@@ -424,7 +427,6 @@ function! far#change_collapse_under_cursor(cmode) abort "{{{
             return
         endif
     endfor
-    echoerr 'no far ctx item found under cursor '.pos
 endfunction "}}}
 
 function! far#change_exclude_all(cmode) abort "{{{
@@ -613,27 +615,6 @@ function! far#find(pattern, replace_with, file_mask, fline, lline, xargs) "{{{
         call add(g:far#file_mask_history, far_params.file_mask)
     endif
 
-    if far_params.pattern == '*'
-        let far_params.pattern = ''
-        let p1 = getpos("'<")[1:2]
-        let p2 = getpos("'>")[1:2]
-        let lnum = a:fline
-        while lnum <= a:lline
-            let line = getline(lnum)
-            if lnum == a:fline
-                let line = line[p1[1]-1:]
-            elseif lnum == a:lline
-                let line = line[:p2[1]-1]
-            endif
-            let far_params.pattern = far_params.pattern.escape(line, '\ []*')
-            if lnum != a:lline
-                let far_params.pattern = far_params.pattern.'\n'
-            endif
-            let lnum += 1
-        endwhile
-        call far#tools#log('*pattern:'.far_params.pattern)
-    endif
-
     let win_params = s:create_win_params()
     for xarg in a:xargs
         for k in keys(s:far_params_meta)
@@ -696,7 +677,8 @@ function! far#replace(xargs) abort "{{{
     let start_ts = reltimefloat(reltime())
     let bufnr = bufnr('%')
     let del_bufs = []
-    let lines_to_repl = len(substitute(b:far_ctx.replace_with, '[^\\r]', '','g'))/2
+    let replines = far#tools#matchcnt(b:far_ctx.replace_with, '\r')
+    call far#tools#log('replines:'.replines)
 
     let repl_params = s:create_repl_params()
     for xarg in a:xargs
@@ -730,7 +712,9 @@ function! far#replace(xargs) abort "{{{
 
             exec 'buffer! '.file_ctx.fname
 
-            call add(file_ctx.undos, {'num': far#tools#undo_nextnr(), 'items': items})
+            let undonum = far#tools#undo_nextnr()
+            let undoitems = []
+
 
             if repl_params.auto_write && !(&mod)
                 call add(cmds, 'write')
@@ -765,11 +749,12 @@ function! far#replace(xargs) abort "{{{
 
             for item_ctx in items
                 for idx in range(len(repl_lines))
-                    if (item_ctx.lnum + lines_to_repl) == repl_lines[idx][0]
+                    if (item_ctx.lnum + replines) == repl_lines[idx][0]
                         let item_ctx.replaced = 1
                         let item_ctx.repl_text = repl_lines[idx][1]
                         let buf_repls += 1
                         unlet repl_lines[idx]
+                        call add(undoitems, item_ctx)
                         break
                     endif
                 endfor
@@ -777,6 +762,10 @@ function! far#replace(xargs) abort "{{{
                     let item_ctx.broken = 1
                 endif
             endfor
+
+            if !empty(undoitems)
+                call add(file_ctx.undos, {'num': undonum, 'items': undoitems})
+            endif
         endif
     endfor
 
@@ -817,7 +806,9 @@ function! far#undo(xargs) abort "{{{
             continue
         endif
 
-        call far#tools#log('undo buf, undos:'.string(file_ctx.undos))
+        if far#tools#isdebug()
+            call far#tools#log('undo '.file_ctx.fname.', undos:'.string(file_ctx.undos))
+        endif
 
         exec 'buffer! '.file_ctx.fname
 
@@ -868,16 +859,15 @@ function! s:assemble_context(far_params, win_params, callback, cbparams) abort "
         call far#tools#log('assemble_context('.string(a:far_params).','.string(a:win_params).')')
     endif
 
-    let a:far_params.pattern = substitute(a:far_params.pattern, '', '\\n', 'g')
+    if a:far_params.pattern == '*'
+        let a:far_params.pattern = far#tools#visualtext()
+        call far#tools#log('*pattern:'.a:far_params.pattern)
+    else
+        let a:far_params.pattern = substitute(a:far_params.pattern, '', '\\n', 'g')
+    endif
     let a:far_params.replace_with = substitute(a:far_params.replace_with, '', '\\r', 'g')
     if a:far_params.file_mask == '%'
         let a:far_params.file_mask = bufname('%')
-    endif
-
-    if g:far#auto_vimgrep_source && a:far_params.source != 'vimgrep' &&
-                \   stridx(a:far_params.pattern, '\n') != -1
-        call far#tools#log('multiline pattern, auto switch to vimgrep source')
-        let far_params.source = 'vimgrep'
     endif
 
     let fsource = get(g:far#sources, a:far_params.source, '')

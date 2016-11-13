@@ -10,9 +10,8 @@ import subprocess
 
 logger = logging.getLogger('far')
 
-AG_CMD = 'ag --nogroup --column --nocolor --silent --max-count={limit} \
-    "{pattern}" -G "{file_mask}"'
-
+AG_CMD = 'ag --nogroup --column --nocolor --silent --max-count={limit}' + \
+         ' --multiline "{pattern}" -G "{file_mask}"'
 
 def search(ctx):
     logger.debug('search(%s)', str(ctx))

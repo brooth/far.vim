@@ -11,13 +11,13 @@ function! far#sources#grepprg#search(ctx) abort "{{{
         let cmd = 'silent! grep! '.escape(a:ctx.pattern, ' ').' '.a:ctx.file_mask
         call far#tools#log('grepprg cmd: '.cmd)
         silent! exec cmd
-    catch /.*/
+    catch
         call far#tools#log('grepprg error:'.v:exception)
     endtry
 
     let items = getqflist()
     if empty(items)
-        return {}
+        return []
     endif
 
     if len(items) > a:ctx.limit

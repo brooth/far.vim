@@ -11,13 +11,13 @@ function! far#sources#vimgrep#search(ctx) abort "{{{
         let cmd = 'silent! '.a:ctx.limit.'vimgrep! /'.escape(a:ctx.pattern, '/').'/gj '.a:ctx.file_mask
         call far#tools#log('vimgrep cmd: '.cmd)
         exec cmd
-    catch /.*/
+    catch
         call far#tools#log('vimgrep error:'.v:exception)
     endtry
 
     let items = getqflist()
     if empty(items)
-        return {}
+        return []
     endif
 
     let result = {}

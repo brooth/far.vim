@@ -17,22 +17,27 @@ endif "}}}
 " (X) rename buf_ctx -> file_ctx, bufname -> fname, far_ctx.items -> list
 " (X) Ag
 " (X) remap review scrolling to <c-j><c-k>
-" (X) auto 'vimgrep' source for multiline pattern
 " (X) move business logic to autoload
 " (X) cwd param (current working directory)
 " (X) limit
 " (X) Neovim async
-" FIXME: far#log -> far#log not working
-" FIXME: partial selecion in one line work as full line
-" FIXME: ag not find many matches in one line
-" FIXME: one jump window for each jump
-" FIXME: DA search by Activity fails on 500
+" (X) FIXME: far#log -> far#log masked as broken
+" (X) FIXME: set filetype=off if already open
+" (X) FIXME: far undo is broken? on broken strings?
+" (X) FIXME: partial selecion in one line work as full line, syn is broken as well
+" (?) FIXME: undo issue: far-fardo, manual undo, farundo
+" (X) remove jump setting, always open in far window
+" 'enabled' source flag. to be able to disable
+" (X) FIXME: DA search by Activity fails on 500
 " --collapse in refar args and others which useful
+"  ag supports --multiline
 " builders (vim, py3, nvim)
 " arg processors (basic, ag)
 " return tmp file instead of items if big amount
 " complete Refar with current values
 " complete cwd
+" support manual? column definition (full - grep, next modes -ag,ack)
+" (^) FIXME: ag not find many matches in one line
 " Ack
 " fzf
 " Async Vim8

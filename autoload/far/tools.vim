@@ -152,7 +152,29 @@ function! far#tools#ftlookup(ext) abort "{{{
     if len(matching) > 0
         return matchstr(matching[0], 'setf\s\+\zs\k\+')
     endif
-    return 'txt'
+    return a:ext
+endfunction "}}}
+
+function! far#tools#matchcnt(pat, exp) abort "{{{
+    let cnt = 0
+    let idx = -1
+    while 1
+        let idx = stridx(a:pat, a:exp, idx+1)
+        if idx == -1
+            break
+        endif
+        let cnt += 1
+    endwhile
+    return cnt
+endfunction "}}}
+
+function! far#tools#visualtext() "{{{
+  let [lnum1, col1] = getpos("'<")[1:2]
+  let [lnum2, col2] = getpos("'>")[1:2]
+  let lines = getline(lnum1, lnum2)
+  let lines[-1] = lines[-1][: col2 - (&selection == 'inclusive' ? 1 : 2)]
+  let lines[0] = lines[0][col1 - 1:]
+  return join(lines, "\\n")
 endfunction "}}}
 
 " vim: set et fdm=marker sts=4 sw=4:
