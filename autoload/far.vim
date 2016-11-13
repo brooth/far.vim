@@ -172,6 +172,7 @@ let s:refar_params_meta = {
     \   '--pattern': {'param': 'pattern', 'values': ['*']},
     \   '--replace-with': {'param': 'replace_with'},
     \   '--file-mask': {'param': 'file_mask', 'values': g:far#file_mask_favorites},
+    \   '--cwd': {'param': 'cwd', 'values': [getcwd()]},
     \   '--source': {'param': 'source', 'values': keys(g:far#sources)},
     \   '--limit': {'param': 'limit', 'values': [g:far#limit]},
     \   }
@@ -631,24 +632,26 @@ function! far#find(pattern, replace_with, file_mask, fline, lline, xargs) "{{{
         call add(g:far#file_mask_history, far_params.file_mask)
     endif
 
+    let fargs = []
     let win_params = s:create_win_params()
     for xarg in a:xargs
-        for k in keys(s:far_params_meta)
-            if match(xarg, k) == 0
-                let val = xarg[len(k)+1:]
-                let far_params[s:far_params_meta[k].param] = val
-                break
+        let d = stridx(xarg, '=')
+        if d != -1
+            let param = xarg[:d-1]
+            let val = xarg[d+1:]
+            let meta = get(s:far_params_meta, param, '')
+            if !empty(meta)
+                let far_params[meta.param] = val
+                continue
             endif
-        endfor
-        for k in keys(s:win_params_meta)
-            if match(xarg, k) == 0
-                let val = xarg[len(k)+1:]
-                let win_params[s:win_params_meta[k].param] = val
-                break
+            let meta = get(s:win_params_meta, param, '')
+            if !empty(meta)
+                let b:win_params[meta.param] = val
+                continue
             endif
-        endfor
+        endif
+        call add(fargs, xarg)
     endfor
-
     call s:assemble_context(far_params, win_params, function('s:open_far_buff'), [win_params])
 endfunction
 "}}}
@@ -661,14 +664,19 @@ function! far#refind(xargs) abort "{{{
         return
     endif
 
+    let fargs = []
     for xarg in a:xargs
-        for k in keys(s:refar_params_meta)
-            if match(xarg, k) == 0
-                let val = xarg[len(k)+1:]
-                let b:far_ctx[s:refar_params_meta[k].param] = val
-                break
+        let d = stridx(xarg, '=')
+        if d != -1
+            let param = xarg[:d-1]
+            let val = xarg[d+1:]
+            let meta = get(s:refar_params_meta, param, '')
+            if !empty(meta)
+                let b:far_ctx[meta.param] = val
+                continue
             endif
-        endfor
+        endif
+        call add(fargs, xarg)
     endfor
 
     if empty(b:far_ctx.pattern)
@@ -679,7 +687,8 @@ function! far#refind(xargs) abort "{{{
         return
     endif
 
-    call s:assemble_context(b:far_ctx, b:win_params, function('s:update_far_buffer'), [bufnr('%')])
+    call s:assemble_context(b:far_ctx, b:win_params,
+        \   function('s:update_far_buffer'), [bufnr('%')])
 endfunction "}}}
 
 function! far#replace(xargs) abort "{{{

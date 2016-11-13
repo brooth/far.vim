@@ -24,8 +24,12 @@ def search(ctx, args):
                              args='')
     logger.debug('cmd:' + str(cmd))
 
-    proc = subprocess.Popen(cmd, shell=True, cwd=ctx['cwd'],
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    try:
+        proc = subprocess.Popen(cmd, shell=True, cwd=ctx['cwd'],
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    except Exception as e:
+        return {'error': str(e)}
+
     result = {}
     while limit > 0:
         line = proc.stdout.readline()

@@ -9,25 +9,38 @@ function! far#sources#qf#search(ctx, fargs) abort "{{{
 
     let cmd = get(a:fargs, 'cmd', '')
     if empty(cmd)
-        echoerr 'no cmd in args'
-        return
+        return {'error': 'no cmd in args'}
     endif
-
     let cmd = substitute(cmd, '{pattern}', a:ctx.pattern, '')
     let cmd = substitute(cmd, '{file_mask}', a:ctx.file_mask, '')
     let cmd = substitute(cmd, '{limit}', a:ctx.limit, '')
     let cmd = substitute(cmd, '{args}', '', '')
     call far#tools#log('qfcmd: '.cmd)
 
+    let backcwd = getcwd()
+    if backcwd != a:ctx['cwd']
+        try
+            exec 'cd '.a:ctx['cwd']
+        catch
+            return {'error': string(v:exception)}
+        endtry
+        unlet backcwd
+    endif
+
     try
         exec cmd
     catch
         call far#tools#log('qfcmd error:'.v:exception)
+        return {'error': string(v:exception)}
     endtry
+
+    if exists('backcwd')
+        exec 'cd '.backcwd
+    endif
 
     let items = getqflist()
     if empty(items)
-        return []
+        return {}
     elseif len(items) > a:ctx.limit
         let items = items[:a:ctx.limit-1]
     endif
@@ -52,5 +65,5 @@ function! far#sources#qf#search(ctx, fargs) abort "{{{
         let item_ctx.text = item.text
         call add(file_ctx.items, item_ctx)
     endfor
-    return values(result)
+    return {'items': values(result)
 endfunction "}}}

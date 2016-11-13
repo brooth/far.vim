@@ -29,12 +29,12 @@ endif "}}}
 " (X) remove jump setting, always open in far window
 " (X) FIXME: DA search by Activity fails on 500
 " (X) shell.py instead of ag.py. pass cmd and configs via 'args'
-" vimcmd.vim instead of vimgrep and greppg
-" --collapse in refar args and others which useful
+" (X) vimcmd.vim instead of vimgrep and greppg
+" complete Refar with current values
 " builders (vim, py3, nvim)
 " arg processors (basic, ag)
 " return tmp file instead of items if big amount
-" complete Refar with current values
+" /dev/shm for temp files
 " complete cwd
 " support manual? column definition (full - grep, next modes -ag,ack)
 " (^) FIXME: ag not find many matches in one line
@@ -44,7 +44,6 @@ endif "}}}
 " Async Vim8
 " Find in <range> if pattern is not *
 " FIXME: remember preview window size ???
-" /dev/shm for temp files
 "}}}
 
 function! Far(cmdline, fline, lline) range abort "{{{
