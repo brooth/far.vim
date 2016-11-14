@@ -177,4 +177,13 @@ function! far#tools#visualtext() "{{{
   return join(lines, "\\n")
 endfunction "}}}
 
+function! far#tools#replace(text, str, repl) "{{{
+    let text = a:text
+    let idx = stridx(text, a:str)
+    if idx != -1
+        let text = text[:idx-1].a:repl.text[idx+len(a:str):]
+    endif
+    return text
+endfunction "}}}
+
 " vim: set et fdm=marker sts=4 sw=4:
