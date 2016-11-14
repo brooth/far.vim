@@ -140,7 +140,7 @@ let g:far#sources['ag-nvim'].executor = 'nvim'
 " metas {{{
 let s:far_params_meta = {
     \   '--source': {'param': 'source', 'values': keys(g:far#sources)},
-    \   '--cwd': {'param': 'cwd', 'values': [getcwd()]},
+    \   '--cwd': {'param': 'cwd', 'values': [getcwd()], 'fnvalues': 's:complete_dir'},
     \   '--limit': {'param': 'limit', 'values': [g:far#limit]},
     \   }
 
@@ -172,7 +172,7 @@ let s:refar_params_meta = {
     \   '--pattern': {'param': 'pattern', 'values': ['*']},
     \   '--replace-with': {'param': 'replace_with', 'values': []},
     \   '--file-mask': {'param': 'file_mask', 'values': g:far#file_mask_favorites},
-    \   '--cwd': {'param': 'cwd', 'values': [getcwd()]},
+    \   '--cwd': {'param': 'cwd', 'values': [getcwd()], 'fnvalues': 's:complete_dir'},
     \   '--source': {'param': 'source', 'values': keys(g:far#sources)},
     \   '--limit': {'param': 'limit', 'values': [g:far#limit]},
     \   }
@@ -507,6 +507,64 @@ function! s:find_matches(items, key) abort
     endif
 endfunction
 
+function! s:complete_dir(val)
+    let sep = strridx(a:val, has('unix')? '/' : '\')
+    let path = a:val[:sep-1]
+    let exp = '*'.a:val[sep+1:].'*'
+    let res = []
+    for dir in split(globpath(path, exp), '\n')
+        if isdirectory(dir)
+            call add(res, dir)
+        endif
+    endfor
+    return res
+endfunction
+
+function! s:metargs_complete(arglead, cmdline, cursorpos, params_meta) abort
+    call far#tools#log('metargs_complete:'.a:arglead.','.a:cmdline.','.a:cursorpos.','.string(a:params_meta))
+    let items = far#tools#splitcmd(a:cmdline)
+
+    let all_args = []
+    let cmpl_val = match(a:arglead, '\V=') != -1
+    for metarg in keys(a:params_meta)
+        "complete values?
+        if cmpl_val
+            if match(a:arglead, '\V'.metarg) == -1
+                continue
+            else
+                let argval = a:arglead[stridx(a:arglead, '=')+1:]
+                if !empty(argval)
+                    let fnvalues = get(a:params_meta[metarg], 'fnvalues', '')
+                    if !empty(fnvalues)
+                        for val in call(fnvalues, [argval])
+                            call add(all_args, metarg.'='.val)
+                        endfor
+                    endif
+                endif
+                for val in get(a:params_meta[metarg], 'values', [])
+                    let narg = metarg.'='.val
+                    if index(all_args, narg) == -1
+                        call add(all_args, narg)
+                    endif
+                endfor
+            endif
+            return s:find_matches(all_args, a:arglead)
+        endif
+
+        "exclude existing?
+        let exclude = 0
+        for item in items
+            if match(item, metarg) == 0
+                let exclude = 1
+                break
+            endif
+        endfor
+        if !exclude
+            call add(all_args, metarg)
+        endif
+    endfor
+    return s:find_matches(all_args, a:arglead)
+endfunction
 function! far#FarSearchComplete(arglead, cmdline, cursorpos) abort
     let search_hist = g:far#search_history
     if match(a:cmdline, "'<,'>") == 0 || 1
@@ -524,36 +582,8 @@ function! far#FarFileMaskComplete(arglead, cmdline, cursorpos) abort
 endfunction
 
 function! far#FarArgsComplete(arglead, cmdline, cursorpos) abort
-    let items = far#tools#splitcmd(a:cmdline)
-    let wargs = []
-    let cmpl_val = match(a:arglead, '\V=') != -1
     let all_params_meta = extend(s:far_params_meta, s:win_params_meta)
-    for win_arg in keys(all_params_meta)
-        "complete values?
-        if cmpl_val
-            if match(a:arglead, '\V'.win_arg) == -1
-                continue
-            else
-                for val in get(all_params_meta[win_arg], 'values', [])
-                    call add(wargs, win_arg.'='.val)
-                endfor
-            endif
-            return s:find_matches(wargs, a:arglead)
-        endif
-
-        "exclude existing?
-        let exclude = 0
-        for item in items
-            if match(item, '\V'.win_arg) != -1
-                let exclude = 1
-                break
-            endif
-        endfor
-        if !exclude
-            call add(wargs, win_arg)
-        endif
-    endfor
-    return s:find_matches(wargs, a:arglead)
+    return s:metargs_complete(a:arglead, a:cmdline, a:cursorpos, all_params_meta)
 endfunction
 
 function! far#FarComplete(arglead, cmdline, cursorpos) abort
@@ -568,35 +598,6 @@ function! far#FarComplete(arglead, cmdline, cursorpos) abort
     else
         return far#FarArgsComplete(a:arglead, a:cmdline, a:cursorpos)
     endif
-endfunction
-
-function! s:metargs_complete(arglead, cmdline, cursorpos, params_meta) abort
-    call far#tools#log('metargs_complete:'.a:arglead.','.a:cmdline.','.a:cursorpos.','.string(a:params_meta))
-    let items = far#tools#splitcmd(a:cmdline)
-
-    let all_args = []
-    for metarg in keys(a:params_meta)
-        "complete values?
-        if a:arglead == metarg.'='
-            for val in get(a:params_meta[metarg], 'values', [])
-                call add(all_args, metarg.'='.val)
-            endfor
-            return s:find_matches(all_args, a:arglead)
-        endif
-
-        "exclude existing?
-        let exclude = 0
-        for item in items
-            if match(item, metarg) == 0
-                let exclude = 1
-                break
-            endif
-        endfor
-        if !exclude
-            call add(all_args, metarg)
-        endif
-    endfor
-    return s:find_matches(all_args, a:arglead)
 endfunction
 
 function! far#FardoComplete(arglead, cmdline, cursorpos) abort

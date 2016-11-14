@@ -32,11 +32,11 @@ endif "}}}
 " (X) vimcmd.vim instead of vimgrep and greppg
 " (X) cmdargs: pass to source not processed cmd params
 " (X) complete Refar with current values
+" (X) complete cwd
 " builders (vim, py3, nvim)
 " arg processors (basic, ag)
 " return tmp file instead of items if big amount
 " /dev/shm for temp files
-" complete cwd
 " support manual? column definition (full - grep, next modes -ag,ack)
 " (^) FIXME: ag not find many matches in one line
 " 'enabled' source flag. to be able to disable
