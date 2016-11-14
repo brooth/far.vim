@@ -170,7 +170,7 @@ let s:undo_params_meta = {
 
 let s:refar_params_meta = {
     \   '--pattern': {'param': 'pattern', 'values': ['*']},
-    \   '--replace-with': {'param': 'replace_with'},
+    \   '--replace-with': {'param': 'replace_with', 'values': []},
     \   '--file-mask': {'param': 'file_mask', 'values': g:far#file_mask_favorites},
     \   '--cwd': {'param': 'cwd', 'values': [getcwd()]},
     \   '--source': {'param': 'source', 'values': keys(g:far#sources)},
@@ -608,7 +608,21 @@ function! far#FarundoComplete(arglead, cmdline, cursorpos) abort
 endfunction
 
 function! far#RefarComplete(arglead, cmdline, cursorpos) abort
-    return s:metargs_complete(a:arglead, a:cmdline, a:cursorpos, s:refar_params_meta)
+    if exists('b:far_ctx')
+        let meta = copy(s:refar_params_meta)
+        if index(meta['--pattern'].values, b:far_ctx.pattern) == -1
+            call insert(meta['--pattern'].values, b:far_ctx.pattern, 0)
+        endif
+        if index(meta['--replace-with'].values, b:far_ctx.replace_with) == -1
+            call insert(meta['--replace-with'].values, b:far_ctx.replace_with, 0)
+        endif
+        if index(meta['--file-mask'].values, b:far_ctx.file_mask) == -1
+            call insert(meta['--file-mask'].values, b:far_ctx.file_mask, 0)
+        endif
+    else
+        let meta = s:refar_params_meta
+    endif
+    return s:metargs_complete(a:arglead, a:cmdline, a:cursorpos, meta)
 endfunction
 "}}}
 
