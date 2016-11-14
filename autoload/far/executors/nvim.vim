@@ -20,7 +20,7 @@ function! far#executors#nvim#execute(exec_ctx, callback) abort "{{{
     let sourcecmdargs = json_encode(a:exec_ctx.cmdargs)
     let execlist = [
         \   'mod = importlib.import_module("'.source[:idx-1].'")',
-        \   'res = mod.'.source[idx+1:]."(".sourcectx.", ".sourceargs.",".sourcecmdargs.")"
+        \   'res = mod.'.source[idx+1:]."(".sourcectx.", ".sourceargs.",".sourcecmdargs.")",
         \   'self.nvim.command("call far#executors#nvim#callback("+str(res)+", '.ctx_idx.')")',
         \   ]
 
