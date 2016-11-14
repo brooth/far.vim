@@ -661,7 +661,7 @@ function! far#find(pattern, replace_with, file_mask, fline, lline, xargs) "{{{
             endif
             let meta = get(s:win_params_meta, param, '')
             if !empty(meta)
-                let b:win_params[meta.param] = val
+                let win_params[meta.param] = val
                 continue
             endif
         endif
