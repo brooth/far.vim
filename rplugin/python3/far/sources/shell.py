@@ -41,12 +41,6 @@ def search(ctx, args, cmdargs):
     except Exception as e:
         return {'error': str(e)}
 
-    err = proc.stderr.readline()
-    if err:
-        err = err.decode('utf-8')
-        logger.debug('error:' + err)
-        return {'error': err}
-
     split_amount = 2 if fix_cnum == 'all' else 3
     result = {}
     while limit > 0:
@@ -54,6 +48,13 @@ def search(ctx, args, cmdargs):
         line = line.decode('utf-8').rstrip()
 
         if not line:
+            if len(result) == 0:
+                err = proc.stderr.readline()
+                if err:
+                    err = err.decode('utf-8')
+                    logger.debug('error:' + err)
+                    return {'error': err}
+
             if proc.poll() is not None:
                 logger.debug('end of proc. break')
                 break
