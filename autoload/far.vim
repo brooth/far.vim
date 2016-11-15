@@ -125,28 +125,30 @@ let g:far#sources['grepprg'] = {
     \           'escape_pattern': ' ',
     \       },
     \   'executor': 'vim'}
-let g:far#sources['grep'] = {
-    \   'fn': 'far.sources.shell.search',
-    \   'args': {
-    \           'cmd': 'grep --nocolor --silent --max-count={limit}'.
-    \               ' {args} "{pattern}" -G "{file_mask}"',
-    \           'fix_cnum': 'all',
-    \       },
-    \   'executor': 'py3'
-    \   }
-let g:far#sources['grep-nvim'] = copy(g:far#sources.ag)
-let g:far#sources['ag-nvim'].executor = 'nvim'
 let g:far#sources['ag'] = {
     \   'fn': 'far.sources.shell.search',
     \   'args': {
-    \           'cmd': 'ag --nogroup --column --nocolor --silent --max-count={limit}'.
-    \               ' {args} "{pattern}" -G "{file_mask}"',
+    \           'cmd': ['ag', '--nogroup', '--column', '--nocolor', '--silent',
+    \               '--max-count={limit}', '{pattern}', '--file-search-regex={file_mask}'],
     \           'fix_cnum': 'next',
+    \           'expand_cmdargs': 1,
     \       },
     \   'executor': 'py3'
     \   }
 let g:far#sources['ag-nvim'] = copy(g:far#sources.ag)
 let g:far#sources['ag-nvim'].executor = 'nvim'
+let g:far#sources['ack'] = {
+    \   'fn': 'far.sources.shell.search',
+    \   'args': {
+    \           'cmd': ['ack', '--nogroup', '--column', '--nocolor', '--max-count={limit}',
+    \               '{pattern}', '{file_mask}'],
+    \           'fix_cnum': 'next',
+    \           'expand_cmdargs': 1,
+    \       },
+    \   'executor': 'py3'
+    \   }
+let g:far#sources['ack-nvim'] = copy(g:far#sources.ack)
+let g:far#sources['ack-nvim'].executor = 'nvim'
 "}}}
 
 " metas {{{

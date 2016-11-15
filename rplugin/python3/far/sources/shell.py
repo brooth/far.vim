@@ -19,22 +19,24 @@ def search(ctx, args, cmdargs):
         return {'error': 'no cmd in args'}
 
     pattern = ctx['pattern']
-
+    limit = int(ctx['limit'])
+    file_mask = ctx['file_mask']
     fix_cnum = args.get('fix_cnum')
-    fix_cnum_next = fix_cnum == 'next'
-    fix_cnum_all = fix_cnum == 'all'
     if fix_cnum:
         cpat = re.compile(pattern)
 
-    limit = int(ctx['limit'])
-    cmd = args['cmd'].format(limit=limit,
-                             pattern=pattern.replace(' ', '\"'),
-                             file_mask=ctx['file_mask'],
-                             args=' '.join(cmdargs))
-    logger.debug('cmd:' + str(cmd))
+    cmd = []
+    for c in args['cmd']:
+        cmd.append(c.format(limit=limit,
+                        pattern=pattern,
+                        file_mask=file_mask))
 
+    if args.get('expand_cmdargs', '0') != '0':
+        cmd += cmdargs
+
+    logger.debug('cmd:' + str(cmd))
     try:
-        proc = subprocess.Popen(cmd, shell=True, cwd=ctx['cwd'],
+        proc = subprocess.Popen(cmd, cwd=ctx['cwd'],
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     except Exception as e:
         return {'error': str(e)}
@@ -45,6 +47,7 @@ def search(ctx, args, cmdargs):
         logger.debug('error:' + err)
         return {'error': err}
 
+    split_amount = 2 if fix_cnum == 'all' else 3
     result = {}
     while limit > 0:
         line = proc.stdout.readline()
@@ -58,40 +61,38 @@ def search(ctx, args, cmdargs):
 
         limit -= 1
         logger.debug('line:' + line)
-        idx1 = line.find(':')
-        if idx1 == -1:
-            return {'error': 'broken outout'}
 
-        fname = line[:idx1]
+        items = re.split(':', line, split_amount)
+        if len(items) != split_amount + 1:
+            return {'error': 'broken output'}
 
-        file_ctx = result.get(fname)
+        file_ctx = result.get(items[0])
         if not file_ctx:
             file_ctx = {
-                'fname': fname,
+                'fname': items[0],
                 'items': []
             }
-            result[fname] = file_ctx
+            result[items[0]] = file_ctx
 
-        item_ctx = {}
-        idx2 = line.index(':', idx1 + 1)
-        item_ctx['lnum'] = int(line[idx1 + 1:idx2])
+        lnum = int(items[1])
+        text = items[split_amount]
 
-        if not fix_cnum_all:
-            idx3 = line.index(':', idx2 + 1)
-            item_ctx['cnum'] = int(line[idx2 + 1:idx3])
-            item_ctx['text'] = line[idx3 + 1:]
+        fix_cnum_idx = 0
+        if split_amount == 3:
+            item_ctx = {}
+            item_ctx['text'] = text
+            item_ctx['lnum'] = lnum
+            item_ctx['cnum'] = int(items[2])
             file_ctx['items'].append(item_ctx)
-            nonlocal fix_cnum_idx
-            fix_cnum_idx = item_ctx['cnum'] + 1
-        else:
-            fix_cnum_idx = 0
+            if fix_cnum:
+                fix_cnum_idx = item_ctx['cnum'] + 1
 
-        if fix_cnum_next:
-            for cp in cpat.finditer(item_ctx['text'], fix_cnum_idx):
+        if fix_cnum:
+            for cp in cpat.finditer(text, fix_cnum_idx):
                 next_item_ctx = {}
-                next_item_ctx['lnum'] = item_ctx['lnum']
+                next_item_ctx['text'] = text
+                next_item_ctx['lnum'] = int(lnum)
                 next_item_ctx['cnum'] = cp.span()[0] + 1
-                next_item_ctx['text'] = item_ctx['text']
                 file_ctx['items'].append(next_item_ctx)
 
     try:

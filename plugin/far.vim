@@ -34,14 +34,13 @@ endif "}}}
 " (X) complete Refar with current values
 " (X) complete cwd
 " (?) FIXME: highlight issue: Far number num **/*.py --win=top --preview=right
-" fix_cnum: search column number manually (all - grep, next modes -ag,ack)
-" (^) FIXME: ag not find many matches in one line
+" (X) fix_cnum: search column number manually (all - fzf?, next modes -ag,ack)
+" (X) Ack
 " builders (vim, py3, nvim)
 " arg processors (basic, ag)
 " return tmp file instead of items if big amount
 " /dev/shm for temp files
 " 'enabled' source flag. to be able to disable
-" Ack
 " fzf
 " Async Vim8
 " Find in <range> if pattern is not *
