@@ -488,6 +488,7 @@ function! far#change_exclude_under_cursor(cmode) abort "{{{
             for item_ctx in file_ctx.items
                 let item_ctx.excluded = a:cmode == -1? (item_ctx.excluded == 0? 1 : 0) : a:cmode
             endfor
+            call s:update_far_buffer(far_ctx, bufnr)
             return
         endif
 
