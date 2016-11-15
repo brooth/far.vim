@@ -125,11 +125,23 @@ let g:far#sources['grepprg'] = {
     \           'escape_pattern': ' ',
     \       },
     \   'executor': 'vim'}
+let g:far#sources['grep'] = {
+    \   'fn': 'far.sources.shell.search',
+    \   'args': {
+    \           'cmd': 'grep --nocolor --silent --max-count={limit}'.
+    \               ' {args} "{pattern}" -G "{file_mask}"',
+    \           'fix_cnum': 'all',
+    \       },
+    \   'executor': 'py3'
+    \   }
+let g:far#sources['grep-nvim'] = copy(g:far#sources.ag)
+let g:far#sources['ag-nvim'].executor = 'nvim'
 let g:far#sources['ag'] = {
     \   'fn': 'far.sources.shell.search',
     \   'args': {
     \           'cmd': 'ag --nogroup --column --nocolor --silent --max-count={limit}'.
     \               ' {args} "{pattern}" -G "{file_mask}"',
+    \           'fix_cnum': 'next',
     \       },
     \   'executor': 'py3'
     \   }

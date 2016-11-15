@@ -33,18 +33,20 @@ endif "}}}
 " (X) cmdargs: pass to source not processed cmd params
 " (X) complete Refar with current values
 " (X) complete cwd
+" (?) FIXME: highlight issue: Far number num **/*.py --win=top --preview=right
+" fix_cnum: search column number manually (all - grep, next modes -ag,ack)
+" (^) FIXME: ag not find many matches in one line
 " builders (vim, py3, nvim)
 " arg processors (basic, ag)
 " return tmp file instead of items if big amount
 " /dev/shm for temp files
-" support manual? column definition (full - grep, next modes -ag,ack)
-" (^) FIXME: ag not find many matches in one line
 " 'enabled' source flag. to be able to disable
 " Ack
 " fzf
 " Async Vim8
 " Find in <range> if pattern is not *
 " FIXME: remember preview window size ???
+" amend to doc
 "}}}
 
 function! Far(cmdline, fline, lline) range abort "{{{

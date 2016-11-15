@@ -7,6 +7,7 @@ License: MIT
 
 import logging
 import subprocess
+import re
 
 logger = logging.getLogger('far')
 
@@ -17,9 +18,17 @@ def search(ctx, args, cmdargs):
     if not args.get('cmd'):
         return {'error': 'no cmd in args'}
 
+    pattern = ctx['pattern']
+
+    fix_cnum = args.get('fix_cnum')
+    fix_cnum_next = fix_cnum == 'next'
+    fix_cnum_all = fix_cnum == 'all'
+    if fix_cnum:
+        cpat = re.compile(pattern)
+
     limit = int(ctx['limit'])
     cmd = args['cmd'].format(limit=limit,
-                             pattern=ctx['pattern'].replace(' ', '\"'),
+                             pattern=pattern.replace(' ', '\"'),
                              file_mask=ctx['file_mask'],
                              args=' '.join(cmdargs))
     logger.debug('cmd:' + str(cmd))
@@ -63,13 +72,27 @@ def search(ctx, args, cmdargs):
             }
             result[fname] = file_ctx
 
-        idx2 = line.index(':', idx1 + 1)
-        idx3 = line.index(':', idx2 + 1)
         item_ctx = {}
+        idx2 = line.index(':', idx1 + 1)
         item_ctx['lnum'] = int(line[idx1 + 1:idx2])
-        item_ctx['cnum'] = int(line[idx2 + 1:idx3])
-        item_ctx['text'] = line[idx3 + 1:]
-        file_ctx['items'].append(item_ctx)
+
+        if not fix_cnum_all:
+            idx3 = line.index(':', idx2 + 1)
+            item_ctx['cnum'] = int(line[idx2 + 1:idx3])
+            item_ctx['text'] = line[idx3 + 1:]
+            file_ctx['items'].append(item_ctx)
+            nonlocal fix_cnum_idx
+            fix_cnum_idx = item_ctx['cnum'] + 1
+        else:
+            fix_cnum_idx = 0
+
+        if fix_cnum_next:
+            for cp in cpat.finditer(item_ctx['text'], fix_cnum_idx):
+                next_item_ctx = {}
+                next_item_ctx['lnum'] = item_ctx['lnum']
+                next_item_ctx['cnum'] = cp.span()[0] + 1
+                next_item_ctx['text'] = item_ctx['text']
+                file_ctx['items'].append(next_item_ctx)
 
     try:
         proc.terminate()
