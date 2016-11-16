@@ -36,6 +36,9 @@ endif "}}}
 " (?) FIXME: highlight issue: Far number num **/*.py --win=top --preview=right
 " (X) fix_cnum: search column number manually (all - fzf?, next modes -ag,ack)
 " (X) Ack
+" FIXME: current command completion func doens't respect cursor position
+" FIXME: limit doensn't respect fix_cnum items
+" remove greppg or fix_cnum as well
 " builders (vim, py3, nvim)
 " arg processors (basic, ag)
 " return tmp file instead of items if big amount
