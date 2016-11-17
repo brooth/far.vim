@@ -171,6 +171,9 @@ let s:win_params_meta = {
     \   '--result-preview': {'param': 'result_preview', 'values': [0, 1]},
     \   }
 
+let s:find_win_params_meta = copy(s:win_params_meta)
+call remove(s:find_win_params_meta, '--result-preview')
+
 let s:repl_params_meta = {
     \   '--auto-write-bufs': {'param': 'auto_write', 'values': [0, 1]},
     \   '--auto-delete-bufs': {'param': 'auto_delete', 'values': [0, 1]},
@@ -583,7 +586,7 @@ endfunction
 
 function! far#FarSearchComplete(arglead, cmdline, cursorpos) abort
     let search_hist = g:far#search_history
-    if match(a:cmdline, "'<,'>") == 0 || 1
+    if match(a:cmdline, "'<,'>") == 0
         let search_hist = ['*'] + search_hist
     endif
     return s:find_matches(search_hist, a:arglead)
@@ -600,6 +603,23 @@ endfunction
 function! far#FarArgsComplete(arglead, cmdline, cursorpos) abort
     let all_params_meta = extend(s:far_params_meta, s:win_params_meta)
     return s:metargs_complete(a:arglead, a:cmdline, a:cursorpos, all_params_meta)
+endfunction
+
+function! far#FindArgsComplete(arglead, cmdline, cursorpos) abort
+    let all_params_meta = extend(s:far_params_meta, s:find_win_params_meta)
+    return s:metargs_complete(a:arglead, a:cmdline, a:cursorpos, all_params_meta)
+endfunction
+
+function! far#FindComplete(arglead, cmdline, cursorpos) abort
+    let items = far#tools#splitcmd(a:cmdline[:a:cursorpos-1])
+    let argnr = len(items)
+    if argnr == 1
+        return far#FarSearchComplete(a:arglead, a:cmdline, a:cursorpos)
+    elseif argnr == 2
+        return far#FarFileMaskComplete(a:arglead, a:cmdline, a:cursorpos)
+    else
+        return far#FindArgsComplete(a:arglead, a:cmdline, a:cursorpos)
+    endif
 endfunction
 
 function! far#FarComplete(arglead, cmdline, cursorpos) abort
@@ -983,7 +1003,9 @@ function! s:assemble_context_callback(exec_ctx) abort "{{{
 endfunction "}}}
 
 function! s:build_buffer_content(far_ctx, win_params) abort "{{{
-    call far#tools#log('build_buffer_content(...)')
+    if far#tools#isdebug()
+        call far#tools#log('build_buffer_content(...,'.string(a:win_params).')')
+    endif
 
     let content = []
     let syntaxs = []

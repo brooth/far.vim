@@ -38,7 +38,7 @@ endif "}}}
 " (X) Ack
 " (X) FIXME: command completion doens't respect cursor position
 " (X) FIXME: limit doensn't respect fix_cnum items
-" FIXME: --result-preview=0 not working
+" (?) FIXME: --result-preview=0 not working
 " F command - only find (--result-preview=0 by default, disable fardo for this)
 " remove greppg or fix_cnum as well
 " builders (vim, py3, nvim)
@@ -51,6 +51,22 @@ endif "}}}
 " Find in <range> if pattern is not *
 " FIXME: remember preview window size ???
 " amend to doc
+"}}}
+
+function! Find(cmdline, fline, lline) range abort "{{{
+    call far#tools#log('=============== F ================')
+    call far#tools#log('cmdline: '.a:cmdline)
+
+    let cargs = far#tools#splitcmd(a:cmdline)
+    if len(cargs) < 2
+        call far#tools#echo_err('Arguments required. Format :F <pattern> <filemask> [<param1>...]')
+        return
+    endif
+    call add(cargs, '--result-preview=0')
+
+    call far#find(cargs[0], cargs[0], cargs[1], a:fline, a:lline, cargs[2:])
+endfunction
+command! -complete=customlist,far#FindComplete -nargs=1 -range F call Find('<args>',<line1>,<line2>)
 "}}}
 
 function! Far(cmdline, fline, lline) range abort "{{{
