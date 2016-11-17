@@ -7,7 +7,7 @@
 let g:far#executors#nvim#contexts = {}
 let g:far#executors#nvim#context_idx = 0
 
-function! far#executors#nvim#execute(exec_ctx, callback) abort "{{{
+function! far#executors#nvim#execute(exec_ctx, callback) abort
     let ctx = a:exec_ctx
     let ctx['async_callback'] = a:callback
     let ctx_idx = g:far#executors#nvim#context_idx
@@ -29,17 +29,28 @@ function! far#executors#nvim#execute(exec_ctx, callback) abort "{{{
         let ctx['error'] = 'failed to execute source. unknown error'
         call call(a:callback, [ctx])
     endif
-endfunction "}}}
+endfunction
 
-function! far#executors#nvim#callback(result, ctx_idx) abort "{{{
+function! far#executors#nvim#callback(result, ctx_idx) abort
     let ctx = remove(g:far#executors#nvim#contexts, a:ctx_idx)
     let error = get(a:result, 'error', '')
     if !empty(error)
         let ctx['error'] = 'source error:'.error
+    elseif get(a:result, 'items_file', '') != ''
+        let ctx.far_ctx.items = []
+        try
+            for line in readfile(a:result.items_file, '')
+                call far#tools#log('json:'.string(json_decode(line)))
+                call add(ctx.far_ctx.items, json_decode(line))
+            endfor
+        catch
+            call far#tools#log('read items_file error:'.string(v:exception))
+            let ctx['error'] = 'read items_file error'.string(v:exception)
+        endtry
     else
         let ctx.far_ctx['items'] = a:result['items']
     endif
     call call(ctx.async_callback, [ctx])
-endfunction "}}}
+endfunction
 
 " vim: set et fdm=marker sts=4 sw=4:

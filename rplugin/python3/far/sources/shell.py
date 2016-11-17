@@ -8,6 +8,8 @@ License: MIT
 import logging
 import subprocess
 import re
+import tempfile
+import json
 
 logger = logging.getLogger('far')
 
@@ -60,9 +62,9 @@ def search(ctx, args, cmdargs):
                 break
             continue
 
-        logger.debug('line:' + line)
         items = re.split(':', line, split_amount)
         if len(items) != split_amount + 1:
+            logger.error('broken line:' + line)
             return {'error': 'broken output'}
 
         file_ctx = result.get(items[0])
@@ -103,4 +105,13 @@ def search(ctx, args, cmdargs):
     except Exception as e:
         logger.error('failed to terminate proc: ' + str(e))
 
-    return {'items': list(result.values())}
+    if int(ctx['limit']) - limit >= args.get('items_file_min', 250):
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as fp:
+            for file_ctx in result.values():
+                json.dump(file_ctx, fp, ensure_ascii=False)
+                fp.write('\n')
+
+        logger.debug('items_file:' + fp.name)
+        return {'items_file': fp.name}
+    else:
+        return {'items': list(result.values())}

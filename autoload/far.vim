@@ -39,6 +39,7 @@ call far#tools#setdefault('g:far#sources.ag.args', {})
 call far#tools#setdefault('g:far#sources.ag.args.cmd', ['ag', '--nogroup', '--column', '--nocolor', '--silent',
     \   '--max-count={limit}', '{pattern}', '--file-search-regex={file_mask}'])
 call far#tools#setdefault('g:far#sources.ag.args.fix_cnum', 'next')
+call far#tools#setdefault('g:far#sources.ag.args.items_file_min', 50)
 
 call far#tools#setdefault('g:far#sources.ag_nvim', {})
 call far#tools#setdefault('g:far#sources.ag_nvim.fn', 'far.sources.shell.search')
@@ -47,6 +48,7 @@ call far#tools#setdefault('g:far#sources.ag_nvim.args', {})
 call far#tools#setdefault('g:far#sources.ag_nvim.args.cmd', ['ag', '--nogroup', '--column', '--nocolor', '--silent',
     \   '--max-count={limit}', '{pattern}', '--file-search-regex={file_mask}'])
 call far#tools#setdefault('g:far#sources.ag_nvim.args.fix_cnum', 'next')
+call far#tools#setdefault('g:far#sources.ag_nvim.args.items_file_min', 50)
 
 call far#tools#setdefault('g:far#sources.ack', {})
 call far#tools#setdefault('g:far#sources.ack.fn', 'far.sources.shell.search')
@@ -55,6 +57,7 @@ call far#tools#setdefault('g:far#sources.ack.args', {})
 call far#tools#setdefault('g:far#sources.ack.args.cmd', ['ack', '--nogroup', '--column', '--nocolor',
     \   '--max-count={limit}', '{pattern}', '{file_mask}'])
 call far#tools#setdefault('g:far#sources.ack.args.fix_cnum', 'next')
+call far#tools#setdefault('g:far#sources.ack.args.items_file_min', 50)
 
 call far#tools#setdefault('g:far#sources.ack_nvim', {})
 call far#tools#setdefault('g:far#sources.ack_nvim.fn', 'far.sources.shell.search')
@@ -63,6 +66,7 @@ call far#tools#setdefault('g:far#sources.ack_nvim.args', {})
 call far#tools#setdefault('g:far#sources.ack_nvim.args.cmd', ['ack', '--nogroup', '--column', '--nocolor',
     \   '--max-count={limit}', '{pattern}', '{file_mask}'])
 call far#tools#setdefault('g:far#sources.ack_nvim.args.fix_cnum', 'next')
+call far#tools#setdefault('g:far#sources.ack_nvim.args.items_file_min', 50)
 "}}}
 
 " metas {{{
@@ -664,6 +668,7 @@ function! far#find(pattern, replace_with, file_mask, fline, lline, xargs) "{{{
                 continue
             endif
             let meta = get(s:win_params_meta, param, '')
+            call far#tools#log('meta:'.string(meta))
             if !empty(meta)
                 let win_params[meta.param] = val
                 continue

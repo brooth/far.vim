@@ -15,6 +15,17 @@ function! far#executors#py3#execute(exec_ctx, callback) abort
     let error = get(result, 'error', '')
     if !empty(error)
         let ctx['error'] = 'source error:'.error
+    elseif get(result, 'items_file', '') != ''
+        let ctx.far_ctx.items = []
+        try
+            for line in readfile(result.items_file, '')
+                call far#tools#log('json:'.string(json_decode(line)))
+                call add(ctx.far_ctx.items, json_decode(line))
+            endfor
+        catch
+            call far#tools#log('read items_file error:'.string(v:exception))
+            let ctx['error'] = 'read items_file error'.string(v:exception)
+        endtry
     else
         let ctx.far_ctx['items'] = result['items']
     endif
