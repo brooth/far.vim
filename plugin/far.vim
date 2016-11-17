@@ -41,11 +41,11 @@ endif "}}}
 " (?) FIXME: --result-preview=0 not working
 " (X) F command - only find (--result-preview=0 by default, disable fardo for this)
 " (X) remove greppg source
+" (X) override source args, 'suggest' flag (suggest for completion)
 " builders (vim, py3, nvim)
 " arg processors (basic, ag)
 " return tmp file instead of items if big amount
 " /dev/shm for temp files
-" 'enabled' source flag. to be able to disable
 " fzf
 " Async Vim8
 " Find in <range> if pattern is not *

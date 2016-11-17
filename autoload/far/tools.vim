@@ -26,6 +26,12 @@ function! far#tools#log(msg)
 endfunction
 "}}}
 
+function! far#tools#setdefault(var, val) abort "{{{
+    if !exists(a:var)
+        exec 'let '.a:var.' = '.string(a:val)
+    endif
+endfunction "}}}
+
 function! far#tools#split_layout(smode, bname, width, height) abort "{{{
     if a:smode == 'top'
         return 'aboveleft '.a:height.'split '.a:bname

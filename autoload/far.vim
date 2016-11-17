@@ -47,6 +47,97 @@ if !exists('g:far#limit')
     let g:far#limit = 500
 endif
 
+call far#tools#setdefault('g:far#executors', {})
+call far#tools#setdefault('g:far#executors.vim', 'far#executors#basic#execute')
+call far#tools#setdefault('g:far#executors.py3', 'far#executors#py3#execute')
+call far#tools#setdefault('g:far#executors.nvim', 'far#executors#nvim#execute')
+
+call far#tools#setdefault('g:far#sources', {})
+call far#tools#setdefault('g:far#sources.vimgrep', {})
+call far#tools#setdefault('g:far#sources.vimgrep.fn', 'far#sources#qf#search')
+call far#tools#setdefault('g:far#sources.vimgrep.executor', 'vim')
+call far#tools#setdefault('g:far#sources.vimgrep.args', {})
+call far#tools#setdefault('g:far#sources.vimgrep.args.cmd', 'silent! {limit}vimgrep! /{pattern}/gj {file_mask}')
+call far#tools#setdefault('g:far#sources.vimgrep.args.escape_pattern', '/')
+
+call far#tools#setdefault('g:far#sources.ag', {})
+call far#tools#setdefault('g:far#sources.ag.fn', 'far.sources.shell.search')
+call far#tools#setdefault('g:far#sources.ag.executor', 'py3')
+call far#tools#setdefault('g:far#sources.ag.args', {})
+call far#tools#setdefault('g:far#sources.ag.args.cmd', ['ag', '--nogroup', '--column', '--nocolor', '--silent',
+    \   '--max-count={limit}', '{pattern}', '--file-search-regex={file_mask}'])
+call far#tools#setdefault('g:far#sources.ag.args.fix_cnum', 'next')
+
+call far#tools#setdefault('g:far#sources.ag_nvim', {})
+call far#tools#setdefault('g:far#sources.ag_nvim.fn', 'far.sources.shell.search')
+call far#tools#setdefault('g:far#sources.ag_nvim.executor', 'nvim')
+call far#tools#setdefault('g:far#sources.ag_nvim.args', {})
+call far#tools#setdefault('g:far#sources.ag_nvim.args.cmd', ['ag', '--nogroup', '--column', '--nocolor', '--silent',
+    \   '--max-count={limit}', '{pattern}', '--file-search-regex={file_mask}'])
+call far#tools#setdefault('g:far#sources.ag_nvim.args.fix_cnum', 'next')
+
+call far#tools#setdefault('g:far#sources.ack', {})
+call far#tools#setdefault('g:far#sources.ack.fn', 'far.sources.shell.search')
+call far#tools#setdefault('g:far#sources.ack.executor', 'py3')
+call far#tools#setdefault('g:far#sources.ack.args', {})
+call far#tools#setdefault('g:far#sources.ack.args.cmd', ['ack', '--nogroup', '--column', '--nocolor',
+    \   '--max-count={limit}', '{pattern}', '{file_mask}'])
+call far#tools#setdefault('g:far#sources.ack.args.fix_cnum', 'next')
+
+call far#tools#setdefault('g:far#sources.ack_nvim', {})
+call far#tools#setdefault('g:far#sources.ack_nvim.fn', 'far.sources.shell.search')
+call far#tools#setdefault('g:far#sources.ack_nvim.executor', 'py3')
+call far#tools#setdefault('g:far#sources.ack_nvim.args', {})
+call far#tools#setdefault('g:far#sources.ack_nvim.args.cmd', ['ack', '--nogroup', '--column', '--nocolor',
+    \   '--max-count={limit}', '{pattern}', '{file_mask}'])
+call far#tools#setdefault('g:far#sources.ack_nvim.args.fix_cnum', 'next')
+"}}}
+
+" metas {{{
+let s:suggest_sources = keys(filter(copy(g:far#sources), "get(g:far#sources[v:key], 'suggest', '1')"))
+
+let s:far_params_meta = {
+    \   '--source': {'param': 'source', 'values': s:suggest_sources},
+    \   '--cwd': {'param': 'cwd', 'values': [getcwd()], 'fnvalues': 's:complete_dir'},
+    \   '--limit': {'param': 'limit', 'values': [g:far#limit]},
+    \   }
+
+let s:win_params_meta = {
+    \   '--win-layout': {'param': 'layout', 'values': ['top', 'left', 'right', 'bottom', 'tab', 'current']},
+    \   '--win-width': {'param': 'width', 'values': [60, 70, 80, 90, 100, 110, 120, 130, 140, 150]},
+    \   '--win-height': {'param': 'height', 'values': [5, 7, 10, 15, 20, 25, 30]},
+    \   '--preview-win-layout': {'param': 'preview_layout', 'values': ['top', 'left', 'right', 'bottom']},
+    \   '--preview-win-width': {'param': 'preview_width', 'values': [60, 70, 80, 90, 100, 110, 120, 130, 140, 150]},
+    \   '--preview-win-height': {'param': 'preview_height', 'values': [5, 7, 10, 15, 20, 25, 30]},
+    \   '--auto-preview': {'param': 'auto_preview', 'values': [0, 1]},
+    \   '--hl-match': {'param': 'highlight_match', 'values': [0, 1]},
+    \   '--collapse': {'param': 'collapse_result', 'values': [0, 1]},
+    \   '--result-preview': {'param': 'result_preview', 'values': [0, 1]},
+    \   }
+
+let s:find_win_params_meta = copy(s:win_params_meta)
+call remove(s:find_win_params_meta, '--result-preview')
+
+let s:repl_params_meta = {
+    \   '--auto-write-bufs': {'param': 'auto_write', 'values': [0, 1]},
+    \   '--auto-delete-bufs': {'param': 'auto_delete', 'values': [0, 1]},
+    \   }
+
+let s:undo_params_meta = {
+    \   '--auto-write-bufs': {'param': 'auto_write', 'values': [0, 1]},
+    \   '--auto-delete-bufs': {'param': 'auto_delete', 'values': [0, 1]},
+    \   '--all': {'param': 'all', 'values': [0, 1]},
+    \   }
+
+let s:refar_params_meta = {
+    \   '--pattern': {'param': 'pattern', 'values': ['*']},
+    \   '--replace-with': {'param': 'replace_with', 'values': []},
+    \   '--file-mask': {'param': 'file_mask', 'values': g:far#file_mask_favorites},
+    \   '--cwd': {'param': 'cwd', 'values': [getcwd()], 'fnvalues': 's:complete_dir'},
+    \   '--source': {'param': 'source', 'values': s:suggest_sources},
+    \   '--limit': {'param': 'limit', 'values': [g:far#limit]},
+    \   }
+
 function! s:create_far_params() abort
     return {
     \   'source': g:far#source,
@@ -98,94 +189,6 @@ let s:buffer_counter = 1
 let g:far#search_history = []
 let g:far#repl_history = []
 let g:far#file_mask_history = []
-
-if !exists('g:far#executors')
-    let g:far#executors = {}
-endif
-let g:far#executors['vim'] = 'far#executors#basic#execute'
-let g:far#executors['py3'] = 'far#executors#py3#execute'
-let g:far#executors['nvim'] = 'far#executors#nvim#execute'
-"let g:far#executors['vim8'] = 'far#executors#vim8#execute'
-
-if !exists('g:far#sources')
-    let g:far#sources = {}
-endif
-let g:far#sources['vimgrep'] = {
-    \   'fn': 'far#sources#qf#search',
-    \   'args': {
-    \           'cmd': 'silent! {limit}vimgrep! /{pattern}/gj {file_mask}',
-    \           'escape_pattern': '/',
-    \       },
-    \   'executor': 'vim'
-    \   }
-let g:far#sources['ag'] = {
-    \   'fn': 'far.sources.shell.search',
-    \   'args': {
-    \           'cmd': ['ag', '--nogroup', '--column', '--nocolor', '--silent',
-    \               '--max-count={limit}', '{pattern}', '--file-search-regex={file_mask}'],
-    \           'fix_cnum': 'next',
-    \           'expand_cmdargs': 1,
-    \       },
-    \   'executor': 'py3'
-    \   }
-let g:far#sources['ag-nvim'] = copy(g:far#sources.ag)
-let g:far#sources['ag-nvim'].executor = 'nvim'
-let g:far#sources['ack'] = {
-    \   'fn': 'far.sources.shell.search',
-    \   'args': {
-    \           'cmd': ['ack', '--nogroup', '--column', '--nocolor', '--max-count={limit}',
-    \               '{pattern}', '{file_mask}'],
-    \           'fix_cnum': 'next',
-    \           'expand_cmdargs': 1,
-    \       },
-    \   'executor': 'py3'
-    \   }
-let g:far#sources['ack-nvim'] = copy(g:far#sources.ack)
-let g:far#sources['ack-nvim'].executor = 'nvim'
-"}}}
-
-" metas {{{
-let s:far_params_meta = {
-    \   '--source': {'param': 'source', 'values': keys(g:far#sources)},
-    \   '--cwd': {'param': 'cwd', 'values': [getcwd()], 'fnvalues': 's:complete_dir'},
-    \   '--limit': {'param': 'limit', 'values': [g:far#limit]},
-    \   }
-
-let s:win_params_meta = {
-    \   '--win-layout': {'param': 'layout', 'values': ['top', 'left', 'right', 'bottom', 'tab', 'current']},
-    \   '--win-width': {'param': 'width', 'values': [60, 70, 80, 90, 100, 110, 120, 130, 140, 150]},
-    \   '--win-height': {'param': 'height', 'values': [5, 7, 10, 15, 20, 25, 30]},
-    \   '--preview-win-layout': {'param': 'preview_layout', 'values': ['top', 'left', 'right', 'bottom']},
-    \   '--preview-win-width': {'param': 'preview_width', 'values': [60, 70, 80, 90, 100, 110, 120, 130, 140, 150]},
-    \   '--preview-win-height': {'param': 'preview_height', 'values': [5, 7, 10, 15, 20, 25, 30]},
-    \   '--auto-preview': {'param': 'auto_preview', 'values': [0, 1]},
-    \   '--hl-match': {'param': 'highlight_match', 'values': [0, 1]},
-    \   '--collapse': {'param': 'collapse_result', 'values': [0, 1]},
-    \   '--result-preview': {'param': 'result_preview', 'values': [0, 1]},
-    \   }
-
-let s:find_win_params_meta = copy(s:win_params_meta)
-call remove(s:find_win_params_meta, '--result-preview')
-
-let s:repl_params_meta = {
-    \   '--auto-write-bufs': {'param': 'auto_write', 'values': [0, 1]},
-    \   '--auto-delete-bufs': {'param': 'auto_delete', 'values': [0, 1]},
-    \   }
-
-let s:undo_params_meta = {
-    \   '--auto-write-bufs': {'param': 'auto_write', 'values': [0, 1]},
-    \   '--auto-delete-bufs': {'param': 'auto_delete', 'values': [0, 1]},
-    \   '--all': {'param': 'all', 'values': [0, 1]},
-    \   }
-
-let s:refar_params_meta = {
-    \   '--pattern': {'param': 'pattern', 'values': ['*']},
-    \   '--replace-with': {'param': 'replace_with', 'values': []},
-    \   '--file-mask': {'param': 'file_mask', 'values': g:far#file_mask_favorites},
-    \   '--cwd': {'param': 'cwd', 'values': [getcwd()], 'fnvalues': 's:complete_dir'},
-    \   '--source': {'param': 'source', 'values': keys(g:far#sources)},
-    \   '--limit': {'param': 'limit', 'values': [g:far#limit]},
-    \   }
 "}}}
 
 function! far#apply_default_mappings() abort "{{{
