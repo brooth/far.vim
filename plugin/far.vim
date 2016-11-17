@@ -46,7 +46,6 @@ endif "}}}
 " (X) <range> support
 " (X) FIXME: win_params not applied (floating bug)
 " (X) FIXME: cursor position not working if inside a param (command completion)
-" FIXME: pattern in replace_with completion and visa versa
 " amend to doc
 "}}}
 

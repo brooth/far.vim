@@ -595,6 +595,7 @@ function! far#FindComplete(arglead, cmdline, cursorpos) abort
 endfunction
 
 function! far#FarComplete(arglead, cmdline, cursorpos) abort
+    let items = far#tools#splitcmd(a:cmdline[:a:cursorpos-1])
     let argnr = len(items) - (empty(a:arglead) ? 0 : 1)
     if argnr == 1
         return far#FarSearchComplete(a:arglead, a:cmdline, a:cursorpos)
