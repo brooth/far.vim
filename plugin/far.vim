@@ -44,9 +44,9 @@ endif "}}}
 " (X) override source args, 'suggest' flag (suggest for completion)
 " (X) return tmp file instead of items if big amount
 " (X) <range> support
-" FIXME: remember preview window size ???
 " (X) FIXME: win_params not applied (floating bug)
-" FIXME: cursor position not working if inside a param (command completion)
+" (X) FIXME: cursor position not working if inside a param (command completion)
+" FIXME: pattern in replace_with completion and visa versa
 " amend to doc
 "}}}
 
