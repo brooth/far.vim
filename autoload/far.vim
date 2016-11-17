@@ -118,13 +118,6 @@ let g:far#sources['vimgrep'] = {
     \       },
     \   'executor': 'vim'
     \   }
-let g:far#sources['grepprg'] = {
-    \   'fn': 'far#sources#qf#search',
-    \   'args': {
-    \           'cmd': 'silent! grep! {pattern} {file_mask} {args}',
-    \           'escape_pattern': ' ',
-    \       },
-    \   'executor': 'vim'}
 let g:far#sources['ag'] = {
     \   'fn': 'far.sources.shell.search',
     \   'args': {

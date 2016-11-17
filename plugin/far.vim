@@ -39,8 +39,8 @@ endif "}}}
 " (X) FIXME: command completion doens't respect cursor position
 " (X) FIXME: limit doensn't respect fix_cnum items
 " (?) FIXME: --result-preview=0 not working
-" F command - only find (--result-preview=0 by default, disable fardo for this)
-" remove greppg or fix_cnum as well
+" (X) F command - only find (--result-preview=0 by default, disable fardo for this)
+" (X) remove greppg source
 " builders (vim, py3, nvim)
 " arg processors (basic, ag)
 " return tmp file instead of items if big amount
