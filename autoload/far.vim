@@ -4,48 +4,20 @@
 " License: MIT
 
 " options {{{
-if !exists('g:far#default_mappings')
-    let g:far#default_mappings = 1
-endif
-if !exists('g:far#multiline_sign')
-    let g:far#multiline_sign = '⬎'
-endif
-if !exists('g:far#repl_devider')
-    let g:far#repl_devider = ' ➝  '
-endif
-if !exists('g:far#cut_text_sign')
-    let g:far#cut_text_sign = '…'
-endif
-if !exists('g:far#collapse_sign')
-    let g:far#collapse_sign = '- '
-endif
-if !exists('g:far#expand_sign')
-    let g:far#expand_sign = '+ '
-endif
-if !exists('g:far#window_min_content_width')
-    let g:far#window_min_content_width = 60
-endif
-if !exists('g:far#preview_window_scroll_step')
-    let g:far#preview_window_scroll_step = 1
-endif
-if !exists('g:far#check_window_resize_period')
-    let g:far#check_window_resize_period = 2000
-endif
-if !exists('g:far#file_mask_favorites')
-    let g:far#file_mask_favorites = ['%', '**/*.*', '**/*.html', '**/*.js', '**/*.css']
-endif
-if !exists('g:far#status_line')
-    let g:far#status_line = 1
-endif
-if !exists('g:far#source')
-    let g:far#source = 'vimgrep'
-endif
-if !exists('g:far#cwd')
-    let g:far#cwd = getcwd()
-endif
-if !exists('g:far#limit')
-    let g:far#limit = 500
-endif
+call far#tools#setdefault('g:far#default_mappings', 1)
+call far#tools#setdefault('g:far#multiline_sign', '⬎')
+call far#tools#setdefault('g:far#repl_devider', ' ➝  ')
+call far#tools#setdefault('g:far#cut_text_sign', '…')
+call far#tools#setdefault('g:far#collapse_sign', '- ')
+call far#tools#setdefault('g:far#expand_sign', '+ ')
+call far#tools#setdefault('g:far#window_min_content_width', 60)
+call far#tools#setdefault('g:far#preview_window_scroll_step', 1)
+call far#tools#setdefault('g:far#check_window_resize_period', 2000)
+call far#tools#setdefault('g:far#file_mask_favorites', ['%', '**/*.*', '**/*.html', '**/*.js', '**/*.css'])
+call far#tools#setdefault('g:far#status_line', 1)
+call far#tools#setdefault('g:far#source', 'vimgrep')
+call far#tools#setdefault('g:far#cwd', getcwd())
+call far#tools#setdefault('g:far#limit', 500)
 
 call far#tools#setdefault('g:far#executors', {})
 call far#tools#setdefault('g:far#executors.vim', 'far#executors#basic#execute')
