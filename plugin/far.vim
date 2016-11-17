@@ -37,7 +37,7 @@ endif "}}}
 " (X) fix_cnum: search column number manually (all - fzf?, next modes -ag,ack)
 " (X) Ack
 " (X) FIXME: command completion doens't respect cursor position
-" FIXME: limit doensn't respect fix_cnum items
+" (X) FIXME: limit doensn't respect fix_cnum items
 " FIXME: --result-preview=0 not working
 " F command - only find (--result-preview=0 by default, disable fardo for this)
 " remove greppg or fix_cnum as well

@@ -60,9 +60,7 @@ def search(ctx, args, cmdargs):
                 break
             continue
 
-        limit -= 1
         logger.debug('line:' + line)
-
         items = re.split(':', line, split_amount)
         if len(items) != split_amount + 1:
             return {'error': 'broken output'}
@@ -85,6 +83,7 @@ def search(ctx, args, cmdargs):
             item_ctx['lnum'] = lnum
             item_ctx['cnum'] = int(items[2])
             file_ctx['items'].append(item_ctx)
+            limit -= 1
             if fix_cnum:
                 fix_cnum_idx = item_ctx['cnum'] + 1
 
@@ -95,6 +94,9 @@ def search(ctx, args, cmdargs):
                 next_item_ctx['lnum'] = int(lnum)
                 next_item_ctx['cnum'] = cp.span()[0] + 1
                 file_ctx['items'].append(next_item_ctx)
+                limit -= 1
+                if limit == 0:
+                    break
 
     try:
         proc.terminate()
