@@ -90,7 +90,9 @@ function! far#tools#splitcmd(cmdline) "{{{
             let pos = match(slash, '\(.*\\\)\@<!\s', pos+1)
             if pos != -1
                 let p2 = pos + idx*2 + slash_weight
-                call add(cmds, cmdline[p1:p2-1])
+                if !empty(cmdline[p1:p2-1])
+                    call add(cmds, cmdline[p1:p2-1])
+                endif
                 let p1 = p2+1
             else
                 break
