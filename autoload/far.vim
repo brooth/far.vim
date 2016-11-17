@@ -573,12 +573,12 @@ function! far#FarFileMaskComplete(arglead, cmdline, cursorpos) abort
 endfunction
 
 function! far#FarArgsComplete(arglead, cmdline, cursorpos) abort
-    let all_params_meta = extend(s:far_params_meta, s:win_params_meta)
+    let all_params_meta = extend(copy(s:far_params_meta), s:win_params_meta)
     return s:metargs_complete(a:arglead, a:cmdline, a:cursorpos, all_params_meta)
 endfunction
 
 function! far#FindArgsComplete(arglead, cmdline, cursorpos) abort
-    let all_params_meta = extend(s:far_params_meta, s:find_win_params_meta)
+    let all_params_meta = extend(copy(s:far_params_meta), s:find_win_params_meta)
     return s:metargs_complete(a:arglead, a:cmdline, a:cursorpos, all_params_meta)
 endfunction
 
@@ -638,7 +638,7 @@ endfunction
 function! far#find(far_params, xargs) "{{{
     call far#tools#log('far#find('.string(a:far_params).','.string(a:xargs).')')
 
-    let far_params = extend(a:far_params, s:create_far_params())
+    let far_params = extend(copy(a:far_params), s:create_far_params())
 
     if far_params.pattern != '*' && index(g:far#search_history, far_params.pattern) == -1
         call add(g:far#search_history, far_params.pattern)
@@ -658,13 +658,16 @@ function! far#find(far_params, xargs) "{{{
         if d != -1
             let param = xarg[:d-1]
             let val = xarg[d+1:]
+            call far#tools#log('param:'.string(param))
+            call far#tools#log('val:'.string(val))
             let meta = get(s:far_params_meta, param, '')
+            call far#tools#log('farmeta:'.string(meta))
             if !empty(meta)
                 let far_params[meta.param] = val
                 continue
             endif
             let meta = get(s:win_params_meta, param, '')
-            call far#tools#log('meta:'.string(meta))
+            call far#tools#log('winmeta:'.string(meta))
             if !empty(meta)
                 let win_params[meta.param] = val
                 continue

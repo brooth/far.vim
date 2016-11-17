@@ -45,7 +45,7 @@ endif "}}}
 " (X) return tmp file instead of items if big amount
 " (X) <range> support
 " FIXME: remember preview window size ???
-" FIXME: win_params not applied (floating bug)
+" (X) FIXME: win_params not applied (floating bug)
 " FIXME: cursor position not working if inside a param (command completion)
 " amend to doc
 "}}}
