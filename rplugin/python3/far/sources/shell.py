@@ -44,6 +44,7 @@ def search(ctx, args, cmdargs):
         return {'error': str(e)}
 
     split_amount = 2 if fix_cnum == 'all' else 3
+    range = tuple(ctx['range'])
     result = {}
     while limit > 0:
         line = proc.stdout.readline()
@@ -67,6 +68,10 @@ def search(ctx, args, cmdargs):
             logger.error('broken line:' + line)
             return {'error': 'broken output'}
 
+        lnum = int(items[1])
+        if (range[0] != -1 and range[0] > lnum) or (range[1] != -1 and range[1] < lnum):
+            continue
+
         file_ctx = result.get(items[0])
         if not file_ctx:
             file_ctx = {
@@ -75,7 +80,6 @@ def search(ctx, args, cmdargs):
             }
             result[items[0]] = file_ctx
 
-        lnum = int(items[1])
         text = items[split_amount]
 
         fix_cnum_idx = 0

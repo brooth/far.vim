@@ -42,19 +42,16 @@ endif "}}}
 " (X) F command - only find (--result-preview=0 by default, disable fardo for this)
 " (X) remove greppg source
 " (X) override source args, 'suggest' flag (suggest for completion)
-" builders (vim, py3, nvim)
-" arg processors (basic, ag)
-" return tmp file instead of items if big amount
-" /dev/shm for temp files
-" fzf
-" Async Vim8
-" Find in <range> if pattern is not *
+" (X) return tmp file instead of items if big amount
+" (X) <range> support
 " FIXME: remember preview window size ???
+" FIXME: win_params not applied (floating bug)
+" FIXME: cursor position not working if inside a param (command completion)
 " amend to doc
 "}}}
 
-function! Find(cmdline, fline, lline) range abort "{{{
-    call far#tools#log('=============== F ================')
+function! Find(rngmode, rngline1, rngline2, cmdline, ...) range abort "{{{
+    call far#tools#log('=============== FIND ================')
     call far#tools#log('cmdline: '.a:cmdline)
 
     let cargs = far#tools#splitcmd(a:cmdline)
@@ -64,12 +61,20 @@ function! Find(cmdline, fline, lline) range abort "{{{
     endif
     call add(cargs, '--result-preview=0')
 
-    call far#find(cargs[0], cargs[0], cargs[1], a:fline, a:lline, cargs[2:])
+    let far_params = {
+        \   'pattern': cargs[0],
+        \   'replace_with': cargs[0],
+        \   'file_mask': cargs[1],
+        \   'range': a:rngmode == -1? [-1,-1] : [a:rngline1, a:rngline2],
+        \   }
+
+    call far#find(far_params, cargs[2:])
 endfunction
-command! -complete=customlist,far#FindComplete -nargs=1 -range F call Find('<args>',<line1>,<line2>)
+command! -complete=customlist,far#FindComplete -nargs=1 -range=-1 F
+    \   call Find(<count>, <line1>, <line2>, '<args>')
 "}}}
 
-function! Far(cmdline, fline, lline) range abort "{{{
+function! Far(rngmode, rngline1, rngline2, cmdline) range abort "{{{
     call far#tools#log('=============== FAR ================')
     call far#tools#log('cmdline: '.a:cmdline)
 
@@ -79,12 +84,20 @@ function! Far(cmdline, fline, lline) range abort "{{{
         return
     endif
 
-    call far#find(cargs[0], cargs[1], cargs[2], a:fline, a:lline, cargs[3:])
+    let far_params = {
+        \   'pattern': cargs[0],
+        \   'replace_with': cargs[1],
+        \   'file_mask': cargs[2],
+        \   'range': a:rngmode == -1? [-1,-1] : [a:rngline1, a:rngline2],
+        \   }
+
+    call far#find(far_params, cargs[3:])
 endfunction
-command! -complete=customlist,far#FarComplete -nargs=1 -range Far call Far('<args>',<line1>,<line2>)
+command! -complete=customlist,far#FarComplete -nargs=1 -range=-1 Far
+    \   call Far(<count>,<line1>,<line2>,'<args>')
 "}}}
 
-function! FarPrompt(...) abort range "{{{
+function! FarPrompt(rngmode, rngline1, rngline2, ...) abort range "{{{
     call far#tools#log('============ FAR PROMPT ================')
 
     let pattern = input('Search (pattern): ', '', 'customlist,far#FarSearchComplete')
@@ -104,16 +117,25 @@ function! FarPrompt(...) abort range "{{{
         return
     endif
 
-    call far#find(pattern, replace_with, file_mask, a:firstline, a:lastline, a:000)
+    let far_params = {
+        \   'pattern': pattern,
+        \   'replace_with': replace_with,
+        \   'file_mask': file_mask,
+        \   'range': a:rngmode == -1? [-1,-1] : [a:rngline1, a:rngline2],
+        \   }
+
+    call far#find(far_params, a:000)
 endfunction
-command! -complete=customlist,far#FarArgsComplete -nargs=* -range Farp <line1>,<line2>call FarPrompt(<f-args>)
+command! -complete=customlist,far#FarArgsComplete -nargs=* -range=-1 Farp
+    \   call FarPrompt(<count>,<line1>,<line2>,<f-args>)
 "}}}
 
-function! Refar(...) abort "{{{
+function! Refar(rngmode, rngline1, rngline2, ...) abort "{{{
     call far#tools#log('============== REFAR  ==============')
-    call far#refind(a:000)
+    call far#refind(a:rngmode == -1? [] : [a:rngline1, a:rngline2], a:000)
 endfunction
-command! -complete=customlist,far#RefarComplete -nargs=* Refar call Refar(<f-args>)
+command! -complete=customlist,far#RefarComplete -nargs=* -range=-1 Refar
+    \   call Refar(<count>,<line1>,<line2>,<f-args>)
 "}}}
 
 function! FarDo(...) abort "{{{

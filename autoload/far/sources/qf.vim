@@ -13,6 +13,16 @@ function! far#sources#qf#search(ctx, fargs, cmdargs) abort "{{{
         return {'error': 'no cmd in args'}
     endif
 
+    let backcwd = getcwd()
+    if backcwd != a:ctx['cwd']
+        try
+            exec 'cd '.a:ctx['cwd']
+        catch
+            return {'error': string(v:exception)}
+        endtry
+        unlet backcwd
+    endif
+
     let pattern = a:ctx.pattern
     let escape_pattern = get(a:fargs, 'escape_pattern', '')
     if !empty(escape_pattern)
@@ -24,16 +34,6 @@ function! far#sources#qf#search(ctx, fargs, cmdargs) abort "{{{
     let cmd = far#tools#replace(cmd, '{limit}', a:ctx.limit)
     let cmd = far#tools#replace(cmd, '{args}', join(a:cmdargs, ''))
     call far#tools#log('qfcmd: '.cmd)
-
-    let backcwd = getcwd()
-    if backcwd != a:ctx['cwd']
-        try
-            exec 'cd '.a:ctx['cwd']
-        catch
-            return {'error': string(v:exception)}
-        endtry
-        unlet backcwd
-    endif
 
     try
         exec cmd
@@ -57,6 +57,11 @@ function! far#sources#qf#search(ctx, fargs, cmdargs) abort "{{{
     for item in items
         if get(item, 'bufnr') == 0
             call far#tools#log('item '.item.text.' has no bufnr')
+            continue
+        endif
+
+        if (a:ctx.range[0] != -1 && a:ctx.range[0] > item.lnum) ||
+                \   (a:ctx.range[1] != -1 && a:ctx.range[1] < item.lnum)
             continue
         endif
 

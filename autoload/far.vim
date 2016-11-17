@@ -635,14 +635,10 @@ function! far#RefarComplete(arglead, cmdline, cursorpos) abort
 endfunction
 "}}}
 
-function! far#find(pattern, replace_with, file_mask, fline, lline, xargs) "{{{
-    call far#tools#log('far#find('.a:pattern.','. a:replace_with.','.a:file_mask.','
-        \   .a:fline.','. a:lline.','.string(a:xargs).')')
+function! far#find(far_params, xargs) "{{{
+    call far#tools#log('far#find('.string(a:far_params).','.string(a:xargs).')')
 
-    let far_params = s:create_far_params()
-    let far_params['pattern'] = a:pattern
-    let far_params['replace_with'] = a:replace_with
-    let far_params['file_mask'] = a:file_mask
+    let far_params = extend(a:far_params, s:create_far_params())
 
     if far_params.pattern != '*' && index(g:far#search_history, far_params.pattern) == -1
         call add(g:far#search_history, far_params.pattern)
@@ -681,7 +677,7 @@ function! far#find(pattern, replace_with, file_mask, fline, lline, xargs) "{{{
 endfunction
 "}}}
 
-function! far#refind(xargs) abort "{{{
+function! far#refind(range, xargs) abort "{{{
     call far#tools#log('far#refind('.string(a:xargs).')')
 
     if !exists('b:far_ctx')
@@ -703,6 +699,10 @@ function! far#refind(xargs) abort "{{{
         endif
         call add(cmdargs, xarg)
     endfor
+
+    if !empty(a:range)
+        let b:far_ctx['range'] = a:range
+    endif
 
     call s:assemble_context(b:far_ctx, b:win_params, cmdargs,
         \   function('s:update_far_buffer'), [bufnr('%')])
