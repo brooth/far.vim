@@ -36,8 +36,10 @@ endif "}}}
 " (?) FIXME: highlight issue: Far number num **/*.py --win=top --preview=right
 " (X) fix_cnum: search column number manually (all - fzf?, next modes -ag,ack)
 " (X) Ack
-" FIXME: current command completion func doens't respect cursor position
+" (X) FIXME: command completion doens't respect cursor position
 " FIXME: limit doensn't respect fix_cnum items
+" FIXME: --result-preview=0 not working
+" F command - only find (--result-preview=0 by default, disable fardo for this)
 " remove greppg or fix_cnum as well
 " builders (vim, py3, nvim)
 " arg processors (basic, ag)

@@ -537,7 +537,7 @@ endfunction
 
 function! s:metargs_complete(arglead, cmdline, cursorpos, params_meta) abort
     call far#tools#log('metargs_complete:'.a:arglead.','.a:cmdline.','.a:cursorpos.','.string(a:params_meta))
-    let items = far#tools#splitcmd(a:cmdline)
+    let items = far#tools#splitcmd(a:cmdline[:a:cursorpos-1])
 
     let all_args = []
     let cmpl_val = match(a:arglead, '\V=') != -1
@@ -580,6 +580,7 @@ function! s:metargs_complete(arglead, cmdline, cursorpos, params_meta) abort
     endfor
     return s:find_matches(all_args, a:arglead)
 endfunction
+
 function! far#FarSearchComplete(arglead, cmdline, cursorpos) abort
     let search_hist = g:far#search_history
     if match(a:cmdline, "'<,'>") == 0 || 1
@@ -602,7 +603,7 @@ function! far#FarArgsComplete(arglead, cmdline, cursorpos) abort
 endfunction
 
 function! far#FarComplete(arglead, cmdline, cursorpos) abort
-    let items = far#tools#splitcmd(a:cmdline)
+    let items = far#tools#splitcmd(a:cmdline[:a:cursorpos-1])
     let argnr = len(items)-1
     if argnr == 1
         return far#FarSearchComplete(a:arglead, a:cmdline, a:cursorpos)
@@ -709,14 +710,6 @@ function! far#refind(xargs) abort "{{{
         endif
         call add(cmdargs, xarg)
     endfor
-
-    if empty(b:far_ctx.pattern)
-        call far#tools#echo_err('No pattern')
-        return
-    elseif empty(b:far_ctx.file_mask)
-        call far#tools#echo_err('No file mask')
-        return
-    endif
 
     call s:assemble_context(b:far_ctx, b:win_params, cmdargs,
         \   function('s:update_far_buffer'), [bufnr('%')])
@@ -913,6 +906,14 @@ endfunction "}}}
 function! s:assemble_context(far_params, win_params, cmdargs, callback, cbparams) abort "{{{
     if far#tools#isdebug()
         call far#tools#log('assemble_context('.string(a:far_params).','.string(a:win_params).')')
+    endif
+
+    if empty(a:far_params.pattern)
+        call far#tools#echo_err('No pattern')
+        return
+    elseif empty(a:far_params.file_mask)
+        call far#tools#echo_err('No file mask')
+        return
     endif
 
     if a:far_params.pattern == '*'

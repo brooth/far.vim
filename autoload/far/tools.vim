@@ -78,7 +78,8 @@ function! far#tools#undo_nextnr() "{{{
 endfunction "}}}
 
 function! far#tools#splitcmd(cmdline) "{{{
-    let slashes = split(a:cmdline, '\\\\')
+    let cmdline = substitute(a:cmdline, '^\s*\(.\{-}\)\s*$', '\1', '')
+    let slashes = split(cmdline, '\\\\')
     let cmds = []
     let slash_weight = 0
     let p1 = 0
@@ -89,7 +90,7 @@ function! far#tools#splitcmd(cmdline) "{{{
             let pos = match(slash, '\(.*\\\)\@<!\s', pos+1)
             if pos != -1
                 let p2 = pos + idx*2 + slash_weight
-                call add(cmds, a:cmdline[p1:p2-1])
+                call add(cmds, cmdline[p1:p2-1])
                 let p1 = p2+1
             else
                 break
@@ -98,7 +99,7 @@ function! far#tools#splitcmd(cmdline) "{{{
         let slash_weight += len(slash)
         let idx += 1
     endfor
-    call add(cmds, a:cmdline[p1:])
+    call add(cmds, cmdline[p1:])
     return cmds
 endfunction "}}}
 
