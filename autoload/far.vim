@@ -39,7 +39,8 @@ call far#tools#setdefault('g:far#sources.ag.args', {})
 call far#tools#setdefault('g:far#sources.ag.args.cmd', ['ag', '--nogroup', '--column', '--nocolor', '--silent',
     \   '--max-count={limit}', '{pattern}', '--file-search-regex={file_mask}'])
 call far#tools#setdefault('g:far#sources.ag.args.fix_cnum', 'next')
-call far#tools#setdefault('g:far#sources.ag.args.items_file_min', 50)
+call far#tools#setdefault('g:far#sources.ag.args.items_file_min', 30)
+call far#tools#setdefault('g:far#sources.ag.args.expand_cmdargs', 1)
 
 call far#tools#setdefault('g:far#sources.ag_nvim', {})
 call far#tools#setdefault('g:far#sources.ag_nvim.fn', 'far.sources.shell.search')
@@ -48,7 +49,8 @@ call far#tools#setdefault('g:far#sources.ag_nvim.args', {})
 call far#tools#setdefault('g:far#sources.ag_nvim.args.cmd', ['ag', '--nogroup', '--column', '--nocolor', '--silent',
     \   '--max-count={limit}', '{pattern}', '--file-search-regex={file_mask}'])
 call far#tools#setdefault('g:far#sources.ag_nvim.args.fix_cnum', 'next')
-call far#tools#setdefault('g:far#sources.ag_nvim.args.items_file_min', 50)
+call far#tools#setdefault('g:far#sources.ag_nvim.args.items_file_min', 30)
+call far#tools#setdefault('g:far#sources.ag_nvim.args.expand_cmdargs', 1)
 
 call far#tools#setdefault('g:far#sources.ack', {})
 call far#tools#setdefault('g:far#sources.ack.fn', 'far.sources.shell.search')
@@ -57,7 +59,8 @@ call far#tools#setdefault('g:far#sources.ack.args', {})
 call far#tools#setdefault('g:far#sources.ack.args.cmd', ['ack', '--nogroup', '--column', '--nocolor',
     \   '--max-count={limit}', '{pattern}', '{file_mask}'])
 call far#tools#setdefault('g:far#sources.ack.args.fix_cnum', 'next')
-call far#tools#setdefault('g:far#sources.ack.args.items_file_min', 50)
+call far#tools#setdefault('g:far#sources.ack.args.items_file_min', 30)
+call far#tools#setdefault('g:far#sources.ack.args.expand_cmdargs', 1)
 
 call far#tools#setdefault('g:far#sources.ack_nvim', {})
 call far#tools#setdefault('g:far#sources.ack_nvim.fn', 'far.sources.shell.search')
@@ -66,7 +69,8 @@ call far#tools#setdefault('g:far#sources.ack_nvim.args', {})
 call far#tools#setdefault('g:far#sources.ack_nvim.args.cmd', ['ack', '--nogroup', '--column', '--nocolor',
     \   '--max-count={limit}', '{pattern}', '{file_mask}'])
 call far#tools#setdefault('g:far#sources.ack_nvim.args.fix_cnum', 'next')
-call far#tools#setdefault('g:far#sources.ack_nvim.args.items_file_min', 50)
+call far#tools#setdefault('g:far#sources.ack_nvim.args.items_file_min', 30)
+call far#tools#setdefault('g:far#sources.ack_nvim.args.expand_cmdargs', 1)
 "}}}
 
 " metas {{{
@@ -658,16 +662,12 @@ function! far#find(far_params, xargs) "{{{
         if d != -1
             let param = xarg[:d-1]
             let val = xarg[d+1:]
-            call far#tools#log('param:'.string(param))
-            call far#tools#log('val:'.string(val))
             let meta = get(s:far_params_meta, param, '')
-            call far#tools#log('farmeta:'.string(meta))
             if !empty(meta)
                 let far_params[meta.param] = val
                 continue
             endif
             let meta = get(s:win_params_meta, param, '')
-            call far#tools#log('winmeta:'.string(meta))
             if !empty(meta)
                 let win_params[meta.param] = val
                 continue
@@ -1007,11 +1007,11 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
             endfor
         endfor
 
-        let statusline = 'Files:'.len(a:far_ctx.items).
-            \   '  Matches:'.total_matches.
-            \   '  Excludes:'.total_excludes.
-            \   '  Time:'.a:far_ctx.search_time
-
+        let statusline = 'Files:'.len(a:far_ctx.items).'  Matches:'.total_matches
+        if total_excludes > 0
+            let statusline = statusline.'  Excludes:'.total_excludes
+        endif
+            let statusline = statusline.'  Time:'.a:far_ctx.search_time
         if !empty(get(a:far_ctx, 'repl_time', ''))
             let statusline = statusline.
                 \   ' ~ Replaced:'.total_repls.
