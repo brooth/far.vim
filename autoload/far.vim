@@ -32,45 +32,95 @@ call far#tools#setdefault('g:far#sources.vimgrep.args', {})
 call far#tools#setdefault('g:far#sources.vimgrep.args.cmd', 'silent! {limit}vimgrep! /{pattern}/gj {file_mask}')
 call far#tools#setdefault('g:far#sources.vimgrep.args.escape_pattern', '/')
 
-call far#tools#setdefault('g:far#sources.ag', {})
-call far#tools#setdefault('g:far#sources.ag.fn', 'far.sources.shell.search')
-call far#tools#setdefault('g:far#sources.ag.executor', 'py3')
-call far#tools#setdefault('g:far#sources.ag.args', {})
-call far#tools#setdefault('g:far#sources.ag.args.cmd', ['ag', '--nogroup', '--column', '--nocolor', '--silent',
-    \   '--max-count={limit}', '{pattern}', '--file-search-regex={file_mask}'])
-call far#tools#setdefault('g:far#sources.ag.args.fix_cnum', 'next')
-call far#tools#setdefault('g:far#sources.ag.args.items_file_min', 30)
-call far#tools#setdefault('g:far#sources.ag.args.expand_cmdargs', 1)
+if executable('ag')
+    call far#tools#setdefault('g:far#sources.ag', {})
+    call far#tools#setdefault('g:far#sources.ag.fn', 'far.sources.shell.search')
+    call far#tools#setdefault('g:far#sources.ag.executor', 'py3')
+    call far#tools#setdefault('g:far#sources.ag.args', {})
+    call far#tools#setdefault('g:far#sources.ag.args.cmd', ['ag', '--nogroup', '--column', '--nocolor', '--silent',
+        \   '--max-count={limit}', '{pattern}', '--file-search-regex={file_mask}'])
+    call far#tools#setdefault('g:far#sources.ag.args.fix_cnum', 'next')
+    call far#tools#setdefault('g:far#sources.ag.args.items_file_min', 30)
+    call far#tools#setdefault('g:far#sources.ag.args.expand_cmdargs', 1)
 
-call far#tools#setdefault('g:far#sources.ag_nvim', {})
-call far#tools#setdefault('g:far#sources.ag_nvim.fn', 'far.sources.shell.search')
-call far#tools#setdefault('g:far#sources.ag_nvim.executor', 'nvim')
-call far#tools#setdefault('g:far#sources.ag_nvim.args', {})
-call far#tools#setdefault('g:far#sources.ag_nvim.args.cmd', ['ag', '--nogroup', '--column', '--nocolor', '--silent',
-    \   '--max-count={limit}', '{pattern}', '--file-search-regex={file_mask}'])
-call far#tools#setdefault('g:far#sources.ag_nvim.args.fix_cnum', 'next')
-call far#tools#setdefault('g:far#sources.ag_nvim.args.items_file_min', 30)
-call far#tools#setdefault('g:far#sources.ag_nvim.args.expand_cmdargs', 1)
+    if has('nvim')
+        call far#tools#setdefault('g:far#sources.agnvim', {})
+        call far#tools#setdefault('g:far#sources.agnvim.fn', 'far.sources.shell.search')
+        call far#tools#setdefault('g:far#sources.agnvim.executor', 'nvim')
+        call far#tools#setdefault('g:far#sources.agnvim.args', {})
+        call far#tools#setdefault('g:far#sources.agnvim.args.cmd', ['ag', '--nogroup', '--column', '--nocolor', '--silent',
+            \   '--max-count={limit}', '{pattern}', '--file-search-regex={file_mask}'])
+        call far#tools#setdefault('g:far#sources.agnvim.args.fix_cnum', 'next')
+        call far#tools#setdefault('g:far#sources.agnvim.args.items_file_min', 30)
+        call far#tools#setdefault('g:far#sources.agnvim.args.expand_cmdargs', 1)
+    endif
+endif
 
-call far#tools#setdefault('g:far#sources.ack', {})
-call far#tools#setdefault('g:far#sources.ack.fn', 'far.sources.shell.search')
-call far#tools#setdefault('g:far#sources.ack.executor', 'py3')
-call far#tools#setdefault('g:far#sources.ack.args', {})
-call far#tools#setdefault('g:far#sources.ack.args.cmd', ['ack', '--nogroup', '--column', '--nocolor',
-    \   '--max-count={limit}', '{pattern}', '{file_mask}'])
-call far#tools#setdefault('g:far#sources.ack.args.fix_cnum', 'next')
-call far#tools#setdefault('g:far#sources.ack.args.items_file_min', 30)
-call far#tools#setdefault('g:far#sources.ack.args.expand_cmdargs', 1)
+if executable('ack')
+    call far#tools#setdefault('g:far#sources.ack', {})
+    call far#tools#setdefault('g:far#sources.ack.fn', 'far.sources.shell.search')
+    call far#tools#setdefault('g:far#sources.ack.executor', 'py3')
+    call far#tools#setdefault('g:far#sources.ack.args', {})
+    call far#tools#setdefault('g:far#sources.ack.args.cmd', ['ack', '--nogroup', '--column', '--nocolor',
+        \   '--max-count={limit}', '{pattern}', '{file_mask}'])
+    call far#tools#setdefault('g:far#sources.ack.args.fix_cnum', 'next')
+    call far#tools#setdefault('g:far#sources.ack.args.items_file_min', 30)
+    call far#tools#setdefault('g:far#sources.ack.args.expand_cmdargs', 1)
 
-call far#tools#setdefault('g:far#sources.ack_nvim', {})
-call far#tools#setdefault('g:far#sources.ack_nvim.fn', 'far.sources.shell.search')
-call far#tools#setdefault('g:far#sources.ack_nvim.executor', 'py3')
-call far#tools#setdefault('g:far#sources.ack_nvim.args', {})
-call far#tools#setdefault('g:far#sources.ack_nvim.args.cmd', ['ack', '--nogroup', '--column', '--nocolor',
-    \   '--max-count={limit}', '{pattern}', '{file_mask}'])
-call far#tools#setdefault('g:far#sources.ack_nvim.args.fix_cnum', 'next')
-call far#tools#setdefault('g:far#sources.ack_nvim.args.items_file_min', 30)
-call far#tools#setdefault('g:far#sources.ack_nvim.args.expand_cmdargs', 1)
+    if has('nvim')
+        call far#tools#setdefault('g:far#sources.acknvim', {})
+        call far#tools#setdefault('g:far#sources.acknvim.fn', 'far.sources.shell.search')
+        call far#tools#setdefault('g:far#sources.acknvim.executor', 'py3')
+        call far#tools#setdefault('g:far#sources.acknvim.args', {})
+        call far#tools#setdefault('g:far#sources.acknvim.args.cmd', ['ack', '--nogroup', '--column', '--nocolor',
+            \   '--max-count={limit}', '{pattern}', '{file_mask}'])
+        call far#tools#setdefault('g:far#sources.acknvim.args.fix_cnum', 'next')
+        call far#tools#setdefault('g:far#sources.acknvim.args.items_file_min', 30)
+        call far#tools#setdefault('g:far#sources.acknvim.args.expand_cmdargs', 1)
+    endif
+endif
+
+function! s:create_far_params() abort
+    return {
+    \   'source': g:far#source,
+    \   'cwd': g:far#cwd,
+    \   'limit': g:far#limit,
+    \   }
+endfunction
+
+function! s:create_win_params() abort
+    return {
+    \   'layout': exists('g:far#window_layout')? g:far#window_layout : 'right',
+    \   'width': exists('g:far#window_width')? g:far#window_width : 100,
+    \   'height': exists('g:far#window_height')? g:far#window_height : 20,
+    \   'preview_layout': exists('g:far#preview_window_layout')? g:far#preview_window_layout : 'bottom',
+    \   'preview_width': exists('g:far#preview_window_width')? g:far#preview_window_width : 100,
+    \   'preview_height': exists('g:far#preview_window_height')? g:far#preview_window_height : 11,
+    \   'auto_preview': exists('g:far#auto_preview')? g:far#auto_preview : 1,
+    \   'highlight_match': exists('g:far#highlight_match')? g:far#highlight_match : 1,
+    \   'collapse_result': exists('g:far#collapse_result')? g:far#collapse_result : 0,
+    \   'result_preview': exists('g:far#result_preview')? g:far#result_preview : 1,
+    \   }
+endfunction
+
+function! s:create_repl_params() abort
+    return {
+    \   'auto_write': exists('g:far#auto_write_replaced_buffers')?
+    \       g:far#auto_write_replaced_buffers : 1,
+    \   'auto_delete': exists('g:far#auto_delete_replaced_buffers')?
+    \       g:far#auto_delete_replaced_buffers : 0,
+    \   }
+endfunction
+
+function! s:create_undo_params() abort
+    return {
+    \   'auto_write': exists('g:far#auto_write_undo_buffers')?
+    \       g:far#auto_write_undo_buffers : 1,
+    \   'auto_delete': exists('g:far#auto_delete_undo_buffers')?
+    \       g:far#auto_delete_undo_buffers : 0,
+    \   'all': 0,
+    \   }
+endfunction
 "}}}
 
 " metas {{{
@@ -117,48 +167,6 @@ let s:refar_params_meta = {
     \   '--source': {'param': 'source', 'values': s:suggest_sources},
     \   '--limit': {'param': 'limit', 'values': [g:far#limit]},
     \   }
-
-function! s:create_far_params() abort
-    return {
-    \   'source': g:far#source,
-    \   'cwd': g:far#cwd,
-    \   'limit': g:far#limit,
-    \   }
-endfunction
-
-function! s:create_win_params() abort
-    return {
-    \   'layout': exists('g:far#window_layout')? g:far#window_layout : 'right',
-    \   'width': exists('g:far#window_width')? g:far#window_width : 100,
-    \   'height': exists('g:far#window_height')? g:far#window_height : 20,
-    \   'preview_layout': exists('g:far#preview_window_layout')? g:far#preview_window_layout : 'bottom',
-    \   'preview_width': exists('g:far#preview_window_width')? g:far#preview_window_width : 100,
-    \   'preview_height': exists('g:far#preview_window_height')? g:far#preview_window_height : 11,
-    \   'auto_preview': exists('g:far#auto_preview')? g:far#auto_preview : 1,
-    \   'highlight_match': exists('g:far#highlight_match')? g:far#highlight_match : 1,
-    \   'collapse_result': exists('g:far#collapse_result')? g:far#collapse_result : 0,
-    \   'result_preview': exists('g:far#result_preview')? g:far#result_preview : 1,
-    \   }
-endfunction
-
-function! s:create_repl_params() abort
-    return {
-    \   'auto_write': exists('g:far#auto_write_replaced_buffers')?
-    \       g:far#auto_write_replaced_buffers : 1,
-    \   'auto_delete': exists('g:far#auto_delete_replaced_buffers')?
-    \       g:far#auto_delete_replaced_buffers : 0,
-    \   }
-endfunction
-
-function! s:create_undo_params() abort
-    return {
-    \   'auto_write': exists('g:far#auto_write_undo_buffers')?
-    \       g:far#auto_write_undo_buffers : 1,
-    \   'auto_delete': exists('g:far#auto_delete_undo_buffers')?
-    \       g:far#auto_delete_undo_buffers : 0,
-    \   'all': 0,
-    \   }
-endfunction
 "}}}
 
 " vars {{{

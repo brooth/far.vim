@@ -13,9 +13,17 @@
 --win-height	far.txt	/*--win-height*
 --win-layout	far.txt	/*--win-layout*
 --win-width	far.txt	/*--win-width*
+F	far.txt	/*:F*
+Far	far.txt	/*:Far*
+Fardo	far.txt	/*:Fardo*
+Farp	far.txt	/*:Farp*
+Farundo	far.txt	/*:Farundo*
+Refar	far.txt	/*:Refar*
+:F	far.txt	/*:F*
 :Far	far.txt	/*:Far*
 :Fardo	far.txt	/*:Fardo*
 :Farp	far.txt	/*:Farp*
+:Farundo	far.txt	/*:Farundo*
 :Refar	far.txt	/*:Refar*
 :substitute	far.txt	/*:substitute*
 <CR>	far.txt	/*<CR>*
@@ -43,6 +51,7 @@ far-changelog	far.txt	/*far-changelog*
 far-complete	far.txt	/*far-complete*
 far-config	far.txt	/*far-config*
 far-consistency	far.txt	/*far-consistency*
+far-range	far.txt	/*far-range*
 far-contents	far.txt	/*far-contents*
 far-extras	far.txt	/*far-extras*
 far-highlight	far.txt	/*far-highlight*
@@ -53,6 +62,9 @@ far-license	far.txt	/*far-license*
 far-mappings	far.txt	/*far-mappings*
 far-multiline	far.txt	/*far-multiline*
 far-params	far.txt	/*far-params*
+fardo-params	far.txt	/*fardo-params*
+farundo-params	far.txt	/*farundo-params*
+refar-params	far.txt	/*refar-params*
 far-preview	far.txt	/*far-preview*
 far-quick-example	far.txt	/*far-quick-example*
 far-usage	far.txt	/*far-usage*
@@ -82,6 +94,9 @@ g:far#window_height	far.txt	/*g:far#window_height*
 g:far#window_layout	far.txt	/*g:far#window_layout*
 g:far#window_min_content_width	far.txt	/*g:far#window_min_content_width*
 g:far#window_width	far.txt	/*g:far#window_width*
+g:far#source	far.txt	/*g:far#source*
+g:far#limit	far.txt	/*g:far#limit*
+g:far#cwd	far.txt	/*g:far#cwd*
 i	far.txt	/*i*
 p	far.txt	/*p*
 t	far.txt	/*t*
