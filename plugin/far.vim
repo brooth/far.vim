@@ -7,46 +7,12 @@ if exists('g:loaded_far') && !far#tools#isdebug() "{{{
     finish
 endif "}}}
 
-" TODO beta2 {{{
-" (X) Farundo
-" (X) cut filename if long
-" (X) FIXME: closing preview window should disable auto preview
-" (X) FIXME: jump to buffer fails on file names with spaces
-" (X) Refar params [--pattern=,--replace-with, --file-mask]
-" (X) alternative sources. pass source as Far param
-" (X) rename buf_ctx -> file_ctx, bufname -> fname, far_ctx.items -> list
-" (X) Ag
-" (X) remap review scrolling to <c-j><c-k>
-" (X) move business logic to autoload
-" (X) cwd param (current working directory)
-" (X) limit
-" (X) Neovim async
-" (X) FIXME: far#log -> far#log masked as broken
-" (X) FIXME: set filetype=off if already open
-" (X) FIXME: far undo is broken? on broken strings?
-" (X) FIXME: partial selecion in one line work as full line, syn is broken as well
-" (?) FIXME: undo issue: far-fardo, manual undo, farundo
-" (X) remove jump setting, always open in far window
-" (X) FIXME: DA search by Activity fails on 500
-" (X) shell.py instead of ag.py. pass cmd and configs via 'args'
-" (X) vimcmd.vim instead of vimgrep and greppg
-" (X) cmdargs: pass to source not processed cmd params
-" (X) complete Refar with current values
-" (X) complete cwd
+" TODO beta3 {{{
 " (?) FIXME: highlight issue: Far number num **/*.py --win=top --preview=right
-" (X) fix_cnum: search column number manually (all - fzf?, next modes -ag,ack)
-" (X) Ack
-" (X) FIXME: command completion doens't respect cursor position
-" (X) FIXME: limit doensn't respect fix_cnum items
-" (?) FIXME: --result-preview=0 not working
-" (X) F command - only find (--result-preview=0 by default, disable fardo for this)
-" (X) remove greppg source
-" (X) override source args, 'suggest' flag (suggest for completion)
-" (X) return tmp file instead of items if big amount
-" (X) <range> support
-" (X) FIXME: win_params not applied (floating bug)
-" (X) FIXME: cursor position not working if inside a param (command completion)
-" amend to doc
+" quickfix as --win-layout
+" async build_far_buffer (https://gist.github.com/mhinz/1d62b803d328f83551e15c97a4b57868)
+" vim8 async support
+" test coverage
 "}}}
 
 function! Find(rngmode, rngline1, rngline2, cmdline, ...) range abort "{{{
