@@ -9,6 +9,9 @@ endif "}}}
 
 " TODO beta3 {{{
 " (?) FIXME: highlight issue: Far number num **/*.py --win=top --preview=right
+" nodes.
+" nodes nesting param: how many modes to show. the rest show as one node
+" smart nesting: group same nodes in one: [foo/bar]/baz.py and [foo/bar]/boo.py
 " quickfix as --win-layout
 " async build_far_buffer (https://gist.github.com/mhinz/1d62b803d328f83551e15c97a4b57868)
 " vim8 async support

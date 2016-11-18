@@ -692,6 +692,7 @@ BUGS                                                            *far-bugs*
 CHANGELOG                                                       *far-changelog*
 
     beta2
+     - status line
      - Farundo
      - cut filename to far buffer if long
      - closing preview window disables auto preview
