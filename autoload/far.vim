@@ -33,12 +33,22 @@ call far#tools#setdefault('g:far#sources.vimgrep.args.cmd', 'silent! {limit}vimg
 call far#tools#setdefault('g:far#sources.vimgrep.args.escape_pattern', '/')
 
 if executable('ag')
+    let cmd = ['ag', '--nogroup', '--column', '--nocolor', '--silent',
+        \   '--max-count={limit}', '{pattern}', '--file-search-regex={file_mask}']
+    if &smartcase
+        call add(cmd, '--smart-case')
+    endif
+    if &ignorecase
+        call add(cmd, '--ignore-case')
+    else
+        call add(cmd, '--case-sensetive')
+    endif
+
     call far#tools#setdefault('g:far#sources.ag', {})
     call far#tools#setdefault('g:far#sources.ag.fn', 'far.sources.shell.search')
     call far#tools#setdefault('g:far#sources.ag.executor', 'py3')
     call far#tools#setdefault('g:far#sources.ag.args', {})
-    call far#tools#setdefault('g:far#sources.ag.args.cmd', ['ag', '--nogroup', '--column', '--nocolor', '--silent',
-        \   '--max-count={limit}', '{pattern}', '--file-search-regex={file_mask}'])
+    call far#tools#setdefault('g:far#sources.ag.args.cmd', cmd)
     call far#tools#setdefault('g:far#sources.ag.args.fix_cnum', 'next')
     call far#tools#setdefault('g:far#sources.ag.args.items_file_min', 30)
     call far#tools#setdefault('g:far#sources.ag.args.expand_cmdargs', 1)
@@ -48,8 +58,7 @@ if executable('ag')
         call far#tools#setdefault('g:far#sources.agnvim.fn', 'far.sources.shell.search')
         call far#tools#setdefault('g:far#sources.agnvim.executor', 'nvim')
         call far#tools#setdefault('g:far#sources.agnvim.args', {})
-        call far#tools#setdefault('g:far#sources.agnvim.args.cmd', ['ag', '--nogroup', '--column', '--nocolor', '--silent',
-            \   '--max-count={limit}', '{pattern}', '--file-search-regex={file_mask}'])
+        call far#tools#setdefault('g:far#sources.agnvim.args.cmd', cmd)
         call far#tools#setdefault('g:far#sources.agnvim.args.fix_cnum', 'next')
         call far#tools#setdefault('g:far#sources.agnvim.args.items_file_min', 30)
         call far#tools#setdefault('g:far#sources.agnvim.args.expand_cmdargs', 1)
@@ -57,12 +66,21 @@ if executable('ag')
 endif
 
 if executable('ack')
+    let cmd = ['ack', '--nogroup', '--column', '--nocolor',
+            \   '--max-count={limit}', '{pattern}', '{file_mask}']
+    if &smartcase
+        call add(cmd, '--smart-case')
+    endif
+    if &ignorecase
+        call add(cmd, '--ignore-case')
+    endif
+
     call far#tools#setdefault('g:far#sources.ack', {})
     call far#tools#setdefault('g:far#sources.ack.fn', 'far.sources.shell.search')
     call far#tools#setdefault('g:far#sources.ack.executor', 'py3')
+    call far#tools#setdefault('g:far#sources.ack.param_proc', 's:ack_param_proc')
     call far#tools#setdefault('g:far#sources.ack.args', {})
-    call far#tools#setdefault('g:far#sources.ack.args.cmd', ['ack', '--nogroup', '--column', '--nocolor',
-        \   '--max-count={limit}', '{pattern}', '{file_mask}'])
+    call far#tools#setdefault('g:far#sources.ack.args.cmd', cmd)
     call far#tools#setdefault('g:far#sources.ack.args.fix_cnum', 'next')
     call far#tools#setdefault('g:far#sources.ack.args.items_file_min', 30)
     call far#tools#setdefault('g:far#sources.ack.args.expand_cmdargs', 1)
@@ -71,9 +89,9 @@ if executable('ack')
         call far#tools#setdefault('g:far#sources.acknvim', {})
         call far#tools#setdefault('g:far#sources.acknvim.fn', 'far.sources.shell.search')
         call far#tools#setdefault('g:far#sources.acknvim.executor', 'py3')
+        call far#tools#setdefault('g:far#sources.acknvim.param_proc', 's:ack_expand_curfile')
         call far#tools#setdefault('g:far#sources.acknvim.args', {})
-        call far#tools#setdefault('g:far#sources.acknvim.args.cmd', ['ack', '--nogroup', '--column', '--nocolor',
-            \   '--max-count={limit}', '{pattern}', '{file_mask}'])
+        call far#tools#setdefault('g:far#sources.acknvim.args.cmd', cmd)
         call far#tools#setdefault('g:far#sources.acknvim.args.fix_cnum', 'next')
         call far#tools#setdefault('g:far#sources.acknvim.args.items_file_min', 30)
         call far#tools#setdefault('g:far#sources.acknvim.args.expand_cmdargs', 1)
@@ -920,17 +938,6 @@ function! s:assemble_context(far_params, win_params, cmdargs, callback, cbparams
         return
     endif
 
-    if a:far_params.pattern == '*'
-        let a:far_params.pattern = far#tools#visualtext()
-        call far#tools#log('*pattern:'.a:far_params.pattern)
-    else
-        let a:far_params.pattern = substitute(a:far_params.pattern, '', '\\n', 'g')
-    endif
-    let a:far_params.replace_with = substitute(a:far_params.replace_with, '', '\\r', 'g')
-    if a:far_params.file_mask == '%'
-        let a:far_params.file_mask = bufname('%')
-    endif
-
     let fsource = get(g:far#sources, a:far_params.source, '')
     if empty(fsource)
         echoerr 'Unknown source '.a:far_params.source
@@ -944,6 +951,9 @@ function! s:assemble_context(far_params, win_params, cmdargs, callback, cbparams
         return {}
     endif
     call far#tools#log('executor: '.executor)
+
+    let param_proc = get(fsource, 'param_proc', 's:param_proc')
+    call call(function(param_proc), [a:far_params, a:win_params, a:cmdargs])
 
     let exec_ctx = {
         \   'fn_args': get(fsource, 'args', {}),
@@ -1297,6 +1307,35 @@ function! s:check_far_window_to_resize(bufnr) abort "{{{
         call s:update_far_buffer(getbufvar(a:bufnr, 'far_ctx'), a:bufnr)
         call win_gotoid(cur_winid)
     endif
+endfunction "}}}
+
+function! s:param_proc(far_params, win_params, cmdargs) "{{{
+    call far#tools#log('s:param_proc()')
+
+    if a:far_params.pattern == '*'
+        let a:far_params.pattern = far#tools#visualtext()
+        call far#tools#log('*pattern:'.a:far_params.pattern)
+    else
+        let a:far_params.pattern = substitute(a:far_params.pattern, '', '\\n', 'g')
+    endif
+
+    let a:far_params.replace_with = substitute(a:far_params.replace_with, '', '\\r', 'g')
+
+    if a:far_params.file_mask == '%'
+        let a:far_params.file_mask = bufname('%')
+    endif
+endfunction "}}}
+
+function! s:ack_param_proc(far_params, win_params, cmdargs) "{{{
+    call far#tools#log('ack_expand_curfile()')
+    if a:far_params.file_mask == '%'
+        let a:far_params.file_mask = '--wtf'
+        let a:far_params.cwd = expand('%:p:h')
+        call add(a:cmdargs, '--type-add=wtf:is:'.expand('%:t'))
+        call add(a:cmdargs, '--no-recurse')
+    endif
+
+    call s:param_proc(a:far_params, a:win_params, a:cmdargs)
 endfunction "}}}
 
 " vim: set et fdm=marker sts=4 sw=4:

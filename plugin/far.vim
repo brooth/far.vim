@@ -9,7 +9,6 @@ endif "}}}
 
 " TODO beta3 {{{
 " (?) FIXME: highlight issue: Far number num **/*.py --win=top --preview=right
-" auto --smart-case, --ignore-case, etc. params for ag and ack
 " refar in current result (special source..)
 " nodes.
 " nodes nesting param: how many modes to show. the rest show as one node
