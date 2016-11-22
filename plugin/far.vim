@@ -7,6 +7,10 @@ if exists('g:loaded_far') && !far#tools#isdebug() "{{{
     finish
 endif "}}}
 
+" TODO beta2 {{{
+" FIXME: replace not working with many files
+" }}}
+
 " TODO beta3 {{{
 " (?) FIXME: highlight issue: Far number num **/*.py --win=top --preview=right
 " refar in current result (special source..)
@@ -41,6 +45,7 @@ function! Find(rngmode, rngline1, rngline2, cmdline, ...) range abort "{{{
 endfunction
 command! -complete=customlist,far#FindComplete -nargs=1 -range=-1 F
     \   call Find(<count>, <line1>, <line2>, '<args>')
+cabbrev f F
 "}}}
 
 function! Far(rngmode, rngline1, rngline2, cmdline) range abort "{{{
@@ -64,6 +69,7 @@ function! Far(rngmode, rngline1, rngline2, cmdline) range abort "{{{
 endfunction
 command! -complete=customlist,far#FarComplete -nargs=1 -range=-1 Far
     \   call Far(<count>,<line1>,<line2>,'<args>')
+cabbrev far Far
 "}}}
 
 function! FarPrompt(rngmode, rngline1, rngline2, ...) abort range "{{{
@@ -97,6 +103,7 @@ function! FarPrompt(rngmode, rngline1, rngline2, ...) abort range "{{{
 endfunction
 command! -complete=customlist,far#FarArgsComplete -nargs=* -range=-1 Farp
     \   call FarPrompt(<count>,<line1>,<line2>,<f-args>)
+cabbrev farp Farp
 "}}}
 
 function! Refar(rngmode, rngline1, rngline2, ...) abort "{{{
@@ -105,6 +112,7 @@ function! Refar(rngmode, rngline1, rngline2, ...) abort "{{{
 endfunction
 command! -complete=customlist,far#RefarComplete -nargs=* -range=-1 Refar
     \   call Refar(<count>,<line1>,<line2>,<f-args>)
+cabbrev refar Refar
 "}}}
 
 function! FarDo(...) abort "{{{
@@ -112,6 +120,7 @@ function! FarDo(...) abort "{{{
     call far#replace(a:000)
 endfunction
 command! -complete=customlist,far#FardoComplete -nargs=* Fardo call FarDo(<f-args>)
+cabbrev fardo Fardo
 "}}}
 
 function! FarUndo(...) abort "{{{
@@ -119,6 +128,7 @@ function! FarUndo(...) abort "{{{
     call far#undo(a:000)
 endfunction
 command! -complete=customlist,far#FarundoComplete -nargs=* Farundo call FarUndo(<f-args>)
+cabbrev farundo Farundo
 "}}}
 
 " loaded {{{

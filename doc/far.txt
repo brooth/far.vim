@@ -720,6 +720,7 @@ CHANGELOG                                                       *far-changelog*
      - override source args, 'suggest' flag (suggest for completion)
      - return tmp file instead of items for big results
      - <range> support
+     - commands cabbrevs
 
     beta1       first public version.
 
