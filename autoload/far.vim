@@ -748,7 +748,8 @@ function! far#replace(xargs) abort "{{{
     let start_ts = reltimefloat(reltime())
     let bufnr = bufnr('%')
     let del_bufs = []
-    let replines = far#tools#matchcnt(b:far_ctx.replace_with, '\r')
+    let far_ctx = b:far_ctx
+    let replines = far#tools#matchcnt(far_ctx.replace_with, '\r')
     call far#tools#log('replines:'.replines)
 
     let repl_params = s:create_repl_params()
@@ -762,7 +763,7 @@ function! far#replace(xargs) abort "{{{
         endfor
     endfor
 
-    for file_ctx in b:far_ctx.items
+    for file_ctx in far_ctx.items
         call far#tools#log('replacing buffer '.file_ctx.fname)
 
         let cmds = []
@@ -770,8 +771,8 @@ function! far#replace(xargs) abort "{{{
         for item_ctx in file_ctx.items
             if !item_ctx.excluded && !item_ctx.replaced
                 let cmd = item_ctx.lnum.'s/\%'.item_ctx.cnum.'c'.
-                    \   escape(b:far_ctx.pattern, '/').'/'.
-                    \   escape(b:far_ctx.replace_with, '/').'/e#'
+                    \   escape(far_ctx.pattern, '/').'/'.
+                    \   escape(far_ctx.replace_with, '/').'/e#'
                 call add(cmds, cmd)
                 call add(items, item_ctx)
             endif

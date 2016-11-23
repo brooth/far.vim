@@ -7,10 +7,6 @@ if exists('g:loaded_far') && !far#tools#isdebug() "{{{
     finish
 endif "}}}
 
-" TODO beta2 {{{
-" FIXME: replace not working with many files
-" }}}
-
 " TODO beta3 {{{
 " (?) FIXME: highlight issue: Far number num **/*.py --win=top --preview=right
 " refar in current result (special source..)
