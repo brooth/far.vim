@@ -19,6 +19,27 @@ endif "}}}
 " test coverage
 "}}}
 
+" options {{{
+if !exists('g:far#cabbrevs_f')
+    let g:far#cabbrevs_f = ''
+endif
+if !exists('g:far#cabbrevs_far')
+    let g:far#cabbrevs_far = 'far'
+endif
+if !exists('g:far#cabbrevs_farp')
+    let g:far#cabbrevs_farp = 'farp'
+en
+if !exists('g:far#cabbrevs_refar')
+    let g:far#cabbrevs_refar = 'rfar'
+endif
+if !exists('g:far#cabbrevs_fardo')
+    let g:far#cabbrevs_fardo = 'fard'
+endif
+if !exists('g:far#cabbrevs_farundo')
+    let g:far#cabbrevs_farundo = 'faru'
+endif
+" }}}
+
 function! Find(rngmode, rngline1, rngline2, cmdline, ...) range abort "{{{
     call far#tools#log('=============== FIND ================')
     call far#tools#log('cmdline: '.a:cmdline)
@@ -41,7 +62,6 @@ function! Find(rngmode, rngline1, rngline2, cmdline, ...) range abort "{{{
 endfunction
 command! -complete=customlist,far#FindComplete -nargs=1 -range=-1 F
     \   call Find(<count>, <line1>, <line2>, '<args>')
-cabbrev f F
 "}}}
 
 function! Far(rngmode, rngline1, rngline2, cmdline) range abort "{{{
@@ -65,7 +85,6 @@ function! Far(rngmode, rngline1, rngline2, cmdline) range abort "{{{
 endfunction
 command! -complete=customlist,far#FarComplete -nargs=1 -range=-1 Far
     \   call Far(<count>,<line1>,<line2>,'<args>')
-cabbrev far Far
 "}}}
 
 function! FarPrompt(rngmode, rngline1, rngline2, ...) abort range "{{{
@@ -99,7 +118,6 @@ function! FarPrompt(rngmode, rngline1, rngline2, ...) abort range "{{{
 endfunction
 command! -complete=customlist,far#FarArgsComplete -nargs=* -range=-1 Farp
     \   call FarPrompt(<count>,<line1>,<line2>,<f-args>)
-cabbrev farp Farp
 "}}}
 
 function! Refar(rngmode, rngline1, rngline2, ...) abort "{{{
@@ -108,7 +126,6 @@ function! Refar(rngmode, rngline1, rngline2, ...) abort "{{{
 endfunction
 command! -complete=customlist,far#RefarComplete -nargs=* -range=-1 Refar
     \   call Refar(<count>,<line1>,<line2>,<f-args>)
-cabbrev refar Refar
 "}}}
 
 function! FarDo(...) abort "{{{
@@ -116,7 +133,6 @@ function! FarDo(...) abort "{{{
     call far#replace(a:000)
 endfunction
 command! -complete=customlist,far#FardoComplete -nargs=* Fardo call FarDo(<f-args>)
-cabbrev fardo Fardo
 "}}}
 
 function! FarUndo(...) abort "{{{
@@ -124,8 +140,28 @@ function! FarUndo(...) abort "{{{
     call far#undo(a:000)
 endfunction
 command! -complete=customlist,far#FarundoComplete -nargs=* Farundo call FarUndo(<f-args>)
-cabbrev farundo Farundo
 "}}}
+
+" cabbrevs {{{
+if !empty(g:far#cabbrevs_f)
+    exec 'cabbrev ' . g:far#cabbrevs_f . ' F'
+endif
+if !empty(g:far#cabbrevs_far)
+    exec 'cabbrev ' . g:far#cabbrevs_far . ' Far'
+endif
+if !empty(g:far#cabbrevs_farp)
+    exec 'cabbrev ' . g:far#cabbrevs_farp . ' Farp'
+endif
+if !empty(g:far#cabbrevs_refar)
+    exec 'cabbrev ' . g:far#cabbrevs_refar . ' Refar'
+endif
+if !empty(g:far#cabbrevs_fardo)
+    exec 'cabbrev ' . g:far#cabbrevs_fardo . ' Fardo'
+endif
+if !empty(g:far#cabbrevs_farundo)
+    exec 'cabbrev ' . g:far#cabbrevs_farundo . ' Farundo'
+endif
+" }}}
 
 " loaded {{{
 let g:loaded_far = 0
