@@ -1315,6 +1315,7 @@ function! s:param_proc(far_params, win_params, cmdargs) "{{{
 
     if a:far_params.pattern == '*'
         let a:far_params.pattern = far#tools#visualtext()
+        let a:far_params.range = [-1, -1]
         call far#tools#log('*pattern:'.a:far_params.pattern)
     else
         let a:far_params.pattern = substitute(a:far_params.pattern, '', '\\n', 'g')
