@@ -8,6 +8,9 @@ if exists('g:loaded_far') && !far#tools#isdebug() "{{{
 endif "}}}
 
 " TODO beta3 {{{
+" FIXME: masks as broken s:RESULT_ -> g:MX_RES_
+" FIXME: too many junk in help....
+"
 " (?) FIXME: highlight issue: Far number num **/*.py --win=top --preview=right
 " refar in current result (special source..)
 " nodes.
