@@ -5,12 +5,10 @@
 
 "logging {{{
 let s:debug = exists('g:far#debug')? g:far#debug : 0
-let s:debugfile = $HOME.'/far.vim.log'
+let s:logfile = $HOME.'/far.vim.log'
 
 if s:debug
-    exec 'redir! > ' . s:debugfile
-    silent echon "debug enabled!\n"
-    redir END
+    call writefile(['debug enabled!'], s:logfile)
 endif
 
 function! far#tools#isdebug()
@@ -19,9 +17,7 @@ endfunction
 
 function! far#tools#log(msg)
     if s:debug
-        exec 'redir >> ' . s:debugfile
-        silent echon a:msg."\n"
-        redir END
+        call writefile(['[' . strftime("%T") . '] ' .a:msg], s:logfile, "a")
     endif
 endfunction
 "}}}

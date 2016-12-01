@@ -8,9 +8,6 @@ if exists('g:loaded_far') && !far#tools#isdebug() "{{{
 endif "}}}
 
 " TODO beta3 {{{
-" FIXME: masks as broken s:RESULT_ -> g:MX_RES_
-" FIXME: too many junk in help....
-"
 " (?) FIXME: highlight issue: Far number num **/*.py --win=top --preview=right
 " refar in current result (special source..)
 " nodes.
@@ -21,27 +18,6 @@ endif "}}}
 " vim8 async support
 " test coverage
 "}}}
-
-" options {{{
-if !exists('g:far#cabbrevs_f')
-    let g:far#cabbrevs_f = ''
-endif
-if !exists('g:far#cabbrevs_far')
-    let g:far#cabbrevs_far = 'far'
-endif
-if !exists('g:far#cabbrevs_farp')
-    let g:far#cabbrevs_farp = 'farp'
-en
-if !exists('g:far#cabbrevs_refar')
-    let g:far#cabbrevs_refar = 'rfar'
-endif
-if !exists('g:far#cabbrevs_fardo')
-    let g:far#cabbrevs_fardo = 'fard'
-endif
-if !exists('g:far#cabbrevs_farundo')
-    let g:far#cabbrevs_farundo = 'faru'
-endif
-" }}}
 
 function! Find(rngmode, rngline1, rngline2, cmdline, ...) range abort "{{{
     call far#tools#log('=============== FIND ================')
@@ -144,27 +120,6 @@ function! FarUndo(...) abort "{{{
 endfunction
 command! -complete=customlist,far#FarundoComplete -nargs=* Farundo call FarUndo(<f-args>)
 "}}}
-
-" cabbrevs {{{
-if !empty(g:far#cabbrevs_f)
-    exec 'cabbrev ' . g:far#cabbrevs_f . ' F'
-endif
-if !empty(g:far#cabbrevs_far)
-    exec 'cabbrev ' . g:far#cabbrevs_far . ' Far'
-endif
-if !empty(g:far#cabbrevs_farp)
-    exec 'cabbrev ' . g:far#cabbrevs_farp . ' Farp'
-endif
-if !empty(g:far#cabbrevs_refar)
-    exec 'cabbrev ' . g:far#cabbrevs_refar . ' Refar'
-endif
-if !empty(g:far#cabbrevs_fardo)
-    exec 'cabbrev ' . g:far#cabbrevs_fardo . ' Fardo'
-endif
-if !empty(g:far#cabbrevs_farundo)
-    exec 'cabbrev ' . g:far#cabbrevs_farundo . ' Farundo'
-endif
-" }}}
 
 " loaded {{{
 let g:loaded_far = 0

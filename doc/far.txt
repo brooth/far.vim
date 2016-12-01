@@ -6,6 +6,16 @@ Homepage:       https://github.com/brooth/far.vim/
 Version:        beta2
 
 ==============================================================================
+
+>
+           _|_|                                  _|
+         _|        _|_|_|  _|  _|_|  _|      _|      _|_|_|  _|_|
+       _|_|_|_|  _|    _|  _|_|      _|      _|  _|  _|    _|    _|
+         _|      _|    _|  _|          _|  _|    _|  _|    _|    _|
+         _|        _|_|_|  _|  _|        _|      _|  _|    _|    _|
+<
+
+==============================================================================
 CONTENTS                                                        *far-contents*
 
     1. Intro .................................................. |far-intro|
@@ -720,7 +730,6 @@ CHANGELOG                                                       *far-changelog*
      - override source args, 'suggest' flag (suggest for completion)
      - return tmp file instead of items for big results
      - <range> support
-     - commands cabbrevs
 
     beta1       first public version.
 
