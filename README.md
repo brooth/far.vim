@@ -6,7 +6,7 @@ It's inspired by fancy IDEs, like IntelliJ and Eclipse, that provide
 cozy tools for such tasks.
 
 ## Installation
-#### [VimPlug](https://github.com/junegunn/vim-plug)
+#### [vim-plug](https://github.com/junegunn/vim-plug)
 ```vim
 Plug 'brooth/far.vim'
 ```
@@ -46,6 +46,17 @@ Reruns `Far` or `Farp` command with the same arguments.
 
 ### Consistency Check
 ![consistancy](https://cloud.githubusercontent.com/assets/9823254/20029514/70475168-a367-11e6-9a2d-53614730307b.gif)
+
+
+## TODOs
+#### Farundo
+Undo last replacement
+
+#### Ag, Ack, fzf
+Support these sources. Now vimgrep only.
+
+#### Async
+Neovim, Vim 8
 
 ## License
 MIT
