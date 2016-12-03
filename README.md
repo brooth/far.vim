@@ -17,7 +17,7 @@ Plug 'brooth/far.vim'
 :Far foo bar **/*.py
 :Fardo
 ```
-![far.vim](https://cloud.githubusercontent.com/assets/9823254/20070492/fe6037de-a539-11e6-9ee8-4b9a02c11c22.gif)
+![far.vim](https://cloud.githubusercontent.com/assets/9823254/20861878/77dd1882-b9b4-11e6-9b48-8bc60f3d7ec0.gif)
 
 #### :Far {pattern} {replace-with} {file-mask} [params]
 Find the text to replace.
@@ -29,8 +29,14 @@ one after the other.
 #### :Fardo [params]
 Runs the replacement task.
 
-#### :Refar
-Reruns `Far` or `Farp` command with the same arguments.
+#### :Refar [params]
+Change `Far`/`Farp` params.
+
+### :Farundo [params]
+Undo last (or all) replacement(s).
+
+### :F {pattern} {file-mask} [params]
+Find only.
 
 #### Need help?
 ```bash
@@ -41,22 +47,15 @@ Reruns `Far` or `Farp` command with the same arguments.
 ### Multiline Replacement
 ![multiline](https://cloud.githubusercontent.com/assets/9823254/20029467/193b7f58-a366-11e6-9a22-05e8464ec0e4.gif)
 
+### Neovim async, Ack, Ag support
+![nvim](https://cloud.githubusercontent.com/assets/9823254/20861644/72df878a-b9ae-11e6-9762-449c5d0a1faf.gif)
+
 ### Command-Line Completion
 ![complete](https://cloud.githubusercontent.com/assets/9823254/20029477/8076abd4-a366-11e6-8711-9b4e18367c80.gif)
 
 ### Consistency Check
 ![consistancy](https://cloud.githubusercontent.com/assets/9823254/20029514/70475168-a367-11e6-9a2d-53614730307b.gif)
-
-
-## TODOs
-#### Farundo
-Undo last replacement
-
-#### Ag, Ack, fzf
-Support these sources. Now vimgrep only.
-
-#### Async
-Neovim, Vim 8
+..and many more!
 
 ## License
 MIT
