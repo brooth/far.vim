@@ -152,12 +152,27 @@ function! far#tools#echo_msg(msg) abort "{{{
 endfunction "}}}
 
 function! far#tools#ftlookup(ext) abort "{{{
-    let matching = filter(split(execute('autocmd filetypedetect'), "\n"), 'v:val =~ "\*\.'.a:ext.'setf"')
-
-    if len(matching) > 0
-        return matchstr(matching[0], 'setf\s\+\zs\k\+')
+    if !exists('s:knownfiletypes')
+        let s:knownfiletypes = {}
     endif
-    return a:ext
+
+    if has_key(s:knownfiletypes, a:ext)
+        call far#tools#log('know ft ' . a:ext . '=' . s:knownfiletypes[a:ext])
+        return s:knownfiletypes[a:ext]
+    endif
+
+    if !exists('s:filetypes')
+        exec 'redir => s:filetypes'
+        silent! exec 'autocmd filetypedetect'
+        exec 'redir END'
+        let s:filetypes = split(s:filetypes, '\n')
+    endif
+
+    let matching = filter(s:filetypes, 'v:val =~ "\*\.'.a:ext.' *setf"')
+    let ft = len(matching) > 0 ? matchstr(matching[0], 'setf\s\+\zs\k\+') : a:ext
+    let s:knownfiletypes[a:ext] = ft
+    call far#tools#log('detected ft ' . a:ext . '=' . ft)
+    return ft
 endfunction "}}}
 
 function! far#tools#matchcnt(pat, exp) abort "{{{
