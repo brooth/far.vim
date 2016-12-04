@@ -5,6 +5,9 @@ Far.vim makes it easier to find and replace text through multiple files.
 It's inspired by fancy IDEs, like IntelliJ and Eclipse, that provide
 cozy tools for such tasks.
 
+## Version
+Beta 2. (Tested on Vim 7.4, Neovim 0.2.0-dev)
+
 ## Installation
 #### [vim-plug](https://github.com/junegunn/vim-plug)
 ```vim
