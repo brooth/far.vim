@@ -126,7 +126,7 @@ function! s:create_repl_params() abort
     \   'auto_write': exists('g:far#auto_write_replaced_buffers')?
     \       g:far#auto_write_replaced_buffers : 1,
     \   'auto_delete': exists('g:far#auto_delete_replaced_buffers')?
-    \       g:far#auto_delete_replaced_buffers : 0,
+    \       g:far#auto_delete_replaced_buffers : 1,
     \   }
 endfunction
 
