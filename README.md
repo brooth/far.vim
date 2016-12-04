@@ -6,7 +6,7 @@ It's inspired by fancy IDEs, like IntelliJ and Eclipse, that provide
 cozy tools for such tasks.
 
 ## Version
-Beta 2. (Tested on Vim 7.4, Neovim 0.2.0-dev)
+[Beta 2](https://github.com/brooth/far.vim/wiki/beta-2-changelog). (Tested on Vim 7.4, Neovim 0.2.0-dev)
 
 ## Installation
 #### [vim-plug](https://github.com/junegunn/vim-plug)
