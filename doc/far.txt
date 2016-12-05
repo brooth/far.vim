@@ -46,7 +46,7 @@ CONTENTS                                                        *far-contents*
 INTRO                                                           *far-intro*
 
     Far.vim makes it easier to find and replace text through mulple files.
-    It's inspired by fancy IDEs, like IntellyJ and Eclipse, that provide
+    It's inspired by fancy IDEs, like IntelliJ and Eclipse, that provide
     cozy tools for such tasks.
 
 ==============================================================================
@@ -88,10 +88,11 @@ USAGE                                                           *far-usage*
     For [params] see |fardo-params|.
 
 *:Refar* [params]
-    |Refar| reruns |Far| or |Farp| command with the same arguments.
+    |Refar| reruns |Far| or |Farp| with the same arguments or you can change
+    any via [params].
     For [params] see |refar-params|.
     Note: It must be executed in a FAR buffer.
-    Use |Refar| in case the data's been changed and you need to update
+    You can use |Refar| in case the data's been changed so you need to update
     the search result.
 
 *:Farundo* [params]
@@ -121,15 +122,15 @@ Multiline Replacement                                           *far-multiline*
      >Replace with: [replace-with]
      >File mask: {file-mask}
 <
-    b) The second approach is simply to paste yanked text.
+    b) The second approach - simply paste yanked text.
 >
-    :Far <^r"> <^r"> {file-mask} [params]
+    :Far <^ra> <^rb> {file-mask} [params]
 <
      and resp. for |Farp|:
 >
      :Farp [<params>]
-     >Search (pattern): <^r">
-     >Replace with: <^r">
+     >Search (pattern): <^ra>
+     >Replace with: <^rb>
      >File mask: {file-mask}
 <
     Note: you need to explicitly escape all special characters. See |pattern|.
@@ -137,7 +138,7 @@ Multiline Replacement                                           *far-multiline*
 
 Highlighting                                                    *far-highlight*
     If |g:far#highlight_match| flag is set, far.vim adds per line
-    highlighting for each matched and resulting item. Since per line highlighting
+    highlighting for each matched and resulting item. Since per-line highlighting
     is a CPU depending feature in vim, it's better sometimes to turn it off
     for a big amount of data (Avg. 200+ items).
 
@@ -153,9 +154,9 @@ Highlighting                                                    *far-highlight*
 Command-Line Completion                                         *far-complete*
     Far.vim supports built-in command-line completion (see |'wildmenu'|).
     Hit <tab> while entering |Far|, |Farp| or |Fardo| command to auto-complete
-    predefined and previously used arguments.
+    predefined or previously used arguments.
     Far.vim also supports auto-completion of |far-params| values. Hit <tab>
-    after '=' character is entered.
+    after '=' character:
 >
     :Far foo bar % --win-l<tab>         ->  :Far foo bar % --win-layout
     :Far foo bar % --win-layout=c<tab>  ->  :Far foo bar % --win-layout=current
@@ -169,8 +170,8 @@ Preview Window                                                  *far-preview*
     the preview window on cursor movement. If |g:far#auto_preview| is set to 0,
     you can control preview window manually (see |far-mappings|).
     You can also scroll preview window up and down from a FAR buffer
-    (no need to change focus to preview window).
-    By default <c-p> scrolls up and <c-n> scrolls down.
+    (no need to switch focus to the preview window).
+    By default <c-k> scrolls up and <c-j> scrolls down.
 
     See |far-mappings|, |g:far#preview_window_scroll_step|, |g:far#auto_preview|,
         |g:far#preview_window_layout|, |g:far#preview_window_width|,
@@ -186,8 +187,8 @@ Jump to source                                                     *far-jump*
 
 
 Consistency Check                                               *far-consistency*
-    Since the search (|Far| or |Farp| command) until the replacement (|Fardo|) task,
-    the file content can be modified. While the replacement far.vim is checking
+    Since the search (|Far| or |Farp| command) to the replacement (|Fardo|),
+    the file's content can be modified. During the replacement far.vim is checking
     that respective item's been replaced successfully. If not, this item is marked
     as 'broken'. You can see these items in |FarBrokenItem| highlighting
     or with *B* prefix if |g:far#highlight_match| is set to 0.
@@ -231,7 +232,7 @@ CONFIGURATION                                                   *far-config*
         'agnvim'
             Asynchronous source. Same as 'ag' but uses Neovim asynchronous API
             to search candidates in a separate thread.
-            Requires 'nvim' feature and 'ag' installation.
+            Requires 'nvim' and 'ag' installation.
 
         'ack'
             Synchronous source. Uses "Ack" ("http://beyondgrep.com/") to find candidates.
@@ -241,13 +242,17 @@ CONFIGURATION                                                   *far-config*
         'acknvim'
             Asynchronous source. Same as 'ack' but uses Neovim asynchronous API
             to search candidates in a separate thread.
-            Requires 'nvim' feature and 'ack' installation.
+            Requires 'nvim' and 'ack' installation.
 
 *g:far#limit*
     Limit the maximum amount of candidates.
 
+    Default: 1000
+
 *g:far#cwd*
     Specify the current working directory. In this directory where Far.vim searches candidates.
+
+    Default: |getpwd()| value.
 
 *g:far#default_mappings*
     Apply default mappings to each FAR buffer. See |far-mappings|.
@@ -270,7 +275,7 @@ CONFIGURATION                                                   *far-config*
     Default: 1
 
 *g:far#highlight_match*
-    Enable highlight feature in FAR buffers.
+    Enable highlight feature.
     See |far-highlight|, |--hl-match|.
 
     Options: 0, 1
@@ -359,7 +364,7 @@ CONFIGURATION                                                   *far-config*
     Default: 2000
 
 *g:far#repl_devider*
-    This variable controls the icon between matched and result text.
+    This variable controls the icon between matched and resulting text.
 
     Default: '  ➝  '
 
@@ -457,7 +462,7 @@ MAPPINGS                                                         *far-mappings*
     Next bindings are applied to each FAR buffer if |g:far#default_mappings|
     is set.
     Note: If you want to define custom mapping, you need to set to 0
-    |g:far#default_mappings| variable and explicitly config all bindings.
+    |g:far#default_mappings| variable and explicitly configure all the bindings.
 
 *x*
 *v_x*
@@ -531,7 +536,7 @@ MAPPINGS                                                         *far-mappings*
 >
     nnoremap <buffer><silent> <KEY> :call g:far#close_preview_window()<cr>
 <
-*CTRL-P*
+*CTRL-K*
     Scroll preview window up (if open).
     See |far-preview|, |g:far#preview_window_scroll_step|
 
@@ -540,7 +545,7 @@ MAPPINGS                                                         *far-mappings*
     nnoremap <buffer><silent> <KEY>
         \   :call g:far#scroll_preview_window(-g:far#preview_window_scroll_step)<cr>
 <
-*CTRL-N*
+*CTRL-J*
     Scroll preview window down (if open).
     See |far-preview|, |g:far#preview_window_scroll_step|
 

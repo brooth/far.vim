@@ -17,7 +17,7 @@ call far#tools#setdefault('g:far#file_mask_favorites', ['%', '**/*.*', '**/*.htm
 call far#tools#setdefault('g:far#status_line', 1)
 call far#tools#setdefault('g:far#source', 'vimgrep')
 call far#tools#setdefault('g:far#cwd', getcwd())
-call far#tools#setdefault('g:far#limit', 500)
+call far#tools#setdefault('g:far#limit', 1000)
 
 call far#tools#setdefault('g:far#executors', {})
 call far#tools#setdefault('g:far#executors.vim', 'far#executors#basic#execute')
