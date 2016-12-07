@@ -58,7 +58,9 @@ Find only.
 
 ### Consistency Check
 ![consistancy](https://cloud.githubusercontent.com/assets/9823254/20029514/70475168-a367-11e6-9a2d-53614730307b.gif)
-..and many more!
+
+
+..and many more! Check out `:help far.vim`.
 
 ## License
 MIT
