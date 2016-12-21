@@ -41,7 +41,7 @@ if executable('ag')
     if &ignorecase
         call add(cmd, '--ignore-case')
     else
-        call add(cmd, '--case-sensetive')
+        call add(cmd, '--case-sensitive')
     endif
 
     call far#tools#setdefault('g:far#sources.ag', {})
