@@ -224,6 +224,16 @@ CONFIGURATION                                                   *far-config*
             Does't need external dependencies.
             Supports multiline search.
 
+        'rg'
+            Synchronous source. Uses "rg" (ripgrep) to find candidates.
+            Requires 'rg' installation.
+            Note: Doesn't support multiline search.
+
+        'rgnvim'
+            Asynchronous source. Same as 'rg' but uses Neovim asynchronous API
+            to search candidates in a separate thread.
+            Requires 'nvim' and 'rg' installation.
+
         'ag'
             Synchronous source. Uses "Ag" (The Silver Searcher) to find candidates.
             Requires 'ag' installation.
