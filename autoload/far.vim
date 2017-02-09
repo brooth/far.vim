@@ -32,39 +32,6 @@ call far#tools#setdefault('g:far#sources.vimgrep.args', {})
 call far#tools#setdefault('g:far#sources.vimgrep.args.cmd', 'silent! {limit}vimgrep! /{pattern}/gj {file_mask}')
 call far#tools#setdefault('g:far#sources.vimgrep.args.escape_pattern', '/')
 
-if executable('rg')
-    let cmd = ['rg', '--no-heading', '--column', '--color=never', '--no-messages',
-        \   '--max-count={limit}', '{pattern}', '--glob={file_mask}']
-    if &smartcase
-        call add(cmd, '--smart-case')
-    endif
-    if &ignorecase
-        call add(cmd, '--ignore-case')
-    else
-        call add(cmd, '--case-sensitive')
-    endif
-
-    call far#tools#setdefault('g:far#sources.rg', {})
-    call far#tools#setdefault('g:far#sources.rg.fn', 'far.sources.shell.search')
-    call far#tools#setdefault('g:far#sources.rg.executor', 'py3')
-    call far#tools#setdefault('g:far#sources.rg.args', {})
-    call far#tools#setdefault('g:far#sources.rg.args.cmd', cmd)
-    call far#tools#setdefault('g:far#sources.rg.args.fix_cnum', 'next')
-    call far#tools#setdefault('g:far#sources.rg.args.items_file_min', 30)
-    call far#tools#setdefault('g:far#sources.rg.args.expand_cmdargs', 1)
-
-    if has('nvim')
-        call far#tools#setdefault('g:far#sources.rgnvim', {})
-        call far#tools#setdefault('g:far#sources.rgnvim.fn', 'far.sources.shell.search')
-        call far#tools#setdefault('g:far#sources.rgnvim.executor', 'nvim')
-        call far#tools#setdefault('g:far#sources.rgnvim.args', {})
-        call far#tools#setdefault('g:far#sources.rgnvim.args.cmd', cmd)
-        call far#tools#setdefault('g:far#sources.rgnvim.args.fix_cnum', 'next')
-        call far#tools#setdefault('g:far#sources.rgnvim.args.items_file_min', 30)
-        call far#tools#setdefault('g:far#sources.rgnvim.args.expand_cmdargs', 1)
-    endif
-endif
-
 if executable('ag')
     let cmd = ['ag', '--nogroup', '--column', '--nocolor', '--silent',
         \   '--max-count={limit}', '{pattern}', '--file-search-regex={file_mask}']
