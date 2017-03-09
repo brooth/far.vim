@@ -388,7 +388,7 @@ function! far#show_preview_window_under_cursor() abort "{{{
         exec syncmd
     endif
 
-    exec 'norm! '.ctxs[2].lnum.'ggzz'.ctxs[2].cnum.'l'
+    exec 'norm! '.ctxs[2].lnum.'ggzz0'.ctxs[2].cnum.'l'
     if !ctxs[2].replaced
         let pmatch = 'match FarPreviewMatch "\%'.ctxs[2].lnum.'l\%'.ctxs[2].cnum.'c'.
                     \   escape(ctxs[0].pattern, '"').(&ignorecase? '\c"' : '"')
