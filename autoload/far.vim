@@ -67,7 +67,7 @@ endif
 
 if executable('ack')
     let cmd = ['ack', '--nogroup', '--column', '--nocolor',
-            \   '--max-count={limit}', '{pattern}', '{file_mask}']
+            \   '--max-count={limit}', '--type={file_mask}', '{pattern}']
     if &smartcase
         call add(cmd, '--smart-case')
     endif
@@ -88,8 +88,8 @@ if executable('ack')
     if has('nvim')
         call far#tools#setdefault('g:far#sources.acknvim', {})
         call far#tools#setdefault('g:far#sources.acknvim.fn', 'far.sources.shell.search')
-        call far#tools#setdefault('g:far#sources.acknvim.executor', 'py3')
-        call far#tools#setdefault('g:far#sources.acknvim.param_proc', 's:ack_expand_curfile')
+        call far#tools#setdefault('g:far#sources.acknvim.executor', 'nvim')
+        call far#tools#setdefault('g:far#sources.acknvim.param_proc', 's:ack_param_proc')
         call far#tools#setdefault('g:far#sources.acknvim.args', {})
         call far#tools#setdefault('g:far#sources.acknvim.args.cmd', cmd)
         call far#tools#setdefault('g:far#sources.acknvim.args.fix_cnum', 'next')
