@@ -67,7 +67,7 @@ endif
 
 if executable('ack')
     let cmd = ['ack', '--nogroup', '--column', '--nocolor',
-            \   '--max-count={limit}', '--type={file_mask}', '{pattern}']
+            \   '--max-count={limit}', '--type-set=farft:match:{file_mask}', '--farft', '{pattern}']
     if &smartcase
         call add(cmd, '--smart-case')
     endif
