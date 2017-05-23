@@ -781,26 +781,26 @@ function! far#replace(xargs) abort "{{{
         if !empty(cmds)
             let buf_repls = 0
             let cmds = reverse(cmds)
-
-            exec 'buffer! '.file_ctx.fname
-
             let undonum = far#tools#undo_nextnr()
             let undoitems = []
 
-
-            if repl_params.auto_write && !(&mod)
-                call add(cmds, 'write')
+            if !bufloaded(file_ctx.fname)
+                exec 'e! '.file_ctx.fname
+                if repl_params.auto_delete
+                    call add(del_bufs, bufnr(file_ctx.fname))
+                endif
             endif
-            if repl_params.auto_delete && !bufexists(file_ctx.fname)
-                call add(del_bufs, bufnr(file_ctx.fname))
-            endif
-
-            let bufcmd = join(cmds, '|')
-            call far#tools#log('bufdo: '.bufcmd)
+            exec 'buffer! '.file_ctx.fname
 
             if !repl_params.auto_delete && !buflisted(file_ctx.fname)
                 set buflisted
             endif
+            if repl_params.auto_write && !(&mod)
+                call add(cmds, 'write')
+            endif
+
+            let bufcmd = join(cmds, '|')
+            call far#tools#log('bufdo: '.bufcmd)
 
             exec 'redir => s:bufdo_msgs'
             silent! exec bufcmd
@@ -849,7 +849,7 @@ function! far#replace(xargs) abort "{{{
 
     let b:far_ctx.repl_time = printf('%.3fms', reltimefloat(reltime()) - start_ts)
     call s:update_far_buffer(b:far_ctx, bufnr)
-endfunction "}}}
+endfunction
 
 function! far#undo(xargs) abort "{{{
     call far#tools#log('far#undo('.string(a:xargs).')')
