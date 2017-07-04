@@ -152,6 +152,9 @@ function! far#tools#echo_msg(msg) abort "{{{
 endfunction "}}}
 
 function! far#tools#ftlookup(ext) abort "{{{
+    if empty(a:ext)
+        return 'none'
+    endif
     if !exists('s:knownfiletypes')
         let s:knownfiletypes = {}
     endif
