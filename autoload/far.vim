@@ -816,7 +816,7 @@ function! far#replace(xargs) abort "{{{
             let undoitems = []
 
             if !bufloaded(file_ctx.fname)
-                exec 'e! '.file_ctx.fname
+                exec 'e! '.substitute(file_ctx.fname, ' ', '\\ ', 'g')
                 if repl_params.auto_delete
                     call add(del_bufs, bufnr(file_ctx.fname))
                 endif
