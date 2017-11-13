@@ -31,7 +31,7 @@ function! far#executors#nvim#callback(result, ctx_idx) abort
     let ctx = remove(g:far#executors#nvim#contexts, a:ctx_idx)
     let error = get(a:result, 'error', '')
     if !empty(error)
-        let ctx['error'] = 'source error:'.error
+        let ctx['error'] = 'source error: '.error
     elseif get(a:result, 'items_file', '') != ''
         let ctx.far_ctx.items = []
         try
@@ -45,6 +45,13 @@ function! far#executors#nvim#callback(result, ctx_idx) abort
         endtry
     else
         let ctx.far_ctx['items'] = a:result['items']
+
+        "https://github.com/brooth/far.vim/issues/31
+        for file_ctx in ctx.far_ctx['items']
+            for item_ctx in file_ctx.items
+                let item_ctx.text = substitute(item_ctx.text, '\\\\', '\\', 'g')
+            endfor
+        endfor
     endif
     call call(ctx.async_callback, [ctx])
 endfunction
