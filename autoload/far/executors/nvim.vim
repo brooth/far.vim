@@ -24,11 +24,7 @@ function! far#executors#nvim#execute(exec_ctx, callback) abort
         \   'self.nvim.command("call far#executors#nvim#callback("+str(res)+", '.ctx_idx.')")',
         \   ]
 
-    let result = far#rpc#nvim_invoke(execlist)
-    if !result
-        let ctx['error'] = 'failed to execute source. unknown error'
-        call call(a:callback, [ctx])
-    endif
+    call far#rpc#nvim_invoke(execlist)
 endfunction
 
 function! far#executors#nvim#callback(result, ctx_idx) abort
