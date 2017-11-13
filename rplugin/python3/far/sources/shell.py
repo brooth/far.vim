@@ -25,7 +25,10 @@ def search(ctx, args, cmdargs):
     file_mask = ctx['file_mask']
     fix_cnum = args.get('fix_cnum')
     if fix_cnum:
-        cpat = re.compile(pattern)
+        try:
+            cpat = re.compile(pattern)
+        except Exception as e:
+            return {'error': 'invalid pattern: ' + str(e) }
 
     cmd = []
     for c in args['cmd']:

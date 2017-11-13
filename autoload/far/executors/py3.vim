@@ -14,7 +14,7 @@ function! far#executors#py3#execute(exec_ctx, callback) abort
     let result = far#rpc#invoke([source[:idx-1]], evalstr)
     let error = get(result, 'error', '')
     if !empty(error)
-        let ctx['error'] = 'source error:'.error
+        let ctx['error'] = 'source error: '.error
     elseif get(result, 'items_file', '') != ''
         let ctx.far_ctx.items = []
         try
