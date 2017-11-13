@@ -956,6 +956,11 @@ function! s:assemble_context(far_params, win_params, cmdargs, callback, cbparams
     let param_proc = get(fsource, 'param_proc', 's:param_proc')
     call call(function(param_proc), [a:far_params, a:win_params, a:cmdargs])
 
+    if (empty(a:far_params.file_mask))
+        call far#tools#echo_err('Invalid file mask')
+        return
+    endif
+
     let exec_ctx = {
         \   'fn_args': get(fsource, 'args', {}),
         \   'cmdargs': a:cmdargs,
