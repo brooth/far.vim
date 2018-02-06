@@ -45,7 +45,7 @@ CONTENTS                                                        *far-contents*
 ==============================================================================
 INTRO                                                           *far-intro*
 
-    Far.vim makes it easier to find and replace text through mulple files.
+    Far.vim makes it easier to find and replace text through multiple files.
     It's inspired by fancy IDEs, like IntelliJ and Eclipse, that provide
     cozy tools for such tasks.
 
