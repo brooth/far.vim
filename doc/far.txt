@@ -67,6 +67,8 @@ USAGE                                                           *far-usage*
     {replace-with} can be a literal string, or |sub-replace-special|.
     {file-mask} is a simple file mask pattern, see |:vimgrep| for examples.
     Note: Use '%' as {file-mask} to search in current buffer.
+    Note: Use rg defined types as {file-mask} to search when using rg or rgnvim
+    sources. eg. 'html' 'py' 'js'
     For [params] see |far-params|
 
 *:Farp* [params]
@@ -233,6 +235,16 @@ CONFIGURATION                                                   *far-config*
             Asynchronous source. Same as 'ag' but uses Neovim asynchronous API
             to search candidates in a separate thread.
             Requires 'nvim' and 'ag' installation.
+
+        'rg'
+            Synchronous source. Uses "rg" (Ripgrep) to find candidates.
+            Requires 'ag' installation.
+            Note: Doesn't support multiline search.
+
+        'rgnvim'
+            Asynchronous source. Same as 'rg' but uses Neovim asynchronous API
+            to search candidates in a separate thread.
+            Requires 'nvim' and 'rg' installation.
 
         'ack'
             Synchronous source. Uses "Ack" ("http://beyondgrep.com/") to find candidates.
