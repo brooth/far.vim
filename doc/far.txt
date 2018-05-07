@@ -18,41 +18,42 @@ Version:        beta2
 ==============================================================================
 CONTENTS                                                        *far-contents*
 
-    1. Intro .................................................. |far-intro|
-    2. Usage .................................................. |far-usage|
-    2.1  Hello, World! ........................................ |far-quick-example|
-    2.2  Far .................................................. |:Far|
-    2.3  Farp ................................................. |:Farp|
-    2.4  Fardo ................................................ |:Fardo|
-    2.5  Refar ................................................ |:Refar|
-    2.6  Farundo .............................................. |:Farundo|
-    2.7  F .................................................... |:F|
-    3. Extras ................................................. |far-extras|
-    3.1  Multiline Replacement ................................ |far-multiline|
-    3.2  Highlighting ......................................... |far-highlight|
-    3.2  Command-Line Completion .............................. |far-complete|
-    3.3  Preview Window ....................................... |far-preview|
-    3.4  Jump to source ....................................... |far-jump|
-    3.5  Consistency Check .................................... |far-consistency|
-    3.6  Ranges ............................................... |far-range|
-    4. Configuration .......................................... |far-config|
-    5. Mappings ............................................... |far-mappings|
-    6. Command Params ......................................... |far-params|
-    7. Bugs ................................................... |far-bugs|
-    8. Changelog .............................................. |far-changelog|
-    9. License ................................................ |far-license|
+   1. Intro ...................................................... |far-intro|
+   2. Usage ...................................................... |far-usage|
+   2.1  Hello, World! .................................... |far-quick-example|
+   2.2  Far ........................................................... |:Far|
+   2.3  Farp ......................................................... |:Farp|
+   2.4  Fardo ....................................................... |:Fardo|
+   2.5  Refar ....................................................... |:Refar|
+   2.6  Farundo ................................................... |:Farundo|
+   2.7  F ............................................................... |:F|
+   3. Extras .................................................... |far-extras|
+   3.1  Multiline Replacement ................................ |far-multiline|
+   3.2  Highlighting ......................................... |far-highlight|
+   3.2  Command-Line Completion ............................... |far-complete|
+   3.3  Preview Window ......................................... |far-preview|
+   3.4  Jump to source ............................................ |far-jump|
+   3.5  Consistency Check .................................. |far-consistency|
+   3.6  Ranges ................................................... |far-range|
+   4. Configuration ............................................. |far-config|
+   5. Mappings ................................................ |far-mappings|
+   6. Command Params ............................................ |far-params|
+   7. Bugs ........................................................ |far-bugs|
+   8. Changelog .............................................. |far-changelog|
+   9. License .................................................. |far-license|
 
 ==============================================================================
-INTRO                                                           *far-intro*
+INTRO                                                              *far-intro*
 
-    Far.vim makes it easier to find and replace text through mulple files.
+    Far.vim makes it easier to find and replace text through multiple files.
     It's inspired by fancy IDEs, like IntelliJ and Eclipse, that provide
     cozy tools for such tasks.
 
 ==============================================================================
-USAGE                                                           *far-usage*
+USAGE                                                              *far-usage*
 
-"Hello, World!"                                                 *far-quick-example*
+"Hello, World!"                                            *far-quick-example*
+
     No time to read? Here is the quick example:
 >
     :Far foo bar **/*.py<CR>
@@ -60,10 +61,10 @@ USAGE                                                           *far-usage*
 <
 *:Far* {pattern} {replace-with} {file-mask} [params]
     Find the text to replace. Similar to |:substitute| command.
-    The arguments are separated by space (" "). To escape space
-    character use "\s" or "\ ".
-    For the {pattern} see |pattern|. You can also use '*' as {pattern}
-    for multiline replacement. See |far-multiline|.
+    The arguments are separated by space (" "). To escape space character
+    use "\s" or "\ ".
+    For the {pattern} see |pattern|. You can also use '*' as {pattern} for
+    multiline replacement. See |far-multiline|.
     {replace-with} can be a literal string, or |sub-replace-special|.
     {file-mask} is a simple file mask pattern, see |:vimgrep| for examples.
     Note: Use '%' as {file-mask} to search in current buffer.
@@ -100,18 +101,20 @@ USAGE                                                           *far-usage*
     Note: It must be executed in a FAR buffer.
 
 *:F* {pattern} {file-mask} [params]
-    Find {pattern} in {file-mask} files. Similar to |Far| without {replace-with}.
+    Find {pattern} in {file-mask} files. Similar to |Far| without
+    {replace-with}.
     For {pattern}, {file-mask} and [params] see |Far|.
 
 ==============================================================================
-EXTRAS                                                          *far-extras*
+EXTRAS                                                            *far-extras*
 
-Multiline Replacement                                           *far-multiline*
+Multiline Replacement                                          *far-multiline*
+
     It's allowed to use multiline text as {pattern} or/and {replace-with}
     expressions for |Far|, |Farp| and |F| commands.
 
-    a) The first approach is to use visual selection. Go to Visual mode, highlight
-    the text you want to replace and hit ':'. Use '*' as {pattern}:
+    a) The first approach is to use visual selection. Go to Visual mode,
+    highlight the text you want to replace and hit ':'. Use '*' as {pattern}:
 >
     :'<,'>Far * {replace-with} {file-mask} [params]
 <
@@ -136,11 +139,12 @@ Multiline Replacement                                           *far-multiline*
     Note: you need to explicitly escape all special characters. See |pattern|.
 
 
-Highlighting                                                    *far-highlight*
-    If |g:far#highlight_match| flag is set, far.vim adds per line
-    highlighting for each matched and resulting item. Since per-line highlighting
-    is a CPU depending feature in vim, it's better sometimes to turn it off
-    for a big amount of data (Avg. 200+ items).
+Highlighting                                                   *far-highlight*
+
+    If |g:far#highlight_match| flag is set, far.vim adds per line highlighting
+    for each matched and resulting item. Since per-line highlighting is a CPU
+    depending feature in vim, it's better sometimes to turn it off for a big
+    amount of data (Avg. 200+ items).
 
     If the highlighting feature is off, the following abbreviations are added
     to the beginning of resp. lines:
@@ -152,6 +156,7 @@ Highlighting                                                    *far-highlight*
 
 
 Command-Line Completion                                         *far-complete*
+
     Far.vim supports built-in command-line completion (see |'wildmenu'|).
     Hit <tab> while entering |Far|, |Farp| or |Fardo| command to auto-complete
     predefined or previously used arguments.
@@ -164,40 +169,45 @@ Command-Line Completion                                         *far-complete*
     See also |g:far#file_mask_favorites|.
 
 
-Preview Window                                                  *far-preview*
-    Far.vim allows previewing the code snippet where the item was found.
-    If |g:far#auto_preview| flag is set, far.vim automatically opens and scrolls
+Preview Window                                                   *far-preview*
+
+    Far.vim allows previewing the code snippet where the item was found. If
+    |g:far#auto_preview| flag is set, far.vim automatically opens and scrolls
     the preview window on cursor movement. If |g:far#auto_preview| is set to 0,
-    you can control preview window manually (see |far-mappings|).
-    You can also scroll preview window up and down from a FAR buffer
-    (no need to switch focus to the preview window).
+    you can control preview window manually (see |far-mappings|). You can also
+    scroll preview window up and down from a FAR buffer (no need to switch
+    focus to the preview window).
+
     By default <c-k> scrolls up and <c-j> scrolls down.
 
-    See |far-mappings|, |g:far#preview_window_scroll_step|, |g:far#auto_preview|,
-        |g:far#preview_window_layout|, |g:far#preview_window_width|,
-        |g:far#preview_window_height|.
+    See |far-mappings|, |g:far#preview_window_scroll_step|,
+        |g:far#auto_preview|, |g:far#preview_window_layout|,
+        |g:far#preview_window_width|, |g:far#preview_window_height|.
 
 
-Jump to source                                                     *far-jump*
-    If there is an open buffer for a matched item, you can jump to it
-    from a FAR window by hitting <CR> (by default) button. If there
-    is no such buffer, far.vim opens it in current (FAR) window.
+Jump to source                                                      *far-jump*
+    
+    If there is an open buffer for a matched item, you can jump to it from a
+    FAR window by hitting <CR> (by default) button. If there is no such buffer,
+    far.vim opens it in current (FAR) window.
 
     See |far-mappings|
 
 
-Consistency Check                                               *far-consistency*
+Consistency Check                                            *far-consistency*
+    
     Since the search (|Far| or |Farp| command) to the replacement (|Fardo|),
-    the file's content can be modified. During the replacement far.vim is checking
-    that respective item's been replaced successfully. If not, this item is marked
-    as 'broken'. You can see these items in |FarBrokenItem| highlighting
-    or with *B* prefix if |g:far#highlight_match| is set to 0.
+    the file's content can be modified. During the replacement far.vim is
+    checking that respective item's been replaced successfully. If not, this
+    item is marked as 'broken'. You can see these items in |FarBrokenItem|
+    highlighting or with *B* prefix if |g:far#highlight_match| is set to 0.
 
     See |far-highlight|, |g:far#highlight_match|.
 
-Ranges                                                          *far-range*
-    You can specify the line-range to search in. Available for |Far|, |Farp|, |F|
-    and |Refar| commands.
+Ranges                                                             *far-range*
+
+    You can specify the line-range to search in. Available for |Far|, |Farp|,
+    |F| and |Refar| commands.
 
     Example: find candidates in 10-20 lines only:
 >
@@ -211,7 +221,7 @@ Ranges                                                          *far-range*
     See also: |far-multiline|
 
 ==============================================================================
-CONFIGURATION                                                   *far-config*
+CONFIGURATION                                                     *far-config*
 
     You can change next variables in order to configure far.vim behavior.
 
@@ -221,12 +231,12 @@ CONFIGURATION                                                   *far-config*
 
         'vimgrep'
             Synchronous source. Uses |:vimgrep| to find candidates.
-            Does't need external dependencies.
+            Doesn't need external dependencies.
             Supports multiline search.
 
         'ag'
-            Synchronous source. Uses "Ag" (The Silver Searcher) to find candidates.
-            Requires 'ag' installation.
+            Synchronous source. Uses "Ag" (The Silver Searcher) to find
+            candidates. Requires 'ag' installation.
             Note: Doesn't support multiline search.
 
         'agnvim'
@@ -235,8 +245,8 @@ CONFIGURATION                                                   *far-config*
             Requires 'nvim' and 'ag' installation.
 
         'ack'
-            Synchronous source. Uses "Ack" ("http://beyondgrep.com/") to find candidates.
-            Requires 'ack' installation.
+            Synchronous source. Uses "Ack" ("http://beyondgrep.com/") to find
+            candidates. Requires 'ack' installation.
             Note: Doesn't support multiline search.
 
         'acknvim'
@@ -250,7 +260,8 @@ CONFIGURATION                                                   *far-config*
     Default: 1000
 
 *g:far#cwd*
-    Specify the current working directory. In this directory where Far.vim searches candidates.
+    Specify the current working directory. In this directory where Far.vim
+    searches candidates.
 
     Default: |getpwd()| value.
 
@@ -390,7 +401,8 @@ CONFIGURATION                                                   *far-config*
     Default: '+'
 
 ------------------------------------------------------------------------------
-Highlighting Groups:                                               *far-highlight-config*
+Highlighting Groups:                                    *far-highlight-config*
+
     In order to configure FAR buffer appearance you can modify next
     highlight groups.
 
@@ -457,7 +469,7 @@ Highlighting Groups:                                               *far-highligh
     hi def link FarPreviewMatch Search
 <
 ==============================================================================
-MAPPINGS                                                         *far-mappings*
+MAPPINGS                                                        *far-mappings*
 
     Next bindings are applied to each FAR buffer if |g:far#default_mappings|
     is set.
@@ -587,21 +599,25 @@ zA
 
 ==============================================================================
 COMMAND PARAMS
+
     Command params is used to temporarily (for current execution only)
     define several |far-config| variables.
 
 --source                                                        *far-params*
-    |Far|, |Farp| and |F| param. Changes |g:far#source| value for current execution.
+    |Far|, |Farp| and |F| param. Changes |g:far#source| value for current
+    execution.
 
 --limit
-    |Far|, |Farp| and |F| param. Changes |g:far#limit| value for current execution.
+    |Far|, |Farp| and |F| param. Changes |g:far#limit| value for current
+    execution.
 
 --cwd
-    |Far|, |Farp| and |F| param. Changes |g:far#cwd| value for current execution.
+    |Far|, |Farp| and |F| param. Changes |g:far#cwd| value for current
+    execution.
 
 --win-layout
-    |Far|, |Farp| and |F| param. Changes |g:far#window_layout| value for current
-    execution.
+    |Far|, |Farp| and |F| param. Changes |g:far#window_layout| value for
+    current execution.
 
 --win-width
     |Far|, |Farp| and |F| param. Changes |g:far#window_width| value for current
@@ -665,7 +681,7 @@ COMMAND PARAMS
 --cwd
     |Refar| param. Changes |g:far#cwd| value for current execution.
 
---auto-write-bufs                                               *farundo-params*
+--auto-write-bufs                                             *farundo-params*
     |Farundo| param. Changes |g:far#auto_write_undo_buffers| value for
     current execution.
 
@@ -674,13 +690,15 @@ COMMAND PARAMS
     current execution.
 
 --all
-    |Farundo| command. Undo all |Fardo| replacements. Last replacement otherwise.
+    |Farundo| command. Undo all |Fardo| replacements. Last replacement
+    otherwise.
 
 ==============================================================================
-BUGS                                                            *far-bugs*
+BUGS                                                                *far-bugs*
 
     Know issues:
-     - highlight issue: Far number num **/*.py --win-layout=top --preview-layout=right
+     - highlight issue:
+     Far number num **/*.py --win-layout=top --preview-layout=right
 
     If you find a bug, please, follow this easy-peasy steps:
 
@@ -704,7 +722,7 @@ BUGS                                                            *far-bugs*
     Thank you in advance!
 
 ==============================================================================
-CHANGELOG                                                       *far-changelog*
+CHANGELOG                                                      *far-changelog*
 
     beta2
      - status line
@@ -721,15 +739,17 @@ CHANGELOG                                                       *far-changelog*
      - Neovim async support
      - fix: far#log -> far#log masked as broken
      - fix: set filetype=off if already open
-     - fix: visual selecion inside one line work as full line, syn is broken as well
+     - fix: visual selecion inside one line work as full line, syn is broken as
+            well
      - remove jump setting, always open in far window
      - fix: fails on 500 found items.
      - cmdargs: pass to source not processed as cmd params
      - complete Refar with current values
      - complete cwd
-     - fix_cnum: search column number manually. modes: 'all' - grep?, 'next' - ag,ack
+     - fix_cnum: search column number manually. modes: 'all' - grep?,
+                 'next' - ag,ack
      - Ack support
-     - fix: command completion doens't respect cursor position
+     - fix: command completion doesn't respect cursor position
      - F command - only find (--result-preview=0 by default)
      - remove greppg source
      - override source args, 'suggest' flag (suggest for completion)
@@ -739,6 +759,6 @@ CHANGELOG                                                       *far-changelog*
     beta1       first public version.
 
 ==============================================================================
-LICENSE                                                         *far-license*
+LICENSE                                                          *far-license*
 
     MIT License. https://opensource.org/licenses/MIT
