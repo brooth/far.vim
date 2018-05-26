@@ -57,7 +57,7 @@ Find only.
 ![complete](https://cloud.githubusercontent.com/assets/9823254/20029477/8076abd4-a366-11e6-8711-9b4e18367c80.gif)
 
 ### Consistency Check
-![consistancy](https://cloud.githubusercontent.com/assets/9823254/20029514/70475168-a367-11e6-9a2d-53614730307b.gif)
+![consistency](https://cloud.githubusercontent.com/assets/9823254/20029514/70475168-a367-11e6-9a2d-53614730307b.gif)
 
 
 ..and many more! Check out `:help far.vim`.
