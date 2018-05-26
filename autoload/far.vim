@@ -98,6 +98,40 @@ if executable('ack')
     endif
 endif
 
+if executable('rg')
+    let cmd = ['rg', '--no-heading', '--column', '--no-messages',
+        \   '--max-count={limit}', '-t{file_mask}', '{pattern}']
+    if &smartcase
+        call add(cmd, '--smart-case')
+    endif
+    if &ignorecase
+        call add(cmd, '--ignore-case')
+    else
+        call add(cmd, '--case-sensitive')
+    endif
+
+    call far#tools#setdefault('g:far#sources.rg', {})
+    call far#tools#setdefault('g:far#sources.rg.fn', 'far.sources.shell.search')
+    call far#tools#setdefault('g:far#sources.rg.executor', 'py3')
+    call far#tools#setdefault('g:far#sources.rg.args', {})
+    call far#tools#setdefault('g:far#sources.rg.args.cmd', cmd)
+    call far#tools#setdefault('g:far#sources.rg.args.fix_cnum', 'next')
+    call far#tools#setdefault('g:far#sources.rg.args.items_file_min', 30)
+    call far#tools#setdefault('g:far#sources.rg.args.expand_cmdargs', 1)
+
+    if has('nvim')
+        call far#tools#setdefault('g:far#sources.rgnvim', {})
+        call far#tools#setdefault('g:far#sources.rgnvim.fn', 'far.sources.shell.search')
+        call far#tools#setdefault('g:far#sources.rgnvim.executor', 'nvim')
+        call far#tools#setdefault('g:far#sources.rgnvim.args', {})
+        call far#tools#setdefault('g:far#sources.rgnvim.args.cmd', cmd)
+        call far#tools#setdefault('g:far#sources.rgnvim.args.fix_cnum', 'next')
+        call far#tools#setdefault('g:far#sources.rgnvim.args.items_file_min', 30)
+        call far#tools#setdefault('g:far#sources.rgnvim.args.expand_cmdargs', 1)
+    endif
+endif
+
+
 function! s:create_far_params() abort
     return {
     \   'source': g:far#source,
