@@ -240,6 +240,7 @@ CONFIGURATION                                                     *far-config*
             Synchronous source. Uses "Ag" (The Silver Searcher) to find
             candidates. Requires 'ag' installation.
             Note: Doesn't support multiline search.
+            Note: Uses regexp as file-mask.
 
         'agnvim'
             Asynchronous source. Same as 'ag' but uses Neovim asynchronous API
@@ -248,8 +249,9 @@ CONFIGURATION                                                     *far-config*
 
         'rg'
             Synchronous source. Uses "rg" (Ripgrep) to find candidates.
-            Requires 'ag' installation.
+            Requires 'rg' installation.
             Note: Doesn't support multiline search.
+            Note: Uses built-in file types (rg --type-list) as file-mask. 
 
         'rgnvim'
             Asynchronous source. Same as 'rg' but uses Neovim asynchronous API
@@ -260,6 +262,7 @@ CONFIGURATION                                                     *far-config*
             Synchronous source. Uses "Ack" ("http://beyondgrep.com/") to find
             candidates. Requires 'ack' installation.
             Note: Doesn't support multiline search.
+            Note: Uses regexp as file-mask.
 
         'acknvim'
             Asynchronous source. Same as 'ack' but uses Neovim asynchronous API
