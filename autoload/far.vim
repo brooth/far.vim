@@ -395,7 +395,8 @@ function! far#jump_buffer_under_cursor() abort "{{{
     endif
 
     let nowin = 1
-    let bufnr = bufnr(ctxs[1].fname)
+    let fname = ctxs[1].fname
+    let bufnr = bufnr(fname)
     if bufnr > 0
         for winnr in range(1, winnr('$'))
             if winbufnr(winnr) == bufnr && !getwinvar(winnr, 'far_preview_win', 0)
