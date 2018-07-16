@@ -15,6 +15,9 @@ Plug 'brooth/far.vim'
 
 ```bash
 :Far foo bar **/*.py
+
+(Press `t` to toogle item in the list, if needed)
+
 :Fardo
 ```
 ![far.vim](https://cloud.githubusercontent.com/assets/9823254/20861878/77dd1882-b9b4-11e6-9b48-8bc60f3d7ec0.gif)
@@ -37,6 +40,11 @@ Undo last (or all) replacement(s).
 
 #### :F {pattern} {file-mask} [params]
 Find only.
+
+#### Press `t` / `x` / `i` / `X` / `I` in the FAR buffer
+`Toogle` / `Exclude` / `Include` / `Exclude all` / `Include all` item(s).
+
+See help for detailed information.
 
 #### Need help?
 ```bash
