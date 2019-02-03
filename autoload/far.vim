@@ -100,7 +100,7 @@ endif
 
 if executable('rg')
     let cmd = ['rg', '--no-heading', '--column', '--no-messages',
-        \   '--max-count={limit}', '-t{file_mask}', '{pattern}']
+        \   '--max-count={limit}']
     if &smartcase
         call add(cmd, '--smart-case')
     endif
@@ -109,6 +109,8 @@ if executable('rg')
     else
         call add(cmd, '--case-sensitive')
     endif
+    call add(cmd, '--glob={file_mask}')
+    call add(cmd, '{pattern}')
 
     call far#tools#setdefault('g:far#sources.rg', {})
     call far#tools#setdefault('g:far#sources.rg.fn', 'far.sources.shell.search')

@@ -252,7 +252,7 @@ CONFIGURATION                                                     *far-config*
             Synchronous source. Uses "rg" (Ripgrep) to find candidates.
             Requires 'rg' installation.
             Note: Doesn't support multiline search.
-            Note: Uses built-in file types (rg --type-list) as file-mask. 
+            Note: Uses rg --glob as file-mask
 
         'rgnvim'
             Asynchronous source. Same as 'rg' but uses Neovim asynchronous API
@@ -743,6 +743,7 @@ CHANGELOG                                                      *far-changelog*
     beta3
      - fix: single quote in Far/F expression
      - syntax renamed from far_vim to far #50:wq
+     - ripgrep file mask changed to --glob
 
     beta2
      - status line
