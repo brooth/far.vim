@@ -1,4 +1,5 @@
 " File: autoload/far.vim
+" File: autoload/far.vim
 " Description: far.vim plugin business logic
 " Author: Oleg Khalidov <brooth@gmail.com>
 " License: MIT
@@ -14,6 +15,7 @@ call far#tools#setdefault('g:far#window_min_content_width', 60)
 call far#tools#setdefault('g:far#preview_window_scroll_step', 1)
 call far#tools#setdefault('g:far#check_window_resize_period', 2000)
 call far#tools#setdefault('g:far#file_mask_favorites', ['%', '**/*.*', '**/*.html', '**/*.js', '**/*.css'])
+call far#tools#setdefault('g:far#default_file_mask', '%')
 call far#tools#setdefault('g:far#status_line', 1)
 call far#tools#setdefault('g:far#source', 'vimgrep')
 call far#tools#setdefault('g:far#cwd', getcwd())

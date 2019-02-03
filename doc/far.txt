@@ -352,6 +352,9 @@ CONFIGURATION                                                     *far-config*
 
     Default: ['%', '**/*.*', '**/*.html', '**/*.js', '**/*.css']
 
+*g:far#default_file_mask*
+    This value is used as the file-mask if it wasn't specified through the command.
+
 *g:far#collapse_result*
     Auto collapse result tree.
     See |--collapse|
@@ -744,6 +747,7 @@ CHANGELOG                                                      *far-changelog*
      - fix: single quote in Far/F expression
      - syntax renamed from far_vim to far #50:wq
      - ripgrep file mask changed to --glob
+     - default file-mask
 
     beta2
      - status line

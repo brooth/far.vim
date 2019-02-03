@@ -24,6 +24,9 @@ function! Find(rngmode, rngline1, rngline2, cmdline, ...) range abort "{{{
     call far#tools#log('cmdline: '.a:cmdline)
 
     let cargs = far#tools#splitcmd(a:cmdline)
+    if len(cargs) == 1
+        call add(cargs, g:far#default_file_mask)
+    endif
     if len(cargs) < 2
         call far#tools#echo_err('Arguments required. Format :F <pattern> <filemask> [<param1>...]')
         return
@@ -48,6 +51,9 @@ function! Far(rngmode, rngline1, rngline2, cmdline) range abort "{{{
     call far#tools#log('cmdline: '.a:cmdline)
 
     let cargs = far#tools#splitcmd(a:cmdline)
+    if len(cargs) == 2
+        call add(cargs, g:far#default_file_mask)
+    endif
     if len(cargs) < 3
         call far#tools#echo_err('Arguments required. Format :Far <pattern> <replace> <filemask> [<param1>...]')
         return
