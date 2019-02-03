@@ -40,7 +40,7 @@ function! Find(rngmode, rngline1, rngline2, cmdline, ...) range abort "{{{
     call far#find(far_params, cargs[2:])
 endfunction
 command! -complete=customlist,far#FindComplete -nargs=1 -range=-1 F
-    \   call Find(<count>, <line1>, <line2>, '<args>')
+    \   call Find(<count>, <line1>, <line2>, "<args>")
 "}}}
 
 function! Far(rngmode, rngline1, rngline2, cmdline) range abort "{{{
@@ -63,7 +63,7 @@ function! Far(rngmode, rngline1, rngline2, cmdline) range abort "{{{
     call far#find(far_params, cargs[3:])
 endfunction
 command! -complete=customlist,far#FarComplete -nargs=1 -range=-1 Far
-    \   call Far(<count>,<line1>,<line2>,'<args>')
+    \   call Far(<count>,<line1>,<line2>,"<args>")
 "}}}
 
 function! FarPrompt(rngmode, rngline1, rngline2, ...) abort range "{{{
