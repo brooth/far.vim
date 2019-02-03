@@ -1,5 +1,5 @@
 "=================================================
-" File: far_vim.vim
+" File: far.vim
 " Description: far.vim syntax
 " Author: Oleg Khalidov <brooth@gmail.com>
 " License: MIT

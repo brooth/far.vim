@@ -1251,7 +1251,7 @@ function! s:update_far_buffer(far_ctx, bufnr) abort "{{{
     setlocal nomodifiable
 
     syntax clear
-    set syntax=far_vim
+    set syntax=far
     for buf_syn in buff_content.syntaxs
         exec buf_syn
     endfor
@@ -1285,7 +1285,7 @@ function! s:open_far_buff(far_ctx, win_params) abort "{{{
     setlocal norelativenumber
     setlocal nonumber
     setlocal cursorline
-    setfiletype far_vim
+    setfiletype far
 
     if g:far#default_mappings
         call g:far#apply_default_mappings()
