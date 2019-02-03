@@ -32,9 +32,6 @@ Runs the replacement task.
 #### :Refar [params]
 Change `Far`/`Farp` params.
 
-#### :Farundo [params]
-Undo last (or all) replacement(s).
-
 #### :F {pattern} {file-mask} [params]
 Find only.
 

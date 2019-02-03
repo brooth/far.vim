@@ -25,7 +25,6 @@ CONTENTS                                                        *far-contents*
    2.3  Farp ......................................................... |:Farp|
    2.4  Fardo ....................................................... |:Fardo|
    2.5  Refar ....................................................... |:Refar|
-   2.6  Farundo ................................................... |:Farundo|
    2.7  F ............................................................... |:F|
    3. Extras .................................................... |far-extras|
    3.1  Multiline Replacement ................................ |far-multiline|
@@ -99,9 +98,6 @@ USAGE                                                              *far-usage*
     You can use |Refar| in case the data's been changed so you need to update
     the search result.
 
-*:Farundo* [params]
-    Undo last (or all, see |farundo-params|) |Fardo| replacement.
-    Note: It must be executed in a FAR buffer.
 
 *:F* {pattern} {file-mask} [params]
     Find {pattern} in {file-mask} files. Similar to |Far| without
@@ -700,17 +696,6 @@ COMMAND PARAMS
 --cwd
     |Refar| param. Changes |g:far#cwd| value for current execution.
 
---auto-write-bufs                                             *farundo-params*
-    |Farundo| param. Changes |g:far#auto_write_undo_buffers| value for
-    current execution.
-
---auto-delete-bufs
-    |Farundo| param. Changes |g:far#auto_delete_undo_buffers| value for
-    current execution.
-
---all
-    |Farundo| command. Undo all |Fardo| replacements. Last replacement
-    otherwise.
 
 ==============================================================================
 BUGS                                                                *far-bugs*
@@ -748,6 +733,7 @@ CHANGELOG                                                      *far-changelog*
      - syntax renamed from far_vim to far #50:wq
      - ripgrep file mask changed to --glob
      - default file-mask
+     - Farundo depricated
 
     beta2
      - status line
