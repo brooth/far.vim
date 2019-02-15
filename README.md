@@ -10,13 +10,6 @@ cozy tools for such tasks.
 ```vim
 Plug 'brooth/far.vim'
 ```
-#### Improving scrolling performance
-You can improve the scrolling performance when navigating through large results by adding the following settings
-to your vim configuration:
-```vim
-set lazyredraw
-set regexpengine=1
-```
 
 ## Usage
 
@@ -62,6 +55,15 @@ Find only.
 
 
 ..and many more! Check out `:help far.vim`.
+
+## Troubleshooting
+#### Improving scrolling performance
+You can improve the scrolling performance when navigating through large results by adding the following settings
+to your vim configuration:
+```vim
+set lazyredraw
+set regexpengine=1
+```
 
 ## License
 MIT
