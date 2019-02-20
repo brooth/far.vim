@@ -61,7 +61,8 @@ USAGE                                                              *far-usage*
 *:Far* {pattern} {replace-with} {file-mask} [params]
     Find the text to replace. Similar to |:substitute| command.
     The arguments are separated by space (" "). To escape space character
-    use "\s" or "\ ". To escape double quote use "\"".
+    use "\s" or "\ ". To escape double quote use "\"".  To escape backslash
+    use "\\\\".
     For the {pattern} see |pattern|. You can also use '*' as {pattern} for
     multiline replacement. See |far-multiline|.
     {replace-with} can be a literal string, or |sub-replace-special|.
