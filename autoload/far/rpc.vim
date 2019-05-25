@@ -23,7 +23,7 @@ EOL
 endif "}}}
 
 " add far package to sys.path {{{
-let farpy_path = fnamemodify(expand('<sfile>'), ':p:h:h:h').'/rplugin/python3'
+let farpy_path = escape(fnamemodify(expand('<sfile>'), ':p:h:h:h'), ' \').'/rplugin/python3'
 exec 'python3 sys.path.insert(0, "'.farpy_path.'")'
 "}}}
 
