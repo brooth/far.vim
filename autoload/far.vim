@@ -398,7 +398,7 @@ function! far#show_preview_window_under_cursor() abort "{{{
     exec 'norm! '.ctxs[2].lnum.'ggzz0'.ctxs[2].cnum.'l'
     if !ctxs[2].replaced
         let pmatch = 'match FarPreviewMatch "\%'.ctxs[2].lnum.'l\%'.ctxs[2].cnum.'c'.
-                    \   escape(ctxs[0].pattern, '"').(&ignorecase? '\c"' : '"')
+                    \   '\v'.escape(c.txs[0].pattern, '"').(&ignorecase? '\c"' : '"')
         call far#tools#log('preview match: '.pmatch)
         exec pmatch
     else
@@ -810,7 +810,7 @@ function! far#replace(xargs) abort "{{{
         for item_ctx in file_ctx.items
             if !item_ctx.excluded && !item_ctx.replaced
                 let cmd = item_ctx.lnum.'s/\%'.item_ctx.cnum.'c'.
-                    \   escape(far_ctx.pattern, '/').'/'.
+                    \   '\v'.escape(far_ctx.pattern, '/').'/'.
                     \   escape(far_ctx.replace_with, '/').'/e#'
                 call add(cmds, cmd)
                 call add(items, item_ctx)
@@ -888,7 +888,7 @@ function! far#replace(xargs) abort "{{{
 
     let b:far_ctx.repl_time = printf('%.3fms', reltimefloat(reltime()) - start_ts)
     call s:update_far_buffer(b:far_ctx, bufnr)
-endfunction
+endfunction "}}}
 
 function! far#undo(xargs) abort "{{{
     call far#tools#log('far#undo('.string(a:xargs).')')
@@ -977,6 +977,13 @@ function! s:assemble_context(far_params, win_params, cmdargs, callback, cbparams
         call far#tools#echo_err('No file mask')
         return
     endif
+
+    try
+        call matchstr('str', '\v'.a:far_params.pattern)
+    catch
+        call far#tools#echo_err('Invalid pattern regex: '.v:exception)
+        return
+    endtry
 
     let fsource = get(g:far#sources, a:far_params.source, '')
     if empty(fsource)
@@ -1130,7 +1137,7 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
                 let line_num += 1
                 let line_num_text = '  '.item_ctx.lnum
                 let line_num_col_text = line_num_text.repeat(' ', 8-strchars(line_num_text))
-                let match_val = matchstr(item_ctx.text, a:far_ctx.pattern, item_ctx.cnum-1)
+                let match_val = matchstr(item_ctx.text, '\v'.a:far_ctx.pattern, item_ctx.cnum-1)
                 let multiline = match(a:far_ctx.pattern, '\\n') >= 0
                 if multiline
                     let match_val = item_ctx.text[item_ctx.cnum:]
@@ -1140,7 +1147,7 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
                 if a:win_params.result_preview && !multiline && !item_ctx.replaced
                     let max_text_len = a:win_params.width / 2 - strchars(line_num_col_text)
                     let max_repl_len = a:win_params.width / 2 - strchars(g:far#repl_devider)
-                    let repl_val = substitute(match_val, a:far_ctx.pattern, a:far_ctx.replace_with, "")
+                    let repl_val = substitute(match_val, '\v'.a:far_ctx.pattern, a:far_ctx.replace_with, "")
                     let repl_text = (item_ctx.cnum == 1? '' : item_ctx.text[0:item_ctx.cnum-2]).
                         \   repl_val.item_ctx.text[item_ctx.cnum+strchars(match_val)-1:]
                     let match_text = far#tools#centrify_text(item_ctx.text, max_text_len, item_ctx.cnum)
