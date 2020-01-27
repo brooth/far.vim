@@ -1183,13 +1183,7 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
                     else
                         if a:win_params.result_preview && !multiline && !item_ctx.replaced
                             let match_col = match_text.val_col
-                            " let match_idx = match_text.val_idx
-
-                            " let repl_col_h = strchars(repl_text.text) - repl_text.val_col - strchars(repl_val) + 1
-                            " let repl_col_e = strchars(repl_text.text) - repl_text.val_col + 1
-
                             " 被替代子串结尾 到 替代后字符串显示部分结尾 之间的字符个数: 过长, 应该是repl_text.val_col出错
-                            let repl_col_h = 30
                             let repl_col_h = strchars(repl_text.text) - repl_text.val_col - strchars(repl_val) + 1
                             " 被替代子串开头 到 替代后字符串显示部分结尾 之间的字节个数: 正确
                             let repl_col_e = len(repl_text.text) - repl_text.val_idx + 1
@@ -1203,8 +1197,6 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
                             call add(syntaxs, line_syn)
                         else
                             let match_col = match_text.val_col
-                            " let match_idx = match_text.val_idx
-
                             let line_syn = 'syn region FarItem matchgroup=FarSearchVal '.
                                         \   'start="\%'.line_num.'l\%'.strchars(line_num_col_text).'c"rs=s+'.
                                         \   (match_col+strchars(match_val)).
@@ -1277,6 +1269,9 @@ function! s:update_far_buffer(far_ctx, bufnr) abort "{{{
     exec 'norm! Gdd'
     call winrestview(pos)
     setlocal nomodifiable
+
+    " in case someone has set that a new buf starts in insert mode
+    stopinsert
 
     syntax clear
     set syntax=far
