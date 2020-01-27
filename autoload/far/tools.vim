@@ -108,41 +108,43 @@ function! far#tools#splitcmd(cmdline) "{{{
 endfunction "}}}
 
 function! far#tools#centrify_text(text, width, val_col) abort "{{{
-    " a:text : 完整的字符串, 可以是原串, 可以是替换后的串
-    " a:width: 显示限宽
-    " a:val_col = 从1开始算, 匹配到的子串开始的字节
-    " 修改api, 需要得到 a:val_end_col ?
+    " a:text: text to cut
+    " a:width: the width of displayed text
+    " a:val_col: byte id (begin with 1) the matched substring start from
 
     let text = copy(a:text)
+    " pretext: text before the matched substring
     let pretext = a:val_col == 1 ? '' : text[0: a:val_col - 2]
-    let val_col = strchars(pretext) + 1 " 匹配子串从第几字符开始(从1开始算)
-    let val_idx = a:val_col " 匹配子串从第几字节开始(从1开始算)
+    " val_col: char id (begin with 1) the matched substring start from
+    let val_col = strchars(pretext) + 1
+    " val_idx: byte id (begin with 1) the matched substring start from
+    let val_idx = a:val_col
 
-    let val_show_col = strdisplaywidth(pretext) " = 从1开始算, 匹配到的子串的显示列数-1
-
-    if strdisplaywidth(text) > a:width && val_show_col > a:width/2 - 7
-
+    if strdisplaywidth(text) > a:width && strdisplaywidth(pretext) > a:width/2 - 7
+        " left_start_col: char id (begin with 1) the displayed substring start from
         let left_start_col = val_col
-        let left_show_col = 0
-        while left_show_col < a:width/2 - 7
+        " cut_text_to_val: the displayed text cut on the left, until the matched substring
+        let cut_text_to_val = g:far#cut_text_sign. strcharpart(text, left_start_col - 1, val_col - left_start_col)
+        while strdisplaywidth(cut_text_to_val) < a:width/2 - 7
             let left_start_col -= 1
-            let left_text = strcharpart(text, left_start_col - 1, val_col - left_start_col)
-            let left_show_col = strdisplaywidth(left_text)
+            let cut_text_to_val = g:far#cut_text_sign. strcharpart(text, left_start_col - 1, val_col - left_start_col)
         endwhile
-
+        " text_beyond_left: the left-side undisplayed text
         let text_beyond_left = left_start_col == 1 ? '' : strcharpart(text, 0, left_start_col - 2)
+        " left_start_idx: byte id (begin with 1) the displayed substring start from
         let left_start_idx = len(text_beyond_left) + 1
 
-        " 前阶段字符是地接个字节/字符
-
-        " 字符个数
+        " val_col: the matched substring start from the val_col'th char (begin with 1)
         let val_col = val_col - left_start_col + 2 + strchars(g:far#cut_text_sign)
-        " 字节个数
+        " val_idx: the matched substring start from the val_idx'th byte (begin with 1)
         let val_idx = val_idx - left_start_idx + 1 + len(g:far#cut_text_sign)
+        " text: the displayed text cut on the left
         let text = g:far#cut_text_sign. text[left_start_idx-1:]
     endif
     if strdisplaywidth(text) > a:width
+        " char_num: the number of chars in the displayed text
         let char_num = strchars(text)
+        " text_cut: the displayed text cut on the right
         let text_cut = strcharpart(text,0,char_num).g:far#cut_text_sign
         while strdisplaywidth(text_cut)  > a:width
             let char_num -= 1
@@ -154,6 +156,9 @@ function! far#tools#centrify_text(text, width, val_col) abort "{{{
         let text = text.repeat(' ', a:width - strdisplaywidth(text))
     endif
 
+    " text: cut text
+    " val_col: char id (begin with 1) the matched substring start from
+    " val_idx: byte id (begin with 1) the matched substring start from
     return {'text': text, 'val_col': val_col, 'val_idx': val_idx}
 endfunction "}}}
 

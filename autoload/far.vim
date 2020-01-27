@@ -1137,7 +1137,6 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
                 let line_num += 1
                 let line_num_text = '  '.item_ctx.lnum
                 let line_num_col_text = line_num_text.repeat(' ', 8-strchars(line_num_text))
-                " match_val: 匹配到的子串
                 let match_val = matchstr(item_ctx.text, '\v'.a:far_ctx.pattern, item_ctx.cnum-1)
                 let multiline = match(a:far_ctx.pattern, '\\n') >= 0
                 if multiline
@@ -1146,12 +1145,10 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
                 endif
 
                 if a:win_params.result_preview && !multiline && !item_ctx.replaced
-                    " 显示宽度: 此处要 strchars 改成 strdisplaywidth
+                    " strdisplaywidth: actual displayed width, so as to deal with wide characters
                     let max_text_len = a:win_params.width / 2 - strdisplaywidth(line_num_col_text)
                     let max_repl_len = a:win_params.width / 2 - strdisplaywidth(g:far#repl_devider)
-                    " \v: very magic 匹配模式, `:h \v` 以获得帮助
-                    " repl_val: 匹配到的子串 替换得到的子符串
-                    " 第 item_ctx.cnum 个字节(从1开始算) 是匹配到的子串
+                    " item_ctx.cnum : byte id (begin with 1) the matched substring start from
                     let repl_val = substitute(match_val, '\v'.a:far_ctx.pattern, a:far_ctx.replace_with, "")
                     let repl_text = (item_ctx.cnum == 1? '' : item_ctx.text[0:item_ctx.cnum-2]).
                         \   repl_val. item_ctx.text[item_ctx.cnum+len(match_val)-1:]  " change to len, to support replacing wide char
@@ -1183,12 +1180,9 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
                     else
                         if a:win_params.result_preview && !multiline && !item_ctx.replaced
                             let match_col = match_text.val_col
-                            " 被替代子串结尾 到 替代后字符串显示部分结尾 之间的字符个数: 过长, 应该是repl_text.val_col出错
                             let repl_col_h = strchars(repl_text.text) - repl_text.val_col - strchars(repl_val) + 1
-                            " 被替代子串开头 到 替代后字符串显示部分结尾 之间的字节个数: 正确
                             let repl_col_e = len(repl_text.text) - repl_text.val_idx + 1
-                            " 这里 strchars 要改成 strdisplaywidth
-                            " 要搞清楚, rs=s+ 等等 是什么意思
+
                             let line_syn = 'syn region FarItem matchgroup=FarSearchVal '.
                                         \   'start="\%'.line_num.'l\%'.strchars(line_num_col_text).'c"rs=s+'.
                                         \   (match_col+strchars(match_val)).
