@@ -1369,10 +1369,10 @@ function! s:param_proc(far_params, win_params, cmdargs) "{{{
         let a:far_params.range = [-1, -1]
         call far#tools#log('*pattern:'.a:far_params.pattern)
     else
-        let a:far_params.pattern = substitute(a:far_params.pattern, '', '\\n', 'g')
+        let a:far_params.pattern = substitute(a:far_params.pattern, "\<Char-0x0D>", '\\n', 'g')
     endif
 
-    let a:far_params.replace_with = substitute(a:far_params.replace_with, '', '\\r', 'g')
+    let a:far_params.replace_with = substitute(a:far_params.replace_with,  "\<Char-0x0D>", '\\r', 'g')
 
     if a:far_params.file_mask == '%'
         let a:far_params.file_mask = bufname('%')
