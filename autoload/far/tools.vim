@@ -108,21 +108,50 @@ function! far#tools#splitcmd(cmdline) "{{{
 endfunction "}}}
 
 function! far#tools#centrify_text(text, width, val_col) abort "{{{
+    " a:text : 完整的字符串, 可以是原串, 可以是替换后的串
+    " a:width: 显示限宽
+    " a:val_col = 从1开始算, 匹配到的子串开始的字节
+    " 修改api, 需要得到 a:val_end_col ?
+
     let text = copy(a:text)
-    let val_col = a:val_col
-    let val_idx = a:val_col
-    if strchars(text) > a:width && a:val_col > a:width/2 - 7
-        let left_start = a:val_col - a:width/2 + 7
-        let val_col = a:val_col - left_start + strchars(g:far#cut_text_sign)
-        let val_idx = a:val_col - left_start + len(g:far#cut_text_sign)
-        let text = g:far#cut_text_sign.text[left_start:]
+    let pretext = a:val_col == 1 ? '' : text[0: a:val_col - 2]
+    let val_col = strchars(pretext) + 1 " 匹配子串从第几字符开始(从1开始算)
+    let val_idx = a:val_col " 匹配子串从第几字节开始(从1开始算)
+
+    let val_show_col = strdisplaywidth(pretext) " = 从1开始算, 匹配到的子串的显示列数-1
+
+    if strdisplaywidth(text) > a:width && val_show_col > a:width/2 - 7
+
+        let left_start_col = val_col
+        let left_show_col = 0
+        while left_show_col < a:width/2 - 7
+            let left_start_col -= 1
+            let left_text = strcharpart(text, left_start_col - 1, val_col - left_start_col)
+            let left_show_col = strdisplaywidth(left_text)
+        endwhile
+
+        let text_beyond_left = left_start_col == 1 ? '' : strcharpart(text, 0, left_start_col - 2)
+        let left_start_idx = len(text_beyond_left) + 1
+
+        " 前阶段字符是地接个字节/字符
+
+        " 字符个数
+        let val_col = val_col - left_start_col + 2 + strchars(g:far#cut_text_sign)
+        " 字节个数
+        let val_idx = val_idx - left_start_idx + 1 + len(g:far#cut_text_sign)
+        let text = g:far#cut_text_sign. text[left_start_idx-1:]
     endif
-    if strchars(text) > a:width
-        let wtf = -1-(len(text)-strchars(text))
-        let text = text[0:a:width-len(g:far#cut_text_sign)-wtf].g:far#cut_text_sign
+    if strdisplaywidth(text) > a:width
+        let char_num = strchars(text)
+        let text_cut = strcharpart(text,0,char_num).g:far#cut_text_sign
+        while strdisplaywidth(text_cut)  > a:width
+            let char_num -= 1
+            let text_cut = strcharpart(text,0,char_num).g:far#cut_text_sign
+        endwhile
+        let text = text_cut
     endif
-    if strchars(text) < a:width
-        let text = text.repeat(' ', a:width - strchars(text))
+    if strdisplaywidth(text) < a:width
+        let text = text.repeat(' ', a:width - strdisplaywidth(text))
     endif
 
     return {'text': text, 'val_col': val_col, 'val_idx': val_idx}
