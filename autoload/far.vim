@@ -1145,11 +1145,13 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
                 endif
 
                 if a:win_params.result_preview && !multiline && !item_ctx.replaced
-                    let max_text_len = a:win_params.width / 2 - strchars(line_num_col_text)
-                    let max_repl_len = a:win_params.width / 2 - strchars(g:far#repl_devider)
+                    " strdisplaywidth: actual displayed width, so as to deal with wide characters
+                    let max_text_len = a:win_params.width / 2 - strdisplaywidth(line_num_col_text)
+                    let max_repl_len = a:win_params.width / 2 - strdisplaywidth(g:far#repl_devider)
+                    " item_ctx.cnum : byte id (begin with 1) the matched substring start from
                     let repl_val = substitute(match_val, '\v'.a:far_ctx.pattern, a:far_ctx.replace_with, "")
                     let repl_text = (item_ctx.cnum == 1? '' : item_ctx.text[0:item_ctx.cnum-2]).
-                        \   repl_val.item_ctx.text[item_ctx.cnum+strchars(match_val)-1:]
+                        \   repl_val. item_ctx.text[item_ctx.cnum+len(match_val)-1:]  " change to len, to support replacing wide char
                     let match_text = far#tools#centrify_text(item_ctx.text, max_text_len, item_ctx.cnum)
                     let repl_text = far#tools#centrify_text(repl_text, max_repl_len, item_ctx.cnum)
                     let out = line_num_col_text.match_text.text.g:far#repl_devider.repl_text.text
@@ -1180,6 +1182,7 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
                             let match_col = match_text.val_col
                             let repl_col_h = strchars(repl_text.text) - repl_text.val_col - strchars(repl_val) + 1
                             let repl_col_e = len(repl_text.text) - repl_text.val_idx + 1
+
                             let line_syn = 'syn region FarItem matchgroup=FarSearchVal '.
                                         \   'start="\%'.line_num.'l\%'.strchars(line_num_col_text).'c"rs=s+'.
                                         \   (match_col+strchars(match_val)).
@@ -1260,6 +1263,9 @@ function! s:update_far_buffer(far_ctx, bufnr) abort "{{{
     exec 'norm! Gdd'
     call winrestview(pos)
     setlocal nomodifiable
+
+    " in case someone has set that a new buf starts in insert mode
+    stopinsert
 
     syntax clear
     set syntax=far
@@ -1369,10 +1375,10 @@ function! s:param_proc(far_params, win_params, cmdargs) "{{{
         let a:far_params.range = [-1, -1]
         call far#tools#log('*pattern:'.a:far_params.pattern)
     else
-        let a:far_params.pattern = substitute(a:far_params.pattern, '', '\\n', 'g')
+        let a:far_params.pattern = substitute(a:far_params.pattern, "\<Char-0x0D>", '\\n', 'g')
     endif
 
-    let a:far_params.replace_with = substitute(a:far_params.replace_with, '', '\\r', 'g')
+    let a:far_params.replace_with = substitute(a:far_params.replace_with,  "\<Char-0x0D>", '\\r', 'g')
 
     if a:far_params.file_mask == '%'
         let a:far_params.file_mask = bufname('%')
