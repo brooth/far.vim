@@ -186,7 +186,7 @@ Preview Window                                                   *far-preview*
 
 
 Jump to source                                                      *far-jump*
-    
+
     If there is an open buffer for a matched item, you can jump to it from a
     FAR window by hitting <CR> (by default) button. If there is no such buffer,
     far.vim opens it in current (FAR) window.
@@ -195,7 +195,7 @@ Jump to source                                                      *far-jump*
 
 
 Consistency Check                                            *far-consistency*
-    
+
     Since the search (|Far| or |Farp| command) to the replacement (|Fardo|),
     the file's content can be modified. During the replacement far.vim is
     checking that respective item's been replaced successfully. If not, this
@@ -540,6 +540,14 @@ T
 >
     nnoremap <buffer><silent> <KEY> :call g:far#change_exclude_all(-1)<cr>
 <
+S
+    Smart toggle exclusion for all items: include all items when all are excluded,
+    otherwise exclude all items.
+
+    For custom mapping:
+>
+    nnoremap <buffer><silent> <KEY> :call g:far#change_exclude_all(-2)<cr>
+<
 <CR>
     Jump to the source code of the item under the cursor.
     See |far-jump|
@@ -611,6 +619,12 @@ zA
     Toggle exclusion for all nodes.
 >
     nnoremap <buffer><silent> <KEY> :call g:far#change_collapse_all(-1)<cr>
+<
+zs
+    Smart toggle exclusion for all nodes: expand all nodes when all are collpased,
+    otherwise collapse all nodes.
+>
+    nnoremap <buffer><silent> <KEY> :call g:far#change_collapse_all(-2)<cr>
 <
 
 ==============================================================================
