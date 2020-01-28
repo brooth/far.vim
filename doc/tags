@@ -2,7 +2,6 @@
 :Far	far.txt	/*:Far*
 :Fardo	far.txt	/*:Fardo*
 :Farp	far.txt	/*:Farp*
-:Farundo	far.txt	/*:Farundo*
 :Refar	far.txt	/*:Refar*
 B	far.txt	/*B*
 FarBrokenItem	far.txt	/*FarBrokenItem*
@@ -35,7 +34,6 @@ far-range	far.txt	/*far-range*
 far-usage	far.txt	/*far-usage*
 far.vim	far.txt	/*far.vim*
 fardo-params	far.txt	/*fardo-params*
-farundo-params	far.txt	/*farundo-params*
 g:far#auto_delete_replaced_buffers	far.txt	/*g:far#auto_delete_replaced_buffers*
 g:far#auto_preview	far.txt	/*g:far#auto_preview*
 g:far#auto_write_replaced_buffers	far.txt	/*g:far#auto_write_replaced_buffers*
@@ -44,6 +42,7 @@ g:far#collapse_result	far.txt	/*g:far#collapse_result*
 g:far#collapse_sign	far.txt	/*g:far#collapse_sign*
 g:far#cut_text_sign	far.txt	/*g:far#cut_text_sign*
 g:far#cwd	far.txt	/*g:far#cwd*
+g:far#default_file_mask	far.txt	/*g:far#default_file_mask*
 g:far#default_mappings	far.txt	/*g:far#default_mappings*
 g:far#expand_sign	far.txt	/*g:far#expand_sign*
 g:far#file_mask_favorites	far.txt	/*g:far#file_mask_favorites*
