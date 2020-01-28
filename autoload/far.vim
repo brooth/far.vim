@@ -235,34 +235,92 @@ let g:far#repl_history = []
 let g:far#file_mask_history = []
 "}}}
 
+
+" g:far#default_mapping {{{
+let s:default_mapping = {
+    \ "toggle_expand_all" : "zA",
+    \ "expand_all" : "zr",
+    \ "collapse_all" : "zm",
+    \ "toggle_expand" : "za",
+    \ "expand" : "zo",
+    \ "collapse" : "zc",
+    \ "exclude" : "x",
+    \ "include" : "i",
+    \ "toggle_exclude" : "t",
+    \ "exclude_all" : "X",
+    \ "include_all" : "I",
+    \ "toggle_exclude_all" : "T",
+    \ "jump_to_source" : "<cr>",
+    \ "open_preview" : "p",
+    \ "close_preview" : "P",
+    \ "preview_scroll_up" : "<c-k>",
+    \ "preview_scroll_down" : "<c-j>",
+    \ }
+
+if !exists('g:far#mapping')
+    let g:far#mapping = s:default_mapping
+else
+    for key in keys(s:default_mapping)
+        let g:far#mapping[key] = get(g:far#mapping, key,
+            \ s:default_mapping[key])
+    endfor
+endif
+" }}}
+
+" s:act_func_ref {{{
+let s:act_func_ref = {
+    \ "toggle_expand_all"   : { "nnoremap" : "far#change_collapse_all(-1)" },
+    \ "expand_all"          : { "nnoremap" : "far#change_collapse_all(1)" },
+    \ "collapse_all"        : { "nnoremap" : "far#change_collapse_all(0)" },
+    \ "toggle_expand"       : { "nnoremap" : "far#change_collapse_under_cursor(-1)" },
+    \ "expand"              : { "nnoremap" : "far#change_collapse_under_cursor(1)" },
+    \ "collapse"            : { "nnoremap" : "far#change_collapse_under_cursor(0)" },
+    \ "exclude"             : { "nnoremap" : "far#change_exclude_under_cursor(1)",
+    \                           "vnoremap" : "far#change_exclude_under_cursor(1)" },
+    \ "include"             : { "nnoremap" : "far#change_exclude_under_cursor(0)",
+    \                           "vnoremap" : "far#change_exclude_under_cursor(0)" },
+    \ "toggle_exclude"      : { "nnoremap" : "far#change_exclude_under_cursor(-1)",
+    \                           "vnoremap" : "far#change_exclude_under_cursor(-1)" },
+    \ "exclude_all"         : { "nnoremap" : "far#change_exclude_all(1)" },
+    \ "include_all"         : { "nnoremap" : "far#change_exclude_all(0)" },
+    \ "toggle_exclude_all"  : { "nnoremap" : "far#change_exclude_all(-1)" },
+    \ "jump_to_source"      : { "nnoremap" : "far#jump_buffer_under_cursor()" },
+    \ "open_preview"        : { "nnoremap" : "far#show_preview_window_under_cursor()" },
+    \ "close_preview"       : { "nnoremap" : "far#close_preview_window()" },
+    \ "preview_scroll_up"   : { "nnoremap" : "far#scroll_preview_window(-g:far#preview_window_scroll_step)" },
+    \ "preview_scroll_down" : { "nnoremap" : "far#scroll_preview_window(g:far#preview_window_scroll_step)" },
+    \ }
+" }}}
+
+function! far#set_mappings(map, act_func_ref) abort "{{{
+    for act in keys(a:act_func_ref)
+        if empty(get(a:map, act, ""))
+            continue
+        endif
+
+        if type(a:act_func_ref[act]) != 4
+            continue
+        endif
+
+        for mapmode in keys(a:act_func_ref[act])
+            let func_ref = a:act_func_ref[act][mapmode]
+
+            if type(a:map[act]) == 1
+                exec "silent! ".mapmode." <silent><buffer> ".a:map[act]." :call ".func_ref."<CR>"
+            endif
+
+            if type(a:map[act]) == 3
+                for key in a:map[act]
+                    exec "silent! ".mapmode." <silent><buffer> ".key." :call ".func_ref."<CR>"
+                endfor
+            endif
+        endfor
+    endfor
+endfunction "}}}
+
 function! far#apply_default_mappings() abort "{{{
     call far#tools#log('apply_default_mappings()')
-
-    nnoremap <buffer><silent> zA :call far#change_collapse_all(-1)<cr>
-    nnoremap <buffer><silent> zm :call far#change_collapse_all(1)<cr>
-    nnoremap <buffer><silent> zr :call far#change_collapse_all(0)<cr>
-
-    nnoremap <buffer><silent> za :call far#change_collapse_under_cursor(-1)<cr>
-    nnoremap <buffer><silent> zc :call far#change_collapse_under_cursor(1)<cr>
-    nnoremap <buffer><silent> zo :call far#change_collapse_under_cursor(0)<cr>
-
-    nnoremap <buffer><silent> x :call far#change_exclude_under_cursor(1)<cr>
-    vnoremap <buffer><silent> x :call far#change_exclude_under_cursor(1)<cr>
-    nnoremap <buffer><silent> i :call far#change_exclude_under_cursor(0)<cr>
-    vnoremap <buffer><silent> i :call far#change_exclude_under_cursor(0)<cr>
-    nnoremap <buffer><silent> t :call far#change_exclude_under_cursor(-1)<cr>
-    vnoremap <buffer><silent> t :call far#change_exclude_under_cursor(-1)<cr>
-
-    nnoremap <buffer><silent> X :call far#change_exclude_all(1)<cr>
-    nnoremap <buffer><silent> I :call far#change_exclude_all(0)<cr>
-    nnoremap <buffer><silent> T :call far#change_exclude_all(-1)<cr>
-
-    nnoremap <buffer><silent> <cr> :call far#jump_buffer_under_cursor()<cr>
-    nnoremap <buffer><silent> p :call far#show_preview_window_under_cursor()<cr>
-    nnoremap <buffer><silent> P :call far#close_preview_window()<cr>
-
-    nnoremap <buffer><silent> <c-k> :call far#scroll_preview_window(-g:far#preview_window_scroll_step)<cr>
-    nnoremap <buffer><silent> <c-j> :call far#scroll_preview_window(g:far#preview_window_scroll_step)<cr>
+    call far#set_mappings(g:far#mapping, s:act_func_ref)
 endfunction "}}}
 
 augroup faraugroup "{{{
