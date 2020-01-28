@@ -401,6 +401,8 @@ function! far#show_preview_window_under_cursor() abort "{{{
         return
     endif
 
+    let b:win_params.auto_preview = s:create_win_params().auto_preview
+
     let far_bufnr = bufnr('%')
     let far_winid = win_getid(winnr())
     let win_params = b:win_params
