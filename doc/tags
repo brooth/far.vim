@@ -27,6 +27,8 @@ far-intro	far.txt	/*far-intro*
 far-jump	far.txt	/*far-jump*
 far-license	far.txt	/*far-license*
 far-mappings	far.txt	/*far-mappings*
+default-far-mappings	far.txt	/*default-far-mappings*
+g:far#mapping	far.txt	/*g:far#mapping*
 far-multiline	far.txt	/*far-multiline*
 far-params	far.txt	/*far-params*
 far-preview	far.txt	/*far-preview*

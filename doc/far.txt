@@ -492,139 +492,92 @@ MAPPINGS                                                        *far-mappings*
     Note: If you want to define custom mapping, you need to set to 0
     |g:far#default_mappings| variable and explicitly configure all the bindings.
 
-x
-v_x
+------------------------------------------------------------------------------
+Default Mappings:                                       *default-far-mappings*
+
+    Below are the default mappings and corresponding variable names in
+    |g:far#mapping| to set customer mappings.
+
+x v_x                                                *g:far#mapping['exclude']*
     Exclude item under the cursor.
 
-    For custom mapping:
->
-    nnoremap <buffer><silent> <KEY> :call g:far#change_exclude_under_cursor(1)<cr>
-    vnoremap <buffer><silent> <KEY> :call g:far#change_exclude_under_cursor(1)<cr>
-<
-i
-v_i
+i v_i                                                *g:far#mapping['include']*
     Include item under the cursor.
 
-    For custom mapping:
->
-    nnoremap <buffer><silent> <KEY> :call g:far#change_exclude_under_cursor(0)<cr>
-    vnoremap <buffer><silent> <KEY> :call g:far#change_exclude_under_cursor(0)<cr>
-<
-t
-v_t
+t v_t                                         *g:far#mapping['toggle_exclude']*
     Toggle item exclusion under the cursor.
 
-    For custom mapping:
->
-    nnoremap <buffer><silent> <KEY> :call g:far#change_exclude_under_cursor(-1)<cr>
-    vnoremap <buffer><silent> <KEY> :call g:far#change_exclude_under_cursor(-1)<cr>
-<
-X
+X                                                *g:far#mapping['exclude_all']*
     Exclude all items.
 
-    For custom mapping:
->
-    nnoremap <buffer><silent> <KEY> :call g:far#change_exclude_all(1)<cr>
-<
-I
+I                                                *g:far#mapping['include_all']*
     Include all items.
 
-    For custom mapping:
->
-    nnoremap <buffer><silent> <KEY> :call g:far#change_exclude_all(0)<cr>
-<
-T
+T                                         *g:far#mapping['toggle_exclude_all']*
     Toggle exclusion for all items.
 
-    For custom mapping:
->
-    nnoremap <buffer><silent> <KEY> :call g:far#change_exclude_all(-1)<cr>
-<
-S
-    Smart toggle exclusion for all items: include all items when all are excluded,
-    otherwise exclude all items.
+S                                        *g:far#mapping['stoggle_exclude_all']*
+    Smart toggle exclusion for all items: include all items when all are
+    excluded, otherwise exclude all items.
 
-    For custom mapping:
->
-    nnoremap <buffer><silent> <KEY> :call g:far#change_exclude_all(-2)<cr>
-<
-<CR>
+<CR>                                          *g:far#mapping['jump_to_source']*
     Jump to the source code of the item under the cursor.
     See |far-jump|
 
-    For custom mapping:
->
-    nnoremap <buffer><silent> <KEY> :call g:far#jump_buffer_under_cursor()<cr>
-<
-p
-    Open preview window (if not) and scroll to the item under the cursor.
+p                                               *g:far#mapping['open_preview']*
+    Open preview window (if not) and scroll to the item under
+    the cursor.
     See |far-preview|
 
-    For custom mapping:
->
-    nnoremap <buffer><silent> <KEY> :call g:far#show_preview_window_under_cursor()<cr>
-<
-P
+P                                              *g:far#mapping['close_preview']*
     Close preview window.
     See |far-preview|
 
-    For custom mapping:
->
-    nnoremap <buffer><silent> <KEY> :call g:far#close_preview_window()<cr>
-<
-CTRL-K
+CTRL-K                                     *g:far#mapping['preview_scroll_up']*
     Scroll preview window up (if open).
     See |far-preview|, |g:far#preview_window_scroll_step|
 
-    For custom mapping:
->
-    nnoremap <buffer><silent> <KEY>
-        \   :call g:far#scroll_preview_window(-g:far#preview_window_scroll_step)<cr>
-<
-CTRL-J
+
+CTRL-J                                   *g:far#mapping['preview_scroll_down']*
     Scroll preview window down (if open).
     See |far-preview|, |g:far#preview_window_scroll_step|
 
-    For custom mapping:
->
-    nnoremap <buffer><silent> <KEY>
-        \   :call g:far#scroll_preview_window(g:far#preview_window_scroll_step)<cr>
-<
-zo
+zo                                                    *g:far#mapping['expand']*
     Expand node under the cursor.
->
-    nnoremap <buffer><silent> <KEY> :call g:far#change_collapse_under_cursor(0)<cr>
-<
-zc
+
+zc                                                  *g:far#mapping['collapse']*
     Collapse node under the cursor.
->
-    nnoremap <buffer><silent> <KEY> :call g:far#change_collapse_under_cursor(1)<cr>
-<
-za
+
+za                                             *g:far#mapping['toggle_expand']*
     Toggle node expanding under the cursor.
->
-    nnoremap <buffer><silent> <KEY> :call g:far#change_collapse_under_cursor(-1)<cr>
-<
-zr
+
+zr                                                *g:far#mapping['expand_all']*
     Expand all nodes.
->
-    nnoremap <buffer><silent> <KEY> :call g:far#change_collapse_all(0)<cr>
-<
-zm
+
+zm                                              *g:far#mapping['collapse_all']*
     Collapse all nodes.
->
-    nnoremap <buffer><silent> <KEY> :call g:far#change_collapse_all(1)<cr>
-<
-zA
+
+zA                                         *g:far#mapping['toggle_expand_all']*
     Toggle exclusion for all nodes.
+
+zs                                        *g:far#mapping['stoggle_expand_all']*
+    Smart toggle exclusion for all nodes:
+    expand all nodes when all are collpased, otherwise collapse all nodes.
+
+------------------------------------------------------------------------------
+Customer Mappings:                                             *g:far#mapping*
+
+    By setting |g:far#mapping| as below, you can override the corresponding
+     variables in |default-far-mappings| with customer mappings.
+
 >
-    nnoremap <buffer><silent> <KEY> :call g:far#change_collapse_all(-1)<cr>
-<
-zs
-    Smart toggle exclusion for all nodes: expand all nodes when all are collpased,
-    otherwise collapse all nodes.
->
-    nnoremap <buffer><silent> <KEY> :call g:far#change_collapse_all(-2)<cr>
+    let g:far#mapping = {
+        \ "stoggle_exclude_all" : ["s", "S"],
+        \ "jump_to_source" : ["<cr>", "<2-LeftMouse>"],
+        \ "close_preview" : ["P", "q"],
+        \ "preview_scroll_up" : "<PageUp>",
+        \ "preview_scroll_down" : "<PageDown>",
+        \ }
 <
 
 ==============================================================================

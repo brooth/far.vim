@@ -236,7 +236,7 @@ let g:far#file_mask_history = []
 "}}}
 
 
-" g:far#default_mapping {{{
+" s:#default_mapping {{{
 let s:default_mapping = {
     \ "toggle_expand_all" : "zA",
     \ "stoggle_expand_all" : "zs",
