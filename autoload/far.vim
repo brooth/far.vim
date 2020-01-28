@@ -1230,8 +1230,10 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
                 let line_num += 1
                 let line_num_text = '  '.item_ctx.lnum
                 let line_num_col_text = line_num_text.repeat(' ', 8-strchars(line_num_text))
-                let match_val = matchstr(item_ctx.text, '\v'.a:far_ctx.pattern, item_ctx.cnum-1)
-                let multiline = match(a:far_ctx.pattern, '\\n') >= 0
+                let pattern = ( a:far_ctx.pattern[0:1]=='\<' && a:far_ctx.pattern[-2:-1]=='\>' ) ?
+                    \ '<' . a:far_ctx.pattern[2:-3] . '>' : a:far_ctx.pattern
+                let match_val = matchstr(item_ctx.text, '\v'.pattern, item_ctx.cnum-1)
+                let multiline = match(pattern, '\\n') >= 0
                 if multiline
                     let match_val = item_ctx.text[item_ctx.cnum:]
                     let match_val = match_val.g:far#multiline_sign
@@ -1242,7 +1244,7 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
                     let max_text_len = a:win_params.width / 2 - strdisplaywidth(line_num_col_text)
                     let max_repl_len = a:win_params.width / 2 - strdisplaywidth(g:far#repl_devider)
                     " item_ctx.cnum : byte id (begin with 1) the matched substring start from
-                    let repl_val = substitute(match_val, '\v'.a:far_ctx.pattern, a:far_ctx.replace_with, "")
+                    let repl_val = substitute(match_val, '\v'.pattern, a:far_ctx.replace_with, "")
                     let repl_text = (item_ctx.cnum == 1? '' : item_ctx.text[0:item_ctx.cnum-2]).
                         \   repl_val. item_ctx.text[item_ctx.cnum+len(match_val)-1:]  " change to len, to support replacing wide char
                     let match_text = far#tools#centrify_text(item_ctx.text, max_text_len, item_ctx.cnum)
