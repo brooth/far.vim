@@ -238,8 +238,8 @@ let g:far#file_mask_history = []
 
 " g:far#default_mapping {{{
 let s:default_mapping = {
-    \ "reverse_expand_all" : "zA",
-    \ "toggle_expand_all" : "zt",
+    \ "toggle_expand_all" : "zA",
+    \ "stoggle_expand_all" : "zs",
     \ "expand_all" : "zr",
     \ "collapse_all" : "zm",
     \ "toggle_expand" : "za",
@@ -250,8 +250,8 @@ let s:default_mapping = {
     \ "toggle_exclude" : "t",
     \ "exclude_all" : "X",
     \ "include_all" : "I",
-    \ "reverse_exclude_all" : "R",
     \ "toggle_exclude_all" : "T",
+    \ "stoggle_exclude_all" : "S",
     \ "jump_to_source" : "<cr>",
     \ "open_preview" : "p",
     \ "close_preview" : "P",
@@ -271,8 +271,8 @@ endif
 
 " s:act_func_ref {{{
 let s:act_func_ref = {
-    \ "toggle_expand_all"   : { "nnoremap" : "far#change_collapse_all(-2)" },
-    \ "reverse_expand_all"  : { "nnoremap" : "far#change_collapse_all(-1)" },
+    \ "stoggle_expand_all"  : { "nnoremap" : "far#change_collapse_all(-2)" },
+    \ "toggle_expand_all"   : { "nnoremap" : "far#change_collapse_all(-1)" },
     \ "expand_all"          : { "nnoremap" : "far#change_collapse_all(0)" },
     \ "collapse_all"        : { "nnoremap" : "far#change_collapse_all(1)" },
     \ "toggle_expand"       : { "nnoremap" : "far#change_collapse_under_cursor(-1)" },
@@ -286,8 +286,8 @@ let s:act_func_ref = {
     \                           "vnoremap" : "far#change_exclude_under_cursor(-1)" },
     \ "exclude_all"         : { "nnoremap" : "far#change_exclude_all(1)" },
     \ "include_all"         : { "nnoremap" : "far#change_exclude_all(0)" },
-    \ "reverse_exclude_all" : { "nnoremap" : "far#change_exclude_all(-1)" },
-    \ "toggle_exclude_all"  : { "nnoremap" : "far#change_exclude_all(-2)" },
+    \ "toggle_exclude_all"  : { "nnoremap" : "far#change_exclude_all(-1)" },
+    \ "stoggle_exclude_all" : { "nnoremap" : "far#change_exclude_all(-2)" },
     \ "jump_to_source"      : { "nnoremap" : "far#jump_buffer_under_cursor()" },
     \ "open_preview"        : { "nnoremap" : "far#show_preview_window_under_cursor()" },
     \ "close_preview"       : { "nnoremap" : "far#close_preview_window()" },
@@ -525,7 +525,7 @@ function! far#change_collapse_all(cmode) abort "{{{
     let far_ctx = s:get_buf_far_ctx(bufnr)
 
     if a:cmode == -2
-    " when all files are collapsed: collapse all files; otherwise, expand all files
+    " smart toggle: when all files are collapsed, collapse all files; otherwise, expand all files
         let all_collapsed = 1
         for file_ctx in far_ctx.items
             let all_collapsed = all_collapsed && file_ctx.collapsed
@@ -587,7 +587,7 @@ function! far#change_exclude_all(cmode) abort "{{{
     let far_ctx = s:get_buf_far_ctx(bufnr)
 
     if a:cmode == -2
-    " when all items are excluded: include all items; otherwise, exclude all items
+    " smart toggle: when all items are excluded, include all items; otherwise, exclude all items
         let all_excluded = 1
         for file_ctx in far_ctx.items
             for item_ctx in file_ctx.items
