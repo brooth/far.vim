@@ -78,28 +78,43 @@ let g:far_mode_open =  {
     \ "word" : 0,
     \ "subsitute": 0,
     \ }
+let g:far_mode_fix =  {
+    \ "regex" : 0,
+    \ "case_sensitive"  : 0,
+    \ "word" : 0,
+    \ "subsitute": 0,
+    \ }
 
 function! UpdateModePrompt()  abort "{{{
     hi FarModeOpen ctermfg=0 ctermbg=lightgray
 
     let mode_list = ["regex", "case_sensitive", "word", "subsitute"]
     let far_mode_icon = {
-        \ "regex" : ".*(^X)",
-        \ "case_sensitive"  : "Aa(^C)",
-        \ "word" : "“”(^W)",
-        \ "subsitute": "⬇ (^S)",
+        \ "regex" : ".*",
+        \ "case_sensitive"  : "Aa",
+        \ "word" : "“”",
+        \ "subsitute": "⬇ ",
+        \ }
+    let far_mode_key = {
+        \ "regex" : "^X",
+        \ "case_sensitive"  : "^C",
+        \ "word" : "^W",
+        \ "subsitute": "^S",
         \ }
 
     let new_prompt=''
     for mode in mode_list
         let new_prompt.='%* '
-        if g:far_mode_open[mode]
+        if g:far_mode_open[mode] == 1
             let new_prompt.='%#FarModeOpen#'
         else
             let new_prompt.='%*'
         endif
         let new_prompt.=far_mode_icon[mode]
         let new_prompt.='%*'
+        if !g:far_mode_fix[mode]
+            let new_prompt.='('.far_mode_key[mode].')'
+        endif
     endfor
 
     set laststatus=2
@@ -214,6 +229,7 @@ endfunction
 " }}}
 
 function! FarGetItem(item_name, default_item, mode_changable) abort "{{{
+    call UpdateModePrompt()
     let item=a:default_item
     while 1
         let item = input(a:item_name.': ', item, 'customlist,far#FarSearchComplete')
@@ -223,19 +239,21 @@ function! FarGetItem(item_name, default_item, mode_changable) abort "{{{
                 call FarModePromptClose()
                 return ''
             endif
-            if a:mode_changable
-                if mode == 'x'
-                    let g:far_mode_open['regex'] = ! g:far_mode_open['regex']
-                elseif mode == 'c'
-                    let g:far_mode_open['case_sensitive'] = ! g:far_mode_open['case_sensitive']
-                elseif mode == 'w'
-                    let g:far_mode_open['word'] = ! g:far_mode_open['word']
-                elseif mode == 's'
-                    let g:far_mode_open['subsitute'] = ! g:far_mode_open['subsitute']
-                endif
+            if mode == 'x'
+                let g:far_mode_open['regex'] = ! g:far_mode_open['regex']
+            elseif mode == 'c'
+                let g:far_mode_open['case_sensitive'] = ! g:far_mode_open['case_sensitive']
+            elseif mode == 'w'
+                let g:far_mode_open['word'] = ! g:far_mode_open['word']
+            elseif mode == 's' && a:mode_changable
+                let g:far_mode_open['subsitute'] = ! g:far_mode_open['subsitute']
             endif
             call UpdateModePrompt()
             let item=strcharpart(item, 0, strchars(item)-2)
+
+            if !g:far_mode_open['subsitute'] && a:item_name=='Replace with'
+                return 'disabled subsitution'
+            endif
         elseif item != ''
             break
         endif
@@ -247,7 +265,6 @@ endfunction
 function! FarModePrompt(rngmode, rngline1, rngline2, cmdline, ...) abort range "{{{
     call far#tools#log('=========== FAR MODE PROMPT ============')
     call s:open_farfind_buff()
-    call UpdateModePrompt()
 
     let cargs = far#tools#splitcmd(a:cmdline)
 
@@ -256,9 +273,12 @@ function! FarModePrompt(rngmode, rngline1, rngline2, cmdline, ...) abort range "
     call far#tools#log('>pattern: '.pattern)
 
     if g:far_mode_open['subsitute']
-        let replace_with = FarGetItem('Replace with', '', 0)
+        let replace_with = FarGetItem('Replace with', '', 1)
         if replace_with == '' | return | endif
-    else
+    endif
+    let g:far_mode_fix['subsitute'] = 1
+
+    if !g:far_mode_open['subsitute']
         let replace_with = pattern
         call add(cargs, '--result-preview=0')
     endif
@@ -270,6 +290,12 @@ function! FarModePrompt(rngmode, rngline1, rngline2, cmdline, ...) abort range "
     call far#tools#log('>file_mask: '.file_mask)
 
     call FarModePromptClose()
+
+    " disable escaped sequence
+    let pattern= g:far_mode_open['regex'] ? pattern : substitute(pattern, '\\', '\\\\', 'g')
+    let pattern = (g:far_mode_open['case_sensitive'] ? '\C' : '\c') . pattern
+    let pattern = g:far_mode_open['word']            ? ('\<'.pattern.'\>') : pattern
+    let pattern = (g:far_mode_open['regex']          ? ''   : '\V') . pattern
 
     let far_params = {
         \   'pattern': pattern,
@@ -283,7 +309,7 @@ endfunction
 command! -complete=customlist,far#FarArgsComplete -nargs=* -range=-1 Farr
     \  let g:far_mode_open['subsitute'] = 1 | call FarModePrompt(<count>,<line1>,<line2>,<q-args>)
 command! -complete=customlist,far#FarArgsComplete -nargs=* -range=-1 Farf
-    \  call FarModePrompt(<count>,<line1>,<line2>,<q-args>)
+    \  let g:far_mode_open['subsitute'] = 0 | call FarModePrompt(<count>,<line1>,<line2>,<q-args>)
 "}}}
 
 
