@@ -1544,7 +1544,7 @@ function! s:mode_prompt_update()  abort "{{{
     let far_mode_icon = {
         \ "regex" : ".*",
         \ "case_sensitive"  : "Aa",
-        \ "word" : "“”",
+        \ "word" : '""',
         \ "substitute": "⬇ ",
         \ }
 
@@ -1645,7 +1645,7 @@ function! far#mode_prompt_get_item(item_name, default_item, complete_list, mode_
             call s:mode_prompt_update()
             let item=strcharpart(item, 0, strchars(item)-2)
 
-            if !g:far#mode_open['substitute'] && a:item_name=='Replace'
+            if !g:far#mode_open['substitute'] && a:item_name=='Replace with'
                 return 'disabled subsitution'
             endif
         elseif item != ''
