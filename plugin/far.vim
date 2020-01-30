@@ -90,7 +90,7 @@ function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, .
     call far#tools#log('>pattern: '.pattern)
 
     if g:far#mode_open['substitute']
-        let replace_with = far#mode_prompt_get_item('Replace', '','customlist,far#FarReplaceComplete', 1)
+        let replace_with = far#mode_prompt_get_item('Replace with', '','customlist,far#FarReplaceComplete', 1)
         if replace_with == '' | return | endif
     endif
     let g:far#mode_fix['substitute'] = 1
@@ -101,7 +101,7 @@ function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, .
     endif
     call far#tools#log('>replace_with: '.replace_with)
 
-    let file_mask = far#mode_prompt_get_item('Where', g:far#default_file_mask, 'customlist,far#FarFileMaskComplete', 0)
+    let file_mask = far#mode_prompt_get_item('File mask', g:far#default_file_mask, 'customlist,far#FarFileMaskComplete', 0)
     if file_mask == '' | return | endif
     call far#tools#log('>file_mask: '.file_mask)
 
