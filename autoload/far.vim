@@ -261,6 +261,7 @@ let s:default_mapping = {
     \ "close_preview" : "P",
     \ "preview_scroll_up" : "<c-k>",
     \ "preview_scroll_down" : "<c-j>",
+    \ "quit" : 'q',
     \ }
 
 if !exists('g:far#mapping')
@@ -297,6 +298,7 @@ let s:act_func_ref = {
     \ "close_preview"       : { "nnoremap <silent>" : ":call far#close_preview_window()<CR>" },
     \ "preview_scroll_up"   : { "nnoremap <silent>" : ":call far#scroll_preview_window(-g:far#preview_window_scroll_step)<CR>" },
     \ "preview_scroll_down" : { "nnoremap <silent>" : ":call far#scroll_preview_window(g:far#preview_window_scroll_step)<CR>" },
+    \ "quit"                : { "nnoremap <silent>" : ":call far#close_far_buff()<CR>" },
     \ }
 " }}}
 
@@ -466,7 +468,7 @@ function! far#show_preview_window_under_cursor() abort "{{{
     exec 'norm! '.ctxs[2].lnum.'ggzz0'.ctxs[2].cnum.'l'
     if !ctxs[2].replaced
         let pmatch = 'match FarPreviewMatch "\%'.ctxs[2].lnum.'l\%'.ctxs[2].cnum.'c'.
-                    \   '\v'.escape(ctxs[0].pattern, '"').(&ignorecase? '\c"' : '"')
+                    \   escape(ctxs[0].pattern, '"').(&ignorecase? '\c"' : '"')
         call far#tools#log('preview match: '.pmatch)
         exec pmatch
     else
@@ -907,7 +909,7 @@ function! far#replace(xargs) abort "{{{
         for item_ctx in file_ctx.items
             if !item_ctx.excluded && !item_ctx.replaced
                 let cmd = item_ctx.lnum.'s/\%'.item_ctx.cnum.'c'.
-                    \   '\v'.escape(far_ctx.pattern, '/').'/'.
+                    \   escape(far_ctx.pattern, '/').'/'.
                     \   escape(far_ctx.replace_with, '/').'/e#'
                 call add(cmds, cmd)
                 call add(items, item_ctx)
@@ -1076,7 +1078,7 @@ function! s:assemble_context(far_params, win_params, cmdargs, callback, cbparams
     endif
 
     try
-        call matchstr('str', '\v'.a:far_params.pattern)
+        call matchstr('str', a:far_params.pattern)
     catch
         call far#tools#echo_err('Invalid pattern regex: '.v:exception)
         return
@@ -1234,9 +1236,10 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
                 let line_num += 1
                 let line_num_text = '  '.item_ctx.lnum
                 let line_num_col_text = line_num_text.repeat(' ', 8-strchars(line_num_text))
-                let pattern = ( a:far_ctx.pattern[0:1]=='\<' && a:far_ctx.pattern[-2:-1]=='\>' ) ?
-                    \ '<' . a:far_ctx.pattern[2:-3] . '>' : a:far_ctx.pattern
-                let match_val = matchstr(item_ctx.text, '\v'.pattern, item_ctx.cnum-1)
+                " let pattern = ( a:far_ctx.pattern[0:1]=='\<' && a:far_ctx.pattern[-2:-1]=='\>' ) ?
+                "     \ '<' . a:far_ctx.pattern[2:-3] . '>' : a:far_ctx.pattern
+                let pattern = a:far_ctx.pattern
+                let match_val = matchstr(item_ctx.text, pattern, item_ctx.cnum-1)
                 let multiline = match(pattern, '\\n') >= 0
                 if multiline
                     let match_val = item_ctx.text[item_ctx.cnum:]
@@ -1248,7 +1251,7 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
                     let max_text_len = a:win_params.width / 2 - strdisplaywidth(line_num_col_text)
                     let max_repl_len = a:win_params.width / 2 - strdisplaywidth(g:far#repl_devider)
                     " item_ctx.cnum : byte id (begin with 1) the matched substring start from
-                    let repl_val = substitute(match_val, '\v'.pattern, a:far_ctx.replace_with, "")
+                    let repl_val = substitute(match_val, pattern, a:far_ctx.replace_with, "")
                     let repl_text = (item_ctx.cnum == 1? '' : item_ctx.text[0:item_ctx.cnum-2]).
                         \   repl_val. item_ctx.text[item_ctx.cnum+len(match_val)-1:]  " change to len, to support replacing wide char
                     let match_text = far#tools#centrify_text(item_ctx.text, max_text_len, item_ctx.cnum)
@@ -1375,9 +1378,32 @@ function! s:update_far_buffer(far_ctx, bufnr) abort "{{{
     call setbufvar(a:bufnr, 'far_ctx', a:far_ctx)
 endfunction "}}}
 
+function! far#close_far_buff() abort "{{{
+    let parent_buffnr = b:parent_buffnr
+    " let parent_buff_path = b:parent_buff_path
+    bdelete
+
+    let winnr = bufwinnr(parent_buffnr)
+    if winnr != -1
+        exe winnr . "wincmd w"
+    endif
+
+    " for i in range(winnr('$'))
+    "     let winnr = printf('%d', i+1)
+    "     let bufnr = printf('%d', winbufnr(i+1) )
+    "     if expand('#'.bufnr.':p') == parent_buff_path
+    "         exe winnr . "wincmd w"
+    "         break
+    "     endif
+    " endfor
+endfunction
+" }}}
+
 function! s:open_far_buff(far_ctx, win_params) abort "{{{
     call far#tools#log('open_far_buff('.string(a:win_params).')')
 
+    let parent_buffnr = bufnr('%')
+    " let parent_buff_path = expand('%:p')
     let fname = printf(s:far_buffer_name, s:buffer_counter)
     let bufnr = bufnr(fname)
     if bufnr != -1
@@ -1407,6 +1433,8 @@ function! s:open_far_buff(far_ctx, win_params) abort "{{{
         call g:far#apply_default_mappings()
     endif
 
+    call setbufvar(bufnr, 'parent_buffnr', parent_buffnr)
+    " call setbufvar(bufnr, 'parent_buff_path', parent_buff_path)
     call setbufvar(bufnr, 'win_params', a:win_params)
     call s:update_far_buffer(a:far_ctx, bufnr)
     call s:start_resize_timer()
@@ -1480,6 +1508,7 @@ function! s:param_proc(far_params, win_params, cmdargs) "{{{
     let a:far_params.replace_with = substitute(a:far_params.replace_with,  "\<Char-0x0D>", '\\r', 'g')
 
     if a:far_params.file_mask == '%'
+        let a:far_params.cwd = expand('%:p:h')
         let a:far_params.file_mask = bufname('%')
     endif
 endfunction "}}}
@@ -1574,16 +1603,20 @@ let s:mode_prompt_buffer_counter = 1
 function! far#mode_prompt_open() abort "{{{
     call far#tools#log('far#mode_prompt_open()')
 
-    let fname = printf('FAR %d', s:mode_prompt_buffer_counter)
+    let fname = printf(s:far_buffer_name, s:mode_prompt_buffer_counter)
     let bufnr = bufnr(fname)
     if bufnr != -1
         let s:mode_prompt_buffer_counter += 1
-        call far#open_prompt_buff()
+        call far#mode_prompt_open()
         return
     endif
 
-    let cmd = 'botright 1 new "Far Find"'
-    " far#tools#win_layout(a:win_params, '', fname)
+    let win_params = s:create_win_params()
+    let win_params['layout'] = 'bottom'
+    let win_params['height'] = 1
+
+    " let cmd = "Far Find"
+    let cmd = far#tools#win_layout(win_params, '', fname)
     call far#tools#log('new bufcmd: '.cmd)
     exec cmd
     let bufnr = bufnr('%')
@@ -1602,8 +1635,8 @@ function! far#mode_prompt_open() abort "{{{
 
     call far#set_mappings(s:prompt_mapping_keys, s:prompt_act_func_ref)
 
-    let win_params = s:create_win_params()
     call setbufvar(bufnr, 'win_params', win_params)
+    " call s:update_far_buffer(a:far_ctx, bufnr)
     call s:start_resize_timer()
 
     call far#tools#setdefault('g:far#mode_fix',  { "regex" : 0, "case_sensitive"  : 0, "word" : 0, "substitute": 0 } )
@@ -1621,6 +1654,7 @@ function! far#mode_prompt_close() abort "{{{
     " normal :echo ' '<cr>
     " call feedkeys(":echo ' '\<cr>")
 endfunction " }}}
+
 
 function! far#mode_prompt_get_item(item_name, default_item, complete_list, mode_changable) abort "{{{
     call s:mode_prompt_update()
