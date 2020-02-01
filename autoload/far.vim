@@ -1242,8 +1242,6 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
                 let line_num += 1
                 let line_num_text = '  '.item_ctx.lnum
                 let line_num_col_text = line_num_text.repeat(' ', 8-strchars(line_num_text))
-                " let pattern = ( a:far_ctx.pattern[0:1]=='\<' && a:far_ctx.pattern[-2:-1]=='\>' ) ?
-                "     \ '<' . a:far_ctx.pattern[2:-3] . '>' : a:far_ctx.pattern
                 let pattern = a:far_ctx.pattern
                 let match_val = matchstr(item_ctx.text, pattern, item_ctx.cnum-1)
                 let multiline = match(pattern, '\\n') >= 0
@@ -1386,7 +1384,6 @@ endfunction "}}}
 
 function! far#close_far_buff() abort "{{{
     let parent_buffnr = b:win_params.parent_buffnr
-    " let parent_buff_path = b:parent_buff_path
     bdelete
 
     let winnr = bufwinnr(parent_buffnr)
@@ -1427,15 +1424,11 @@ function! s:open_far_buff(far_ctx, win_params) abort "{{{
     setlocal cursorline
     setfiletype far
 
-    " call setbufvar(bufnr, 'parent_buff_path', parent_buff_path)
-    " call setbufvar(bufnr, 'parent_buffnr', parent_buffnr)
     let a:win_params['parent_buffnr'] = parent_buffnr
     call setbufvar(bufnr, 'win_params', a:win_params)
 
     if a:win_params.mode_prompt
         call far#set_mappings(s:prompt_mapping_keys, s:prompt_act_func_ref)
-        " call far#tools#setdefault('g:far#mode_fix',
-        "      \ { "regex" : 0, "case_sensitive"  : 0, "word" : 0, "substitute": 0 } )
     else
         if g:far#default_mappings
             call g:far#apply_default_mappings()
@@ -1594,13 +1587,11 @@ function! s:mode_prompt_update()  abort "{{{
         let new_prompt.=far_mode_icon[mode]
         let new_prompt.='%*'
         if g:show_prompt_key
-        " && !g:far#mode_fix[mode]
             let new_prompt.='('.s:prompt_key_display[mode].')'
         endif
     endfor
 
     set laststatus=2
-    " exec 'set statusline=' . new_prompt
     call setwinvar(winnr(), '&statusline', new_prompt)
     redrawstatus
 endfunction " }}}
@@ -1616,49 +1607,6 @@ function! far#mode_prompt_open() abort "{{{
 endfunction
 " }}}
 
-" function! far#_mode_prompt_open() abort "{{{
-"     call far#tools#log('far#mode_prompt_open()')
-
-"     let fname = printf(s:far_buffer_name, s:buffer_counter)
-"     let bufnr = bufnr(fname)
-"     if bufnr != -1
-"         let s:buffer_counter += 1
-"         call far#mode_prompt_open()
-"         return
-"     endif
-
-"     let win_params = s:create_win_params()
-"     let win_params['layout'] = 'bottom'
-"     let win_params['height'] = 0
-"     " set winminheight=0
-
-"     " let cmd = "Far Find"
-"     let cmd = far#tools#win_layout(win_params, '', fname)
-"     call far#tools#log('new bufcmd: '.cmd)
-"     exec cmd
-"     let bufnr = bufnr('%')
-"     let s:buffer_counter += 1
-
-"     setlocal noswapfile
-"     setlocal buftype=nowrite
-"     setlocal bufhidden=hide
-"     setlocal nowrap
-"     setlocal foldcolumn=0
-"     setlocal nospell
-"     setlocal norelativenumber
-"     setlocal nonumber
-"     setlocal cursorline
-"     setfiletype far
-
-"     call far#set_mappings(s:prompt_mapping_keys, s:prompt_act_func_ref)
-
-"     call setbufvar(bufnr, 'win_params', win_params)
-"     " call s:update_far_buffer(a:far_ctx, bufnr)
-"     call s:start_resize_timer()
-
-"     call far#tools#setdefault('g:far#mode_fix',  { "regex" : 0, "case_sensitive"  : 0, "word" : 0, "substitute": 0 } )
-
-" endfunction "}}}
 
 function! far#mode_prompt_close() abort "{{{
     bdelete

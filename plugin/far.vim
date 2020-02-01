@@ -78,9 +78,10 @@ command! -complete=customlist,far#FarComplete -nargs=+ -range=-1 Far
 function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, ...) abort range "{{{
     call far#tools#log('=========== FAR MODE PROMPT ============')
 
-    let origin_bufnr = winbufnr(winnr())
+    let cargs = far#tools#splitcmd(a:cmdline)
 
     " close existing buffer in current tab
+    let origin_bufnr = winbufnr(winnr())
     for i in range(winnr('$'))
         let winnr = printf('%d', i+1)
         let bufnr = printf('%d', winbufnr(i+1))
@@ -96,29 +97,27 @@ function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, .
     endfor
 
     let current_winnr = printf('%d', bufwinnr(winbufnr(winnr())))
-    " echo current_winnr expand('%:p') | sleep 1
 
     " new a buffer for searching mode bar
     call far#mode_prompt_open()
 
     " init mode status
-    " let g:far#mode_fix['substitute'] = 0
     let g:far#mode_open['substitute'] = a:substitute_open
 
-    let cargs = far#tools#splitcmd(a:cmdline)
-
+    " get item "Find"
     let pattern = far#mode_prompt_get_item('Find', '',
         \ 'customlist,far#FarSearchComplete')
     if pattern == '' | return | endif
     call far#tools#log('>pattern: '.pattern)
 
+    " get item "Replace with"
     if g:far#mode_open['substitute']
         let replace_with = far#mode_prompt_get_item('Replace with', '',
             \ 'customlist,far#FarReplaceComplete')
         if replace_with == '' | return | endif
     endif
-    " let g:far#mode_fix['substitute'] = 1
 
+    " get item "File mask"
     let origin_substitute_open = g:far#mode_open['substitute']
     let file_mask = far#mode_prompt_get_item('File mask', g:far#default_file_mask,
         \ 'customlist,far#FarFileMaskComplete')
@@ -126,6 +125,7 @@ function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, .
     let g:far#default_file_mask = file_mask
     call far#tools#log('>file_mask: '.file_mask)
 
+    " get item "Replace with"
     if g:far#mode_open['substitute'] &&
         \ origin_substitute_open != g:far#mode_open['substitute']
         let replace_with = far#mode_prompt_get_item('Replace with', '',
@@ -133,21 +133,15 @@ function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, .
         if replace_with == '' | return | endif
     endif
 
+    " setting for no substitution
     if !g:far#mode_open['substitute']
         let replace_with = pattern
         call add(cargs, '--result-preview=0')
     endif
     call far#tools#log('>replace_with: '.replace_with)
 
-    " if file_mask == '%'
-    "     let file_mask = source_fpath
-    " endif
-
     call far#mode_prompt_close()
-
     exe current_winnr . "wincmd w"
-    " echo current_winnr expand('%:p') | sleep 1
-
 
     " disable escaped sequence
     let pattern = g:far#mode_open['regex'] ? pattern : substitute(pattern, '\\', '\\\\', 'g')
