@@ -118,12 +118,14 @@ USAGE                                                              *far-usage*
                         quit |Farr| or |Farf|       <Esc>
                 ------------------------------------------
 
-    Note: To change the key mappings, see |g:far#prompt_mapping|.
-    Note: To set initial mode status on starting vim, see |g:far#mode_open|.
     For {pattern}, {replace-with}, {file-mask} and [params] see |Far| command.
     Note: You don't have to escape space character.
     Note: |Farr| allows empty [replace-with] if you need to remove matched text.
 
+    Customer settings:
+    To change the key mappings, see |g:far#prompt_mapping|.
+    To set initial mode status on starting vim, see |g:far#mode_open|.
+    To enable/disable mapping prompt like (^X), see |g:show_prompt_key|.
 
 *:Fardo* [params]
     |Fardo| starts the replacement task. This command must be executed in a FAR
@@ -458,12 +460,18 @@ CONFIGURATION                                                     *far-config*
     Default: '+'
 
 *g:far#mode_open*
-    This variable controls the initual saeching modes in |Farr| and |Farf|.
+    This variable controls the initial (when vim starts) saeching mode status
+    in |Farr| and |Farf|.
     It is a dictionary, where the keys are saeching modes and the values are
     0/1 for off/on.
 
     Default: { "regex": 1, "case_sensitive": 0, "word": 0, "substitute": 0 }
 
+*g:show_prompt_key*
+    This variable controls whether to display prompt for the key mappings in
+    |Farr| and |Farf|.
+
+    Default: 1
 
 ------------------------------------------------------------------------------
 Highlighting Groups:                                    *far-highlight-config*
@@ -547,71 +555,77 @@ Default Mappings:                                       *default-far-mappings*
     Below are the default mappings and corresponding variable names in
     |g:far#mapping| to set customer mappings.
 
-x v_x                                                *g:far#mapping['exclude']*
+x v_x                                               *g:far#mapping['exclude']*
     Exclude item under the cursor.
 
-i v_i                                                *g:far#mapping['include']*
+i v_i                                               *g:far#mapping['include']*
     Include item under the cursor.
 
-t v_t                                         *g:far#mapping['toggle_exclude']*
+t v_t                                        *g:far#mapping['toggle_exclude']*
     Toggle item exclusion under the cursor.
 
-X                                                *g:far#mapping['exclude_all']*
+X                                               *g:far#mapping['exclude_all']*
     Exclude all items.
 
-I                                                *g:far#mapping['include_all']*
+I                                               *g:far#mapping['include_all']*
     Include all items.
 
-T                                         *g:far#mapping['toggle_exclude_all']*
+T                                        *g:far#mapping['toggle_exclude_all']*
     Toggle exclusion for all items.
 
-S                                        *g:far#mapping['stoggle_exclude_all']*
+S                                       *g:far#mapping['stoggle_exclude_all']*
     Smart toggle exclusion for all items: include all items when all are
     excluded, otherwise exclude all items.
 
-<CR>                                          *g:far#mapping['jump_to_source']*
+<CR>                                         *g:far#mapping['jump_to_source']*
     Jump to the source code of the item under the cursor.
     See |far-jump|
 
-p                                               *g:far#mapping['open_preview']*
+p                                              *g:far#mapping['open_preview']*
     Open preview window (if not) and scroll to the item under
     the cursor.
     See |far-preview|
 
-P                                              *g:far#mapping['close_preview']*
+P                                             *g:far#mapping['close_preview']*
     Close preview window.
     See |far-preview|
 
-CTRL-K                                     *g:far#mapping['preview_scroll_up']*
+CTRL-K                                    *g:far#mapping['preview_scroll_up']*
     Scroll preview window up (if open).
     See |far-preview|, |g:far#preview_window_scroll_step|
 
 
-CTRL-J                                   *g:far#mapping['preview_scroll_down']*
+CTRL-J                                  *g:far#mapping['preview_scroll_down']*
     Scroll preview window down (if open).
     See |far-preview|, |g:far#preview_window_scroll_step|
 
-zo                                                    *g:far#mapping['expand']*
+zo                                                   *g:far#mapping['expand']*
     Expand node under the cursor.
 
-zc                                                  *g:far#mapping['collapse']*
+zc                                                 *g:far#mapping['collapse']*
     Collapse node under the cursor.
 
-za                                             *g:far#mapping['toggle_expand']*
+za                                            *g:far#mapping['toggle_expand']*
     Toggle node expanding under the cursor.
 
-zr                                                *g:far#mapping['expand_all']*
+zr                                               *g:far#mapping['expand_all']*
     Expand all nodes.
 
-zm                                              *g:far#mapping['collapse_all']*
+zm                                             *g:far#mapping['collapse_all']*
     Collapse all nodes.
 
-zA                                         *g:far#mapping['toggle_expand_all']*
+zA                                        *g:far#mapping['toggle_expand_all']*
     Toggle exclusion for all nodes.
 
-zs                                        *g:far#mapping['stoggle_expand_all']*
+zs                                       *g:far#mapping['stoggle_expand_all']*
     Smart toggle exclusion for all nodes:
     expand all nodes when all are collpased, otherwise collapse all nodes.
+
+s                                                *g:far#mapping['replace_do']*
+    Execute |:Fardo|<CR>, to replace all included items.
+
+u                                              *g:far#mapping['replace_undo']*
+    Execute |:Farundo|<CR>, to undo the last replacement by |:Fardo|.
 
 ------------------------------------------------------------------------------
 Customer Mappings:
