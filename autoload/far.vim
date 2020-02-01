@@ -263,8 +263,8 @@ let s:default_mapping = {
     \ "close_preview" : "P",
     \ "preview_scroll_up" : "<c-k>",
     \ "preview_scroll_down" : "<c-j>",
-    \ "replace_do" : 'D',
-    \ "replace_undo" : 'U',
+    \ "replace_do" : 's',
+    \ "replace_undo" : 'u',
     \ "quit" : 'q',
     \ }
 
@@ -1434,8 +1434,8 @@ function! s:open_far_buff(far_ctx, win_params) abort "{{{
 
     if a:win_params.mode_prompt
         call far#set_mappings(s:prompt_mapping_keys, s:prompt_act_func_ref)
-        call far#tools#setdefault('g:far#mode_fix',
-             \ { "regex" : 0, "case_sensitive"  : 0, "word" : 0, "substitute": 0 } )
+        " call far#tools#setdefault('g:far#mode_fix',
+        "      \ { "regex" : 0, "case_sensitive"  : 0, "word" : 0, "substitute": 0 } )
     else
         if g:far#default_mappings
             call g:far#apply_default_mappings()
@@ -1593,7 +1593,8 @@ function! s:mode_prompt_update()  abort "{{{
         endif
         let new_prompt.=far_mode_icon[mode]
         let new_prompt.='%*'
-        if g:show_prompt_key && !g:far#mode_fix[mode]
+        if g:show_prompt_key
+        " && !g:far#mode_fix[mode]
             let new_prompt.='('.s:prompt_key_display[mode].')'
         endif
     endfor
@@ -1664,7 +1665,7 @@ function! far#mode_prompt_close() abort "{{{
 endfunction " }}}
 
 
-function! far#mode_prompt_get_item(item_name, default_item, complete_list, mode_changable) abort "{{{
+function! far#mode_prompt_get_item(item_name, default_item, complete_list) abort "{{{
     call s:mode_prompt_update()
     let item=a:default_item
     while 1
@@ -1681,7 +1682,7 @@ function! far#mode_prompt_get_item(item_name, default_item, complete_list, mode_
                 let g:far#mode_open['case_sensitive'] = ! g:far#mode_open['case_sensitive']
             elseif mode == 'w'
                 let g:far#mode_open['word'] = ! g:far#mode_open['word']
-            elseif mode == 's' && a:mode_changable
+            elseif mode == 's'
                 let g:far#mode_open['substitute'] = ! g:far#mode_open['substitute']
             endif
             call s:mode_prompt_update()

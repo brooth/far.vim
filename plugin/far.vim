@@ -102,31 +102,42 @@ function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, .
     call far#mode_prompt_open()
 
     " init mode status
-    let g:far#mode_fix['substitute'] = 0
+    " let g:far#mode_fix['substitute'] = 0
     let g:far#mode_open['substitute'] = a:substitute_open
 
     let cargs = far#tools#splitcmd(a:cmdline)
 
-    let pattern = far#mode_prompt_get_item('Find', '', 'customlist,far#FarSearchComplete', 1)
+    let pattern = far#mode_prompt_get_item('Find', '',
+        \ 'customlist,far#FarSearchComplete')
     if pattern == '' | return | endif
     call far#tools#log('>pattern: '.pattern)
 
     if g:far#mode_open['substitute']
-        let replace_with = far#mode_prompt_get_item('Replace with', '','customlist,far#FarReplaceComplete', 1)
+        let replace_with = far#mode_prompt_get_item('Replace with', '',
+            \ 'customlist,far#FarReplaceComplete')
         if replace_with == '' | return | endif
     endif
-    let g:far#mode_fix['substitute'] = 1
+    " let g:far#mode_fix['substitute'] = 1
+
+    let origin_substitute_open = g:far#mode_open['substitute']
+    let file_mask = far#mode_prompt_get_item('File mask', g:far#default_file_mask,
+        \ 'customlist,far#FarFileMaskComplete')
+    if file_mask == '' | return | endif
+    let g:far#default_file_mask = file_mask
+    call far#tools#log('>file_mask: '.file_mask)
+
+    if g:far#mode_open['substitute'] &&
+        \ origin_substitute_open != g:far#mode_open['substitute']
+        let replace_with = far#mode_prompt_get_item('Replace with', '',
+            \ 'customlist,far#FarReplaceComplete')
+        if replace_with == '' | return | endif
+    endif
 
     if !g:far#mode_open['substitute']
         let replace_with = pattern
         call add(cargs, '--result-preview=0')
     endif
     call far#tools#log('>replace_with: '.replace_with)
-
-    let file_mask = far#mode_prompt_get_item('File mask', g:far#default_file_mask, 'customlist,far#FarFileMaskComplete', 0)
-    if file_mask == '' | return | endif
-    let g:far#default_file_mask = file_mask
-    call far#tools#log('>file_mask: '.file_mask)
 
     " if file_mask == '%'
     "     let file_mask = source_fpath
