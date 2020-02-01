@@ -13,7 +13,7 @@ Plug 'brooth/far.vim'
 
 ## Usage
 
-### With Command
+### Searching with command
 ```bash
 :Far foo bar **/*.py
 :Fardo
@@ -26,7 +26,7 @@ Find the text to replace.
 #### :F {pattern} {file-mask} [params]
 Find only.
 
-### Interatively
+### Searching interatively 
 
 ```bash
 :Farr foo bar **/*.py
@@ -40,6 +40,8 @@ Interative `Far`. Shows searching modes in the status bar (regex, case sensitive
 #### :Farf [params]
 Interative `F` like `Farr`.
 
+### Commands in the searching result window
+
 #### :Fardo [params]
 Runs the replacement task. The shortcut for it is `s` (substitute).
 
@@ -50,7 +52,7 @@ Undo the recurrent replacement. The shortcut for it is `u` (undo).
 Change `Far`/`Farp` params.
 
 
-#### Need help?
+### Need help?
 ```bash
 :help far.vim
 ```
