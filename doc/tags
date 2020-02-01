@@ -1,7 +1,9 @@
 :F	far.txt	/*:F*
 :Far	far.txt	/*:Far*
 :Fardo	far.txt	/*:Fardo*
+:Farf	far.txt	/*:Farf*
 :Farp	far.txt	/*:Farp*
+:Farr	far.txt	/*:Farr*
 :Refar	far.txt	/*:Refar*
 B	far.txt	/*B*
 FarBrokenItem	far.txt	/*FarBrokenItem*
@@ -69,11 +71,13 @@ g:far#mapping['toggle_exclude']	far.txt	/*g:far#mapping['toggle_exclude']*
 g:far#mapping['toggle_exclude_all']	far.txt	/*g:far#mapping['toggle_exclude_all']*
 g:far#mapping['toggle_expand']	far.txt	/*g:far#mapping['toggle_expand']*
 g:far#mapping['toggle_expand_all']	far.txt	/*g:far#mapping['toggle_expand_all']*
+g:far#mode_open	far.txt	/*g:far#mode_open*
 g:far#multiline_sign	far.txt	/*g:far#multiline_sign*
 g:far#preview_window_height	far.txt	/*g:far#preview_window_height*
 g:far#preview_window_layout	far.txt	/*g:far#preview_window_layout*
 g:far#preview_window_scroll_step	far.txt	/*g:far#preview_window_scroll_step*
 g:far#preview_window_width	far.txt	/*g:far#preview_window_width*
+g:far#prompt_mapping	far.txt	/*g:far#prompt_mapping*
 g:far#repl_devider	far.txt	/*g:far#repl_devider*
 g:far#result_preview	far.txt	/*g:far#result_preview*
 g:far#source	far.txt	/*g:far#source*
