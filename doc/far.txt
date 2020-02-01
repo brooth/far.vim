@@ -95,14 +95,14 @@ USAGE                                                              *far-usage*
 >
      :Farr [<params>]
      .*(^X) Aa(^C) ""(^W) ⬇ (^S)
-     >Search (pattern): {pattern}
+     >Find: {pattern}
      >Replace with: [replace-with]
      >File mask: {file-mask}
 <
 >
      :Farf [<params>]
      .*(^X) Aa(^C) ""(^W) ⬇ (^S)
-     >Search (pattern): {pattern}
+     >Find: {pattern}
      >File mask: {file-mask}
 <
     Below are the icon of each mode and the key mapping to toggle it. A mode
