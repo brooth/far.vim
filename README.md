@@ -34,10 +34,6 @@ Find only.
 
 ![ScreenShot 2020-02-02 01 59 19 2020-02-02 02_03_50](https://user-images.githubusercontent.com/30200581/73597060-3155b200-4563-11ea-82cc-2888a44b98aa.gif)
 
-```bash
-:Fardo
-```
-
 #### :Farr [params]
 Interative `Far`. Shows searching modes in the status bar (regex, case sensitive, word boundary, replace). Modes can be toggled by the key mapping it prompted. Allows to enter {pattern}, {replace-with} and {file-mask} one after the other.
 
@@ -45,10 +41,10 @@ Interative `Far`. Shows searching modes in the status bar (regex, case sensitive
 Interative `F` like `Farr`.
 
 #### :Fardo [params]
-Runs the replacement task.
+Runs the replacement task. The shortcut for it is `s` (substitute).
 
 #### :Farundo [params]
-Undo the recurrent replacement.
+Undo the recurrent replacement. The shortcut for it is `u` (undo).
 
 #### :Refar [params]
 Change `Far`/`Farp` params.
