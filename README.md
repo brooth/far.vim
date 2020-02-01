@@ -38,7 +38,7 @@ Find only.
 Interative `Far`. Shows searching modes in the status bar (regex, case sensitive, word boundary, replace). Modes can be toggled by the key mapping it prompted. Allows to enter {pattern}, {replace-with} and {file-mask} one after the other.
 
 #### :Farf [params]
-Interative `F` like `Farr`.
+Interative `F`. The interaction is similar to `Farr`.
 
 ### Commands in the searching result window
 
@@ -49,7 +49,7 @@ Runs the replacement task. The shortcut for it is `s` (substitute).
 Undo the recurrent replacement. The shortcut for it is `u` (undo).
 
 #### :Refar [params]
-Change `Far`/`Farp` params.
+Change `Far`/`F`/`Farr`/`Farf` params.
 
 
 ### Need help?
