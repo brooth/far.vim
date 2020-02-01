@@ -78,49 +78,31 @@ command! -complete=customlist,far#FarComplete -nargs=+ -range=-1 Far
 function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, ...) abort range "{{{
     call far#tools#log('=========== FAR MODE PROMPT ============')
 
-    " close existing FAR buffer in the current tab
-    let current_bufnr = winbufnr(winnr())
-    let current_winnr = printf('%d', bufwinnr(current_bufnr))
+    let origin_bufnr = winbufnr(winnr())
 
+    " close existing buffer in current tab
     for i in range(winnr('$'))
         let winnr = printf('%d', i+1)
         let bufnr = printf('%d', winbufnr(i+1))
         let bufname = bufname(winbufnr(i+1))
         if bufname =~ '\(^\|\W\)FAR [0-9]\+$'
-            " exe bufnr.'bdelete'
-
-
             exe winnr . "wincmd w"
-            " | wincmd c
             call far#close_far_buff()
-
-            let current_winnr = printf('%d', bufwinnr(current_bufnr))
-            " echo 'current_winnr' current_winnr
-            exe current_winnr . "wincmd w"
-
-
-            " if current_winnr != winnr
-            "     " exe current_winnr . "wincmd w"
-            "     nnoremap <plug>(last_window) <c-w><c-p>
-            "     exe "normal <plug>(last_window)"
-            " endif
+            " if origin_bufnr is not the far buffer closed just now, go back to origin_bufnr
+            if bufnr != origin_bufnr
+                exe printf('%d', bufwinnr(origin_bufnr)) . "wincmd w"
+            endif
         endif
     endfor
-    " let source_fpath = expand('%:p')
-    " " bufname('%')
-    " echo source_fpath
-    " sleep 1
 
-    " :Far 开启时记录当前窗口的编号与路径, 设置key mapping q退出搜索窗口,
-    " 写退出函数(返回原窗口, 尝试返回原来的窗口(如果原来的窗口存在且路径不变))
-    " 路径: bufname('#n:p') , n是buff的编号
+    let current_winnr = printf('%d', bufwinnr(winbufnr(winnr())))
+    " echo current_winnr expand('%:p') | sleep 1
 
-    " 不要管在help里搜
-
+    " new a buffer for searching mode bar
     call far#mode_prompt_open()
 
+    " init mode status
     let g:far#mode_fix['substitute'] = 0
-    " echo a:substitute_open
     let g:far#mode_open['substitute'] = a:substitute_open
 
     let cargs = far#tools#splitcmd(a:cmdline)
@@ -151,8 +133,9 @@ function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, .
     " endif
 
     call far#mode_prompt_close()
-    " exe "normal <plug>(last_window)"
+
     exe current_winnr . "wincmd w"
+    " echo current_winnr expand('%:p') | sleep 1
 
 
     " disable escaped sequence

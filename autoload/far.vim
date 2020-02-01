@@ -159,6 +159,8 @@ function! s:create_win_params() abort
     \   'highlight_match': exists('g:far#highlight_match')? g:far#highlight_match : 1,
     \   'collapse_result': exists('g:far#collapse_result')? g:far#collapse_result : 0,
     \   'result_preview': exists('g:far#result_preview')? g:far#result_preview : 1,
+    \   'mode_prompt': 0,
+    \   'parent_buffnr': '',
     \   }
 endfunction
 
@@ -261,6 +263,8 @@ let s:default_mapping = {
     \ "close_preview" : "P",
     \ "preview_scroll_up" : "<c-k>",
     \ "preview_scroll_down" : "<c-j>",
+    \ "replace_do" : 'D',
+    \ "replace_undo" : 'U',
     \ "quit" : 'q',
     \ }
 
@@ -298,6 +302,8 @@ let s:act_func_ref = {
     \ "close_preview"       : { "nnoremap <silent>" : ":call far#close_preview_window()<CR>" },
     \ "preview_scroll_up"   : { "nnoremap <silent>" : ":call far#scroll_preview_window(-g:far#preview_window_scroll_step)<CR>" },
     \ "preview_scroll_down" : { "nnoremap <silent>" : ":call far#scroll_preview_window(g:far#preview_window_scroll_step)<CR>" },
+    \ "replace_do"          : { "nnoremap <silent>" : ":Fardo<CR>" },
+    \ "replace_undo"        : { "nnoremap <silent>" : ":Farundo<CR>" },
     \ "quit"                : { "nnoremap <silent>" : ":call far#close_far_buff()<CR>" },
     \ }
 " }}}
@@ -1379,7 +1385,7 @@ function! s:update_far_buffer(far_ctx, bufnr) abort "{{{
 endfunction "}}}
 
 function! far#close_far_buff() abort "{{{
-    let parent_buffnr = b:parent_buffnr
+    let parent_buffnr = b:win_params.parent_buffnr
     " let parent_buff_path = b:parent_buff_path
     bdelete
 
@@ -1388,14 +1394,6 @@ function! far#close_far_buff() abort "{{{
         exe winnr . "wincmd w"
     endif
 
-    " for i in range(winnr('$'))
-    "     let winnr = printf('%d', i+1)
-    "     let bufnr = printf('%d', winbufnr(i+1) )
-    "     if expand('#'.bufnr.':p') == parent_buff_path
-    "         exe winnr . "wincmd w"
-    "         break
-    "     endif
-    " endfor
 endfunction
 " }}}
 
@@ -1429,17 +1427,25 @@ function! s:open_far_buff(far_ctx, win_params) abort "{{{
     setlocal cursorline
     setfiletype far
 
-    if g:far#default_mappings
-        call g:far#apply_default_mappings()
+    " call setbufvar(bufnr, 'parent_buff_path', parent_buff_path)
+    " call setbufvar(bufnr, 'parent_buffnr', parent_buffnr)
+    let a:win_params['parent_buffnr'] = parent_buffnr
+    call setbufvar(bufnr, 'win_params', a:win_params)
+
+    if a:win_params.mode_prompt
+        call far#set_mappings(s:prompt_mapping_keys, s:prompt_act_func_ref)
+        call far#tools#setdefault('g:far#mode_fix',
+             \ { "regex" : 0, "case_sensitive"  : 0, "word" : 0, "substitute": 0 } )
+    else
+        if g:far#default_mappings
+            call g:far#apply_default_mappings()
+        endif
+        call s:update_far_buffer(a:far_ctx, bufnr)
     endif
 
-    call setbufvar(bufnr, 'parent_buffnr', parent_buffnr)
-    " call setbufvar(bufnr, 'parent_buff_path', parent_buff_path)
-    call setbufvar(bufnr, 'win_params', a:win_params)
-    call s:update_far_buffer(a:far_ctx, bufnr)
     call s:start_resize_timer()
 
-    if a:win_params.auto_preview
+    if a:win_params.auto_preview && !a:win_params.mode_prompt
         if v:version >= 704
             autocmd CursorMoved <buffer> if b:win_params.auto_preview |
                 \   call g:far#show_preview_window_under_cursor() | endif
@@ -1598,61 +1604,63 @@ function! s:mode_prompt_update()  abort "{{{
     redrawstatus
 endfunction " }}}
 
-let s:mode_prompt_buffer_counter = 1
 
 function! far#mode_prompt_open() abort "{{{
-    call far#tools#log('far#mode_prompt_open()')
-
-    let fname = printf(s:far_buffer_name, s:mode_prompt_buffer_counter)
-    let bufnr = bufnr(fname)
-    if bufnr != -1
-        let s:mode_prompt_buffer_counter += 1
-        call far#mode_prompt_open()
-        return
-    endif
-
+    let far_ctx = ''
     let win_params = s:create_win_params()
     let win_params['layout'] = 'bottom'
-    let win_params['height'] = 1
+    let win_params['height'] = 0
+    let win_params['mode_prompt'] = 1
+    call s:open_far_buff(far_ctx, win_params)
+endfunction
+" }}}
 
-    " let cmd = "Far Find"
-    let cmd = far#tools#win_layout(win_params, '', fname)
-    call far#tools#log('new bufcmd: '.cmd)
-    exec cmd
-    let bufnr = bufnr('%')
-    let s:mode_prompt_buffer_counter += 1
+" function! far#_mode_prompt_open() abort "{{{
+"     call far#tools#log('far#mode_prompt_open()')
 
-    setlocal noswapfile
-    setlocal buftype=nowrite
-    setlocal bufhidden=hide
-    setlocal nowrap
-    setlocal foldcolumn=0
-    setlocal nospell
-    setlocal norelativenumber
-    setlocal nonumber
-    setlocal cursorline
-    setfiletype far
+"     let fname = printf(s:far_buffer_name, s:buffer_counter)
+"     let bufnr = bufnr(fname)
+"     if bufnr != -1
+"         let s:buffer_counter += 1
+"         call far#mode_prompt_open()
+"         return
+"     endif
 
-    call far#set_mappings(s:prompt_mapping_keys, s:prompt_act_func_ref)
+"     let win_params = s:create_win_params()
+"     let win_params['layout'] = 'bottom'
+"     let win_params['height'] = 0
+"     " set winminheight=0
 
-    call setbufvar(bufnr, 'win_params', win_params)
-    " call s:update_far_buffer(a:far_ctx, bufnr)
-    call s:start_resize_timer()
+"     " let cmd = "Far Find"
+"     let cmd = far#tools#win_layout(win_params, '', fname)
+"     call far#tools#log('new bufcmd: '.cmd)
+"     exec cmd
+"     let bufnr = bufnr('%')
+"     let s:buffer_counter += 1
 
-    call far#tools#setdefault('g:far#mode_fix',  { "regex" : 0, "case_sensitive"  : 0, "word" : 0, "substitute": 0 } )
+"     setlocal noswapfile
+"     setlocal buftype=nowrite
+"     setlocal bufhidden=hide
+"     setlocal nowrap
+"     setlocal foldcolumn=0
+"     setlocal nospell
+"     setlocal norelativenumber
+"     setlocal nonumber
+"     setlocal cursorline
+"     setfiletype far
 
-endfunction "}}}
+"     call far#set_mappings(s:prompt_mapping_keys, s:prompt_act_func_ref)
+
+"     call setbufvar(bufnr, 'win_params', win_params)
+"     " call s:update_far_buffer(a:far_ctx, bufnr)
+"     call s:start_resize_timer()
+
+"     call far#tools#setdefault('g:far#mode_fix',  { "regex" : 0, "case_sensitive"  : 0, "word" : 0, "substitute": 0 } )
+
+" endfunction "}}}
 
 function! far#mode_prompt_close() abort "{{{
-    " echo " "
-    quit
-    " redraw!
-    " echon "\r\r"
-    " echon ''
-
-    " exec "normal :echo ' '\<cr>"
-    " normal :echo ' '<cr>
-    " call feedkeys(":echo ' '\<cr>")
+    bdelete
 endfunction " }}}
 
 
