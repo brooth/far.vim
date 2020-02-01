@@ -13,6 +13,7 @@ Plug 'brooth/far.vim'
 
 ## Usage
 
+### With Command
 ```bash
 :Far foo bar **/*.py
 :Fardo
@@ -24,6 +25,8 @@ Find the text to replace.
 
 #### :F {pattern} {file-mask} [params]
 Find only.
+
+### Interatively
 
 ```bash
 :Farr foo bar **/*.py
