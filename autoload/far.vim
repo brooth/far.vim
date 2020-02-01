@@ -34,6 +34,9 @@ call far#tools#setdefault('g:far#sources.vimgrep.args', {})
 call far#tools#setdefault('g:far#sources.vimgrep.args.cmd', 'silent! {limit}vimgrep! /{pattern}/gj {file_mask}')
 call far#tools#setdefault('g:far#sources.vimgrep.args.escape_pattern', '/')
 
+call far#tools#setdefault('g:far#mode_open', { "regex" : 1, "case_sensitive"  : 0, "word" : 0, "substitute": 0 } )
+
+
 if executable('ag')
     let cmd = ['ag', '--nogroup', '--column', '--nocolor', '--silent',
         \   '--max-count={limit}', '{pattern}', '--file-search-regex={file_mask}']
@@ -156,6 +159,8 @@ function! s:create_win_params() abort
     \   'highlight_match': exists('g:far#highlight_match')? g:far#highlight_match : 1,
     \   'collapse_result': exists('g:far#collapse_result')? g:far#collapse_result : 0,
     \   'result_preview': exists('g:far#result_preview')? g:far#result_preview : 1,
+    \   'mode_prompt': 0,
+    \   'parent_buffnr': '',
     \   }
 endfunction
 
@@ -236,6 +241,7 @@ let g:far#file_mask_history = []
 "}}}
 
 
+
 " s:#default_mapping {{{
 let s:default_mapping = {
     \ "toggle_expand_all" : "zA",
@@ -257,6 +263,9 @@ let s:default_mapping = {
     \ "close_preview" : "P",
     \ "preview_scroll_up" : "<c-k>",
     \ "preview_scroll_down" : "<c-j>",
+    \ "replace_do" : 's',
+    \ "replace_undo" : 'u',
+    \ "quit" : 'q',
     \ }
 
 if !exists('g:far#mapping')
@@ -271,28 +280,31 @@ endif
 
 " s:act_func_ref {{{
 let s:act_func_ref = {
-    \ "stoggle_expand_all"  : { "nnoremap" : "far#change_collapse_all(-2)" },
-    \ "toggle_expand_all"   : { "nnoremap" : "far#change_collapse_all(-1)" },
-    \ "expand_all"          : { "nnoremap" : "far#change_collapse_all(0)" },
-    \ "collapse_all"        : { "nnoremap" : "far#change_collapse_all(1)" },
-    \ "toggle_expand"       : { "nnoremap" : "far#change_collapse_under_cursor(-1)" },
-    \ "expand"              : { "nnoremap" : "far#change_collapse_under_cursor(0)" },
-    \ "collapse"            : { "nnoremap" : "far#change_collapse_under_cursor(1)" },
-    \ "exclude"             : { "nnoremap" : "far#change_exclude_under_cursor(1)",
-    \                           "vnoremap" : "far#change_exclude_under_cursor(1)" },
-    \ "include"             : { "nnoremap" : "far#change_exclude_under_cursor(0)",
-    \                           "vnoremap" : "far#change_exclude_under_cursor(0)" },
-    \ "toggle_exclude"      : { "nnoremap" : "far#change_exclude_under_cursor(-1)",
-    \                           "vnoremap" : "far#change_exclude_under_cursor(-1)" },
-    \ "exclude_all"         : { "nnoremap" : "far#change_exclude_all(1)" },
-    \ "include_all"         : { "nnoremap" : "far#change_exclude_all(0)" },
-    \ "toggle_exclude_all"  : { "nnoremap" : "far#change_exclude_all(-1)" },
-    \ "stoggle_exclude_all" : { "nnoremap" : "far#change_exclude_all(-2)" },
-    \ "jump_to_source"      : { "nnoremap" : "far#jump_buffer_under_cursor()" },
-    \ "open_preview"        : { "nnoremap" : "far#show_preview_window_under_cursor()" },
-    \ "close_preview"       : { "nnoremap" : "far#close_preview_window()" },
-    \ "preview_scroll_up"   : { "nnoremap" : "far#scroll_preview_window(-g:far#preview_window_scroll_step)" },
-    \ "preview_scroll_down" : { "nnoremap" : "far#scroll_preview_window(g:far#preview_window_scroll_step)" },
+    \ "stoggle_expand_all"  : { "nnoremap <silent>" : ":call far#change_collapse_all(-2)<CR>" },
+    \ "toggle_expand_all"   : { "nnoremap <silent>" : ":call far#change_collapse_all(-1)<CR>" },
+    \ "expand_all"          : { "nnoremap <silent>" : ":call far#change_collapse_all(0)<CR>" },
+    \ "collapse_all"        : { "nnoremap <silent>" : ":call far#change_collapse_all(1)<CR>" },
+    \ "toggle_expand"       : { "nnoremap <silent>" : ":call far#change_collapse_under_cursor(-1)<CR>" },
+    \ "expand"              : { "nnoremap <silent>" : ":call far#change_collapse_under_cursor(0)<CR>" },
+    \ "collapse"            : { "nnoremap <silent>" : ":call far#change_collapse_under_cursor(1)<CR>" },
+    \ "exclude"             : { "nnoremap <silent>" : ":call far#change_exclude_under_cursor(1)<CR>",
+    \                           "vnoremap <silent>" : ":call far#change_exclude_under_cursor(1)<CR>" },
+    \ "include"             : { "nnoremap <silent>" : ":call far#change_exclude_under_cursor(0)<CR>",
+    \                           "vnoremap <silent>" : ":call far#change_exclude_under_cursor(0)<CR>" },
+    \ "toggle_exclude"      : { "nnoremap <silent>" : ":call far#change_exclude_under_cursor(-1)<CR>",
+    \                           "vnoremap <silent>" : ":call far#change_exclude_under_cursor(-1)<CR>" },
+    \ "exclude_all"         : { "nnoremap <silent>" : ":call far#change_exclude_all(1)<CR>" },
+    \ "include_all"         : { "nnoremap <silent>" : ":call far#change_exclude_all(0)<CR>" },
+    \ "toggle_exclude_all"  : { "nnoremap <silent>" : ":call far#change_exclude_all(-1)<CR>" },
+    \ "stoggle_exclude_all" : { "nnoremap <silent>" : ":call far#change_exclude_all(-2)<CR>" },
+    \ "jump_to_source"      : { "nnoremap <silent>" : ":call far#jump_buffer_under_cursor()<CR>" },
+    \ "open_preview"        : { "nnoremap <silent>" : ":call far#show_preview_window_under_cursor()<CR>" },
+    \ "close_preview"       : { "nnoremap <silent>" : ":call far#close_preview_window()<CR>" },
+    \ "preview_scroll_up"   : { "nnoremap <silent>" : ":call far#scroll_preview_window(-g:far#preview_window_scroll_step)<CR>" },
+    \ "preview_scroll_down" : { "nnoremap <silent>" : ":call far#scroll_preview_window(g:far#preview_window_scroll_step)<CR>" },
+    \ "replace_do"          : { "nnoremap <silent>" : ":Fardo<CR>" },
+    \ "replace_undo"        : { "nnoremap <silent>" : ":Farundo<CR>" },
+    \ "quit"                : { "nnoremap <silent>" : ":call far#close_far_buff()<CR>" },
     \ }
 " }}}
 
@@ -310,12 +322,12 @@ function! far#set_mappings(map, act_func_ref) abort "{{{
             let func_ref = a:act_func_ref[act][mapmode]
 
             if type(a:map[act]) == 1
-                exec "silent! ".mapmode." <silent><buffer> ".a:map[act]." :call ".func_ref."<CR>"
+                exec "silent! ".mapmode." <buffer> ".a:map[act]." ".func_ref
             endif
 
             if type(a:map[act]) == 3
                 for key in a:map[act]
-                    exec "silent! ".mapmode." <silent><buffer> ".key." :call ".func_ref."<CR>"
+                    exec "silent! ".mapmode." <buffer> ".key." ".func_ref
                 endfor
             endif
         endfor
@@ -462,7 +474,7 @@ function! far#show_preview_window_under_cursor() abort "{{{
     exec 'norm! '.ctxs[2].lnum.'ggzz0'.ctxs[2].cnum.'l'
     if !ctxs[2].replaced
         let pmatch = 'match FarPreviewMatch "\%'.ctxs[2].lnum.'l\%'.ctxs[2].cnum.'c'.
-                    \   '\v'.escape(ctxs[0].pattern, '"').(&ignorecase? '\c"' : '"')
+                    \   escape(ctxs[0].pattern, '"').(&ignorecase? '\c"' : '"')
         call far#tools#log('preview match: '.pmatch)
         exec pmatch
     else
@@ -903,7 +915,7 @@ function! far#replace(xargs) abort "{{{
         for item_ctx in file_ctx.items
             if !item_ctx.excluded && !item_ctx.replaced
                 let cmd = item_ctx.lnum.'s/\%'.item_ctx.cnum.'c'.
-                    \   '\v'.escape(far_ctx.pattern, '/').'/'.
+                    \   escape(far_ctx.pattern, '/').'/'.
                     \   escape(far_ctx.replace_with, '/').'/e#'
                 call add(cmds, cmd)
                 call add(items, item_ctx)
@@ -1072,7 +1084,7 @@ function! s:assemble_context(far_params, win_params, cmdargs, callback, cbparams
     endif
 
     try
-        call matchstr('str', '\v'.a:far_params.pattern)
+        call matchstr('str', a:far_params.pattern)
     catch
         call far#tools#echo_err('Invalid pattern regex: '.v:exception)
         return
@@ -1230,9 +1242,8 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
                 let line_num += 1
                 let line_num_text = '  '.item_ctx.lnum
                 let line_num_col_text = line_num_text.repeat(' ', 8-strchars(line_num_text))
-                let pattern = ( a:far_ctx.pattern[0:1]=='\<' && a:far_ctx.pattern[-2:-1]=='\>' ) ?
-                    \ '<' . a:far_ctx.pattern[2:-3] . '>' : a:far_ctx.pattern
-                let match_val = matchstr(item_ctx.text, '\v'.pattern, item_ctx.cnum-1)
+                let pattern = a:far_ctx.pattern
+                let match_val = matchstr(item_ctx.text, pattern, item_ctx.cnum-1)
                 let multiline = match(pattern, '\\n') >= 0
                 if multiline
                     let match_val = item_ctx.text[item_ctx.cnum:]
@@ -1244,7 +1255,7 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
                     let max_text_len = a:win_params.width / 2 - strdisplaywidth(line_num_col_text)
                     let max_repl_len = a:win_params.width / 2 - strdisplaywidth(g:far#repl_devider)
                     " item_ctx.cnum : byte id (begin with 1) the matched substring start from
-                    let repl_val = substitute(match_val, '\v'.pattern, a:far_ctx.replace_with, "")
+                    let repl_val = substitute(match_val, pattern, a:far_ctx.replace_with, "")
                     let repl_text = (item_ctx.cnum == 1? '' : item_ctx.text[0:item_ctx.cnum-2]).
                         \   repl_val. item_ctx.text[item_ctx.cnum+len(match_val)-1:]  " change to len, to support replacing wide char
                     let match_text = far#tools#centrify_text(item_ctx.text, max_text_len, item_ctx.cnum)
@@ -1371,9 +1382,23 @@ function! s:update_far_buffer(far_ctx, bufnr) abort "{{{
     call setbufvar(a:bufnr, 'far_ctx', a:far_ctx)
 endfunction "}}}
 
+function! far#close_far_buff() abort "{{{
+    let parent_buffnr = b:win_params.parent_buffnr
+    bdelete
+
+    let winnr = bufwinnr(parent_buffnr)
+    if winnr != -1
+        exe winnr . "wincmd w"
+    endif
+
+endfunction
+" }}}
+
 function! s:open_far_buff(far_ctx, win_params) abort "{{{
     call far#tools#log('open_far_buff('.string(a:win_params).')')
 
+    let parent_buffnr = bufnr('%')
+    " let parent_buff_path = expand('%:p')
     let fname = printf(s:far_buffer_name, s:buffer_counter)
     let bufnr = bufnr(fname)
     if bufnr != -1
@@ -1399,15 +1424,21 @@ function! s:open_far_buff(far_ctx, win_params) abort "{{{
     setlocal cursorline
     setfiletype far
 
-    if g:far#default_mappings
-        call g:far#apply_default_mappings()
+    let a:win_params['parent_buffnr'] = parent_buffnr
+    call setbufvar(bufnr, 'win_params', a:win_params)
+
+    if a:win_params.mode_prompt
+        call far#set_mappings(s:prompt_mapping_keys, s:prompt_act_func_ref)
+    else
+        if g:far#default_mappings
+            call g:far#apply_default_mappings()
+        endif
+        call s:update_far_buffer(a:far_ctx, bufnr)
     endif
 
-    call setbufvar(bufnr, 'win_params', a:win_params)
-    call s:update_far_buffer(a:far_ctx, bufnr)
     call s:start_resize_timer()
 
-    if a:win_params.auto_preview
+    if a:win_params.auto_preview && !a:win_params.mode_prompt
         if v:version >= 704
             autocmd CursorMoved <buffer> if b:win_params.auto_preview |
                 \   call g:far#show_preview_window_under_cursor() | endif
@@ -1476,6 +1507,7 @@ function! s:param_proc(far_params, win_params, cmdargs) "{{{
     let a:far_params.replace_with = substitute(a:far_params.replace_with,  "\<Char-0x0D>", '\\r', 'g')
 
     if a:far_params.file_mask == '%'
+        let a:far_params.cwd = expand('%:p:h')
         let a:far_params.file_mask = bufname('%')
     endif
 endfunction "}}}
@@ -1493,3 +1525,123 @@ function! s:ack_param_proc(far_params, win_params, cmdargs) "{{{
 endfunction "}}}
 
 " vim: set et fdm=marker sts=4 sw=4:
+
+if !exists('g:show_prompt_key')
+    let g:show_prompt_key=1
+endif
+
+let s:default_prompt_mapping={
+    \ 'quit'           : { 'key' : '<esc>', 'prompt' : 'Esc' },
+    \ 'regex'          : { 'key' : '<c-x>', 'prompt' : '^X'  },
+    \ 'case_sensitive' : { 'key' : '<c-c>', 'prompt' : '^C'  },
+    \ 'word'           : { 'key' : '<c-w>', 'prompt' : '^W'  },
+    \ 'substitute'     : { 'key' : '<c-s>', 'prompt' : '^S'  },
+    \ }
+
+if !exists('g:far#prompt_mapping')
+    let g:far#prompt_mapping = s:default_prompt_mapping
+else
+    for key in keys(s:default_prompt_mapping)
+        let g:far#prompt_mapping[key] = get(g:far#prompt_mapping, key,
+            \ s:default_prompt_mapping[key])
+    endfor
+endif
+
+let s:prompt_mapping_keys = {}
+let s:prompt_key_display = {}
+for key in keys(g:far#prompt_mapping)
+    let s:prompt_mapping_keys[key] = g:far#prompt_mapping[key]['key']
+    let s:prompt_key_display[key] = g:far#prompt_mapping[key]['prompt']
+endfor
+
+let s:far_prompt_escape = "\<c-o>"
+
+let s:prompt_act_func_ref={
+    \ 'quit'           : {'cnoremap': '<c-e>q'.s:far_prompt_escape.'<cr>'},
+    \ 'regex'          : {'cnoremap': '<c-e>x'.s:far_prompt_escape.'<cr>'},
+    \ 'case_sensitive' : {'cnoremap': '<c-e>c'.s:far_prompt_escape.'<cr>'},
+    \ 'word'           : {'cnoremap': '<c-e>w'.s:far_prompt_escape.'<cr>'},
+    \ 'substitute'     : {'cnoremap': '<c-e>s'.s:far_prompt_escape.'<cr>'},
+    \ }
+
+
+function! s:mode_prompt_update()  abort "{{{
+    hi FarModeOpen ctermfg=0 ctermbg=lightgray
+
+    let mode_list = ["regex", "case_sensitive", "word", "substitute"]
+    let far_mode_icon = {
+        \ "regex" : ".*",
+        \ "case_sensitive"  : "Aa",
+        \ "word" : '""',
+        \ "substitute": "⬇ ",
+        \ }
+
+    let new_prompt=''
+    for mode in mode_list
+        let new_prompt.='%* '
+        if g:far#mode_open[mode] == 1
+            let new_prompt.='%#FarModeOpen#'
+        else
+            let new_prompt.='%*'
+        endif
+        let new_prompt.=far_mode_icon[mode]
+        let new_prompt.='%*'
+        if g:show_prompt_key
+            let new_prompt.='('.s:prompt_key_display[mode].')'
+        endif
+    endfor
+
+    set laststatus=2
+    call setwinvar(winnr(), '&statusline', new_prompt)
+    redrawstatus
+endfunction " }}}
+
+
+function! far#mode_prompt_open() abort "{{{
+    let far_ctx = ''
+    let win_params = s:create_win_params()
+    let win_params['layout'] = 'bottom'
+    let win_params['height'] = 0
+    let win_params['mode_prompt'] = 1
+    call s:open_far_buff(far_ctx, win_params)
+endfunction
+" }}}
+
+
+function! far#mode_prompt_close() abort "{{{
+    bdelete
+endfunction " }}}
+
+
+function! far#mode_prompt_get_item(item_name, default_item, complete_list) abort "{{{
+    call s:mode_prompt_update()
+    let item=a:default_item
+    while 1
+        let item = input(a:item_name.': ', item, a:complete_list)
+        if strcharpart(item, strchars(item)-1,1) == s:far_prompt_escape
+            let mode=strcharpart(item, strchars(item)-2,1)
+            if mode == 'q'
+                call far#mode_prompt_close()
+                return ''
+            endif
+            if mode == 'x'
+                let g:far#mode_open['regex'] = ! g:far#mode_open['regex']
+            elseif mode == 'c'
+                let g:far#mode_open['case_sensitive'] = ! g:far#mode_open['case_sensitive']
+            elseif mode == 'w'
+                let g:far#mode_open['word'] = ! g:far#mode_open['word']
+            elseif mode == 's'
+                let g:far#mode_open['substitute'] = ! g:far#mode_open['substitute']
+            endif
+            call s:mode_prompt_update()
+            let item=strcharpart(item, 0, strchars(item)-2)
+
+            if !g:far#mode_open['substitute'] && a:item_name=='Replace with'
+                return 'disabled subsitution'
+            endif
+        elseif item != ''
+            break
+        endif
+    endwhile
+    return item
+endfunction " }}}

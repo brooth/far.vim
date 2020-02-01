@@ -86,6 +86,45 @@ USAGE                                                              *far-usage*
     Note: |Farp| allows empty [replace-with] if you need to remove matched text.
     For {pattern}, {replace-with}, {file-mask} and [params] see |Far| command.
 
+*:Farr* [params]
+*:Farf* [params]
+    |Farr| command allows to enter {pattern}, {replace-with} and {file-mask}
+    one after the other; |Farf| is similar to |Farr| without {replace-with}.
+    |Farr| and |Farf| provides a searching mode status bar fo regex, case
+    sensitive, word boundary and replacement.
+>
+     :Farr [<params>]
+     .*(^X) Aa(^C) ""(^W) ⬇ (^S)
+     >Search (pattern): {pattern}
+     >Replace with: [replace-with]
+     >File mask: {file-mask}
+<
+>
+     :Farf [<params>]
+     .*(^X) Aa(^C) ""(^W) ⬇ (^S)
+     >Search (pattern): {pattern}
+     >File mask: {file-mask}
+<
+    Below are the icon of each mode and the key mapping to toggle it. A mode
+    is on when its icon in the mode status bar is highlighted.
+
+                ------------------------------------------
+                icon    mode                        toggle
+                ------------------------------------------
+                [.*]    regex                       CTRL-X
+                [Aa]    case-sentive,               CTRL-A
+                [""]    word boundary               CTRL-W
+                [⬇ ]    replacement (substitution)  CTRL-S
+                        quit |Farr| or |Farf|       <Esc>
+                ------------------------------------------
+
+    Note: To change the key mappings, see |g:far#prompt_mapping|.
+    Note: To set initial mode status on starting vim, see |g:far#mode_open|.
+    For {pattern}, {replace-with}, {file-mask} and [params] see |Far| command.
+    Note: You don't have to escape space character.
+    Note: |Farr| allows empty [replace-with] if you need to remove matched text.
+
+
 *:Fardo* [params]
     |Fardo| starts the replacement task. This command must be executed in a FAR
     buffer (buffer with |Far| or |Farp| result).
@@ -352,6 +391,8 @@ CONFIGURATION                                                     *far-config*
 *g:far#default_file_mask*
     This value is used as the file-mask if it wasn't specified through the command.
 
+    Default: '%'
+
 *g:far#collapse_result*
     Auto collapse result tree.
     See |--collapse|
@@ -415,6 +456,14 @@ CONFIGURATION                                                     *far-config*
     This variable controls collapsed node icon.
 
     Default: '+'
+
+*g:far#mode_open*
+    This variable controls the initual saeching modes in |Farr| and |Farf|.
+    It is a dictionary, where the keys are saeching modes and the values are
+    0/1 for off/on.
+
+    Default: { "regex": 1, "case_sensitive": 0, "word": 0, "substitute": 0 }
+
 
 ------------------------------------------------------------------------------
 Highlighting Groups:                                    *far-highlight-config*
@@ -565,10 +614,11 @@ zs                                        *g:far#mapping['stoggle_expand_all']*
     expand all nodes when all are collpased, otherwise collapse all nodes.
 
 ------------------------------------------------------------------------------
-Customer Mappings:                                             *g:far#mapping*
+Customer Mappings:
 
+*g:far#mapping*
     By setting |g:far#mapping| as below, you can override the corresponding
-     variables in |default-far-mappings| with customer mappings.
+    variables in |default-far-mappings| with customer mappings.
 
 >
     let g:far#mapping = {
@@ -577,6 +627,23 @@ Customer Mappings:                                             *g:far#mapping*
         \ "close_preview" : ["P", "q"],
         \ "preview_scroll_up" : "<PageUp>",
         \ "preview_scroll_down" : "<PageDown>",
+        \ }
+<
+
+*g:far#prompt_mapping*
+    Set customer key mappings for |Farr| and |Farf| as blow.
+    This variable is a dictionary which has keys as below, and each value is a
+    sub-dictionary.
+    The sub-dictionary has two keys: 'key' is used to set key mappings and
+    'prompt' is displayed in the mode status bar of |Farr| and |Farf|.
+
+>
+    let g:far#prompt_mapping = {
+        \ 'quit'           : { 'key' : '<esc>', 'prompt' : 'Esc' },
+        \ 'regex'          : { 'key' : '<c-x>', 'prompt' : '^X'  },
+        \ 'case_sensitive' : { 'key' : '<c-a>', 'prompt' : '^A'  },
+        \ 'word'           : { 'key' : '<c-w>', 'prompt' : "^W"  },
+        \ 'substitute'     : { 'key' : '<c-f>', 'prompt' : '^F'  },
         \ }
 <
 
