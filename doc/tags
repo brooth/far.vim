@@ -65,6 +65,8 @@ g:far#mapping['jump_to_source']	far.txt	/*g:far#mapping['jump_to_source']*
 g:far#mapping['open_preview']	far.txt	/*g:far#mapping['open_preview']*
 g:far#mapping['preview_scroll_down']	far.txt	/*g:far#mapping['preview_scroll_down']*
 g:far#mapping['preview_scroll_up']	far.txt	/*g:far#mapping['preview_scroll_up']*
+g:far#mapping['replace_do']	far.txt	/*g:far#mapping['replace_do']*
+g:far#mapping['replace_undo']	far.txt	/*g:far#mapping['replace_undo']*
 g:far#mapping['stoggle_exclude_all']	far.txt	/*g:far#mapping['stoggle_exclude_all']*
 g:far#mapping['stoggle_expand_all']	far.txt	/*g:far#mapping['stoggle_expand_all']*
 g:far#mapping['toggle_exclude']	far.txt	/*g:far#mapping['toggle_exclude']*
@@ -85,4 +87,5 @@ g:far#window_height	far.txt	/*g:far#window_height*
 g:far#window_layout	far.txt	/*g:far#window_layout*
 g:far#window_min_content_width	far.txt	/*g:far#window_min_content_width*
 g:far#window_width	far.txt	/*g:far#window_width*
+g:show_prompt_key	far.txt	/*g:show_prompt_key*
 refar-params	far.txt	/*refar-params*
