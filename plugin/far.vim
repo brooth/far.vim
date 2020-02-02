@@ -79,7 +79,9 @@ function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, .
     call far#tools#log('=========== FAR MODE PROMPT ============')
 
     let cargs = far#tools#splitcmd(a:cmdline)
-    let selected = far#tools#visualtext("\n")
+    if a:rngmode != -1
+        let selected = far#tools#visualtext("\n")
+    endif
 
     " close existing buffer in current tab
     let origin_bufnr = winbufnr(winnr())
@@ -96,6 +98,9 @@ function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, .
             endif
         endif
     endfor
+
+    " sleep 100
+
 
     let current_winnr = printf('%d', bufwinnr(winbufnr(winnr())))
 
@@ -153,9 +158,10 @@ function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, .
     " disable escaped sequence
     let pattern = g:far#mode_open['regex'] ? pattern : substitute(pattern, '\\', '\\\\', 'g')
     let pattern = substitute(pattern, '\n', '\\n', 'g')
-    let pattern = (g:far#mode_open['case_sensitive'] ? '\C' : '') . pattern
+    let pattern = (g:far#mode_open['case_sensitive'] ? '\C' : '\c') . pattern
     let pattern = g:far#mode_open['word']            ? ('\<'.pattern.'\>') : pattern
     let pattern = (g:far#mode_open['regex']          ? ''   : '\V') . pattern
+
 
     let far_params = {
         \   'pattern': pattern,

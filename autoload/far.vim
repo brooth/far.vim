@@ -1028,22 +1028,37 @@ function! far#undo(xargs) abort "{{{
 
         exec 'buffer! '.file_ctx.fname
 
+        echo bufname('%')
+        " branch.sh
+
         let write_buf = undo_params.auto_write && !(&mod)
 
         if undo_params.auto_delete && !bufexists(file_ctx.fname)
             call add(del_bufs, bufnr(file_ctx.fname))
         endif
 
+        " echo undo_params
+        " " undo_params.all = 0
+        " " undo_params.auto_delete = 0
+        " " undo_params.auto_write = 1
+        " echo file_ctx.fname
+        " echo file_ctx.undos
+
         let items = []
         if undo_params.all
-            exec 'silent! undo '.file_ctx.undos[0].num
+            exec 'silent! earlier '.len(file_ctx.undos)
+            " exec 'silent! undo '.file_ctx.undos[0].num
             for undo in file_ctx.undos
                 let items += undo.items
             endfor
             let file_ctx.undos = []
         else
             let undo = remove(file_ctx.undos, len(file_ctx.undos)-1)
-            exec 'silent! undo '.undo.num
+            " echo 'undo' undo
+            " sleep 100
+            exec 'silent! earlier'
+            " exec 'silent! undo '.undo.num
+
             let items = undo.items
         endif
 
