@@ -79,6 +79,7 @@ function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, .
     call far#tools#log('=========== FAR MODE PROMPT ============')
 
     let cargs = far#tools#splitcmd(a:cmdline)
+    let selected = far#tools#visualtext("\n")
 
     " close existing buffer in current tab
     let origin_bufnr = winbufnr(winnr())
@@ -104,9 +105,14 @@ function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, .
     " init mode status
     let g:far#mode_open['substitute'] = a:substitute_open
 
+
     " get item "Find"
-    let pattern = far#mode_prompt_get_item('Find', '',
-        \ 'customlist,far#FarSearchComplete')
+    if a:rngmode != -1
+        let pattern = selected
+    else
+        let pattern = far#mode_prompt_get_item('Find', '',
+            \ 'customlist,far#FarSearchComplete')
+    endif
     if pattern == '' | return | endif
     call far#tools#log('>pattern: '.pattern)
 
@@ -142,10 +148,12 @@ function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, .
 
     call far#mode_prompt_close()
     exe current_winnr . "wincmd w"
+    " if mode
 
     " disable escaped sequence
     let pattern = g:far#mode_open['regex'] ? pattern : substitute(pattern, '\\', '\\\\', 'g')
-    let pattern = (g:far#mode_open['case_sensitive'] ? '\C' : '\c') . pattern
+    let pattern = substitute(pattern, '\n', '\\n', 'g')
+    let pattern = (g:far#mode_open['case_sensitive'] ? '\C' : '') . pattern
     let pattern = g:far#mode_open['word']            ? ('\<'.pattern.'\>') : pattern
     let pattern = (g:far#mode_open['regex']          ? ''   : '\V') . pattern
 
@@ -153,11 +161,12 @@ function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, .
         \   'pattern': pattern,
         \   'replace_with': replace_with,
         \   'file_mask': file_mask,
-        \   'range': a:rngmode == -1? [-1,-1] : [a:rngline1, a:rngline2],
-        \   }
+        \   'range': [-1, -1]
+        \  }
+        " a:rngmode == -1? [-1,-1] : [a:rngline1, a:rngline2],
+        " \   }
 
     call far#find(far_params, cargs)
-
 endfunction
 command! -complete=customlist,far#FarArgsComplete -nargs=* -range=-1 Farr
     \  call FarModePrompt(<count>,<line1>,<line2>,1,<q-args>)
