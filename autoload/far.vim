@@ -603,19 +603,25 @@ function! far#change_exclude_all(cmode) abort "{{{
         let all_excluded = 1
         for file_ctx in far_ctx.items
             for item_ctx in file_ctx.items
-                let all_excluded = all_excluded && item_ctx.excluded
+                if !item_ctx.replaced
+                    let all_excluded = all_excluded && item_ctx.excluded
+                endif
             endfor
         endfor
 
         for file_ctx in far_ctx.items
             for item_ctx in file_ctx.items
-                let item_ctx.excluded = !all_excluded
+                if !item_ctx.replaced
+                    let item_ctx.excluded = !all_excluded
+                endif
             endfor
         endfor
     else
         for file_ctx in far_ctx.items
             for item_ctx in file_ctx.items
-                let item_ctx.excluded = a:cmode == -1? (item_ctx.excluded == 0? 1 : 0) : a:cmode
+                if !item_ctx.replaced
+                    let item_ctx.excluded = a:cmode == -1? (item_ctx.excluded == 0? 1 : 0) : a:cmode
+                endif
             endfor
         endfor
     endif
@@ -635,7 +641,9 @@ function! far#change_exclude_under_cursor(cmode) abort "{{{
         let index += 1
         if pos == index
             for item_ctx in file_ctx.items
-                let item_ctx.excluded = a:cmode == -1? (item_ctx.excluded == 0? 1 : 0) : a:cmode
+                if !item_ctx.replaced
+                    let item_ctx.excluded = a:cmode == -1? (item_ctx.excluded == 0? 1 : 0) : a:cmode
+                endif
             endfor
             call s:update_far_buffer(far_ctx, bufnr)
             return
@@ -644,7 +652,7 @@ function! far#change_exclude_under_cursor(cmode) abort "{{{
         if !file_ctx.collapsed
             for item_ctx in file_ctx.items
                 let index += 1
-                if pos == index
+                if pos == index && !item_ctx.replaced
                     let item_ctx.excluded = a:cmode == -1? (item_ctx.excluded == 0? 1 : 0) : a:cmode
                     call s:update_far_buffer(far_ctx, bufnr)
                     exec 'norm! j'
@@ -907,6 +915,9 @@ function! far#replace(xargs) abort "{{{
         endfor
     endfor
 
+    let undonum_list = []
+    let undoitems_list = []
+
     for file_ctx in far_ctx.items
         call far#tools#log('replacing buffer '.file_ctx.fname)
 
@@ -922,11 +933,13 @@ function! far#replace(xargs) abort "{{{
             endif
         endfor
 
+        let undonum = 0
+        let undoitems = []
+
         if !empty(cmds)
             let buf_repls = 0
             let cmds = reverse(cmds)
             let undonum = far#tools#undo_nextnr()
-            let undoitems = []
 
             if !bufloaded(file_ctx.fname)
                 exec 'e! '.substitute(file_ctx.fname, ' ', '\\ ', 'g')
@@ -978,12 +991,25 @@ function! far#replace(xargs) abort "{{{
                     let item_ctx.broken = 1
                 endif
             endfor
-
-            if !empty(undoitems)
-                call add(file_ctx.undos, {'num': undonum, 'items': undoitems})
-            endif
         endif
+        " if empty(undoitems)
+        "     let undonum = 0
+        "     let undoitems = []
+        " endif
+        call add(undonum_list, undonum)
+        call add(undoitems_list, undoitems)
     endfor
+
+    let sum_undoitem_num = 0
+    for undoitems in undoitems_list
+        let sum_undoitem_num += len(undoitems)
+    endfor
+
+    if sum_undoitem_num
+        for i in range(0, len(undonum_list)-1)
+            call add(far_ctx.items[i].undos, {'num': undonum_list[i], 'items': undoitems_list[i]})
+        endfor
+    endif
 
     exec 'b! '.bufnr
     if !empty(del_bufs)
@@ -1005,6 +1031,7 @@ function! far#undo(xargs) abort "{{{
 
     let undo_params = s:create_undo_params()
     for xarg in a:xargs
+        " echo xarg|sleep 1
         for k in keys(s:undo_params_meta)
             if match(xarg, k) == 0
                 let val = xarg[len(k)+1:]
@@ -1013,6 +1040,7 @@ function! far#undo(xargs) abort "{{{
             endif
         endfor
     endfor
+    " echo undo_params | sleep 10
 
     let bufnr = bufnr('%')
     let start_ts = reltimefloat(reltime())
@@ -1028,7 +1056,7 @@ function! far#undo(xargs) abort "{{{
 
         exec 'buffer! '.file_ctx.fname
 
-        echo bufname('%')
+        " echo bufname('%')
         " branch.sh
 
         let write_buf = undo_params.auto_write && !(&mod)
@@ -1044,23 +1072,34 @@ function! far#undo(xargs) abort "{{{
         " echo file_ctx.fname
         " echo file_ctx.undos
 
+
         let items = []
         if undo_params.all
-            exec 'silent! earlier '.len(file_ctx.undos)
             " exec 'silent! undo '.file_ctx.undos[0].num
+            let sum_num = 0
             for undo in file_ctx.undos
+                let sum_num += len(undo.items)
                 let items += undo.items
             endfor
+            echo 'sum_num' sum_num
+            " for i in range(1,sum_num)
+            exec 'silent! undo ' .sum_num
+            " endfor
             let file_ctx.undos = []
         else
             let undo = remove(file_ctx.undos, len(file_ctx.undos)-1)
-            " echo 'undo' undo
-            " sleep 100
-            exec 'silent! earlier'
+            " echo file_ctx.fname . 'undo.num ='  . undo.num  . 'len(undo.items)=' . len(undo.items)
+            " sleep 5
+            " if undo.num
+            if len(undo.items)
+                exec 'silent! undo'
+                " exec 'silent! earlier'
+            endif
             " exec 'silent! undo '.undo.num
 
             let items = undo.items
         endif
+
 
         if write_buf
             exec 'silent! write'
@@ -1071,6 +1110,8 @@ function! far#undo(xargs) abort "{{{
             unlet item_ctx.repl_text
         endfor
     endfor
+
+    " sleep 3
 
     exec 'b! '.bufnr
     if !empty(del_bufs)
