@@ -165,22 +165,30 @@ function! s:create_win_params() abort
 endfunction
 
 function! s:create_repl_params() abort
-    return {
-    \   'auto_write': exists('g:far#auto_write_replaced_buffers')?
-    \       g:far#auto_write_replaced_buffers : 1,
-    \   'auto_delete': exists('g:far#auto_delete_replaced_buffers')?
-    \       g:far#auto_delete_replaced_buffers : 1,
-    \   }
+    if exists('g:far#enable_undo')
+        return { 'auto_write': 1, 'auto_delete': 0 }
+    else
+        return {
+        \   'auto_write': exists('g:far#auto_write_replaced_buffers') &&
+        \       g:far#auto_write_replaced_buffers : 1,
+        \   'auto_delete': exists('g:far#auto_delete_replaced_buffers')?
+        \       g:far#auto_delete_replaced_buffers : 0,
+        \   }
+    endif
 endfunction
 
 function! s:create_undo_params() abort
-    return {
-    \   'auto_write': exists('g:far#auto_write_undo_buffers')?
-    \       g:far#auto_write_undo_buffers : 1,
-    \   'auto_delete': exists('g:far#auto_delete_undo_buffers')?
-    \       g:far#auto_delete_undo_buffers : 0,
-    \   'all': 0,
-    \   }
+    if exists('g:far#enable_undo')
+        return { 'auto_write': 1, 'auto_delete': 0, 'all': 0 }
+    else
+        return {
+        \   'auto_write': exists('g:far#auto_write_undo_buffers')?
+        \       g:far#auto_write_undo_buffers : 1,
+        \   'auto_delete': exists('g:far#auto_delete_undo_buffers')?
+        \       g:far#auto_delete_undo_buffers : 0,
+        \   'all': 0,
+        \   }
+    endif
 endfunction
 "}}}
 
@@ -265,6 +273,7 @@ let s:default_mapping = {
     \ "preview_scroll_down" : "<c-j>",
     \ "replace_do" : 's',
     \ "replace_undo" : 'u',
+    \ "replace_undo_all" : 'U',
     \ "quit" : 'q',
     \ }
 
@@ -304,6 +313,7 @@ let s:act_func_ref = {
     \ "preview_scroll_down" : { "nnoremap <silent>" : ":call far#scroll_preview_window(g:far#preview_window_scroll_step)<CR>" },
     \ "replace_do"          : { "nnoremap <silent>" : ":Fardo<CR>" },
     \ "replace_undo"        : { "nnoremap <silent>" : ":Farundo<CR>" },
+    \ "replace_undo_all"    : { "nnoremap <silent>" : ":Farundo --all=1<CR>" },
     \ "quit"                : { "nnoremap <silent>" : ":call far#close_far_buff()<CR>" },
     \ }
 " }}}
@@ -917,6 +927,7 @@ function! far#replace(xargs) abort "{{{
 
     let undonum_list = []
     let undoitems_list = []
+    let temp_files = []
 
     for file_ctx in far_ctx.items
         call far#tools#log('replacing buffer '.file_ctx.fname)
@@ -933,21 +944,30 @@ function! far#replace(xargs) abort "{{{
             endif
         endfor
 
-        let undonum = 0
+        let undonum = -1
         let undoitems = []
 
         if !empty(cmds)
             let buf_repls = 0
             let cmds = reverse(cmds)
-            let undonum = far#tools#undo_nextnr()
+            " let undonum = far#tools#undo_nextnr()
 
             if !bufloaded(file_ctx.fname)
                 exec 'e! '.substitute(file_ctx.fname, ' ', '\\ ', 'g')
                 if repl_params.auto_delete
                     call add(del_bufs, bufnr(file_ctx.fname))
                 endif
+                call add(temp_files, file_ctx.fname)
             endif
+
+            " let oldbufnr = bufnr(file_ctx.fname)
             exec 'buffer! '.file_ctx.fname
+            let undonum = far#tools#undo_nextnr()
+            " if oldbufnr == -1
+            "     write
+            " endif
+            " echo oldbufnr file_ctx.fname
+
 
             if !repl_params.auto_delete && !buflisted(file_ctx.fname)
                 set buflisted
@@ -1005,6 +1025,9 @@ function! far#replace(xargs) abort "{{{
         let sum_undoitem_num += len(undoitems)
     endfor
 
+    " echo 'undonum_list =' undonum_list
+    " sleep 1
+
     if sum_undoitem_num
         for i in range(0, len(undonum_list)-1)
             call add(far_ctx.items[i].undos, {'num': undonum_list[i], 'items': undoitems_list[i]})
@@ -1016,6 +1039,12 @@ function! far#replace(xargs) abort "{{{
         call far#tools#log('delete buffers: '.join(del_bufs, ' '))
         exec 'silent bd! '.join(del_bufs, ' ')
     endif
+
+    if !exists('b:temp_files')
+        let b:temp_files = []
+    endif
+    let b:temp_files += temp_files
+    let b:temp_files = uniq(sort(b:temp_files))
 
     let b:far_ctx.repl_time = printf('%.3fms', reltimefloat(reltime()) - start_ts)
     call s:update_far_buffer(b:far_ctx, bufnr)
@@ -1075,24 +1104,36 @@ function! far#undo(xargs) abort "{{{
 
         let items = []
         if undo_params.all
-            " exec 'silent! undo '.file_ctx.undos[0].num
-            let sum_num = 0
+            " exec 'silent! earlier'
+
             for undo in file_ctx.undos
-                let sum_num += len(undo.items)
+                " if len(undo.items)
+                "     exec 'silent! undo'
+                " endif
                 let items += undo.items
             endfor
-            echo 'sum_num' sum_num
-            " for i in range(1,sum_num)
-            exec 'silent! undo ' .sum_num
-            " endfor
+
+            let undo_num = -1
+            for undo in file_ctx.undos
+                if len(undo.items)
+                    let undo_num = undo.num
+                    break
+                endif
+            endfor
+
+            if undo_num != -1
+                exec 'silent! undo '. undo_num
+            endif
+
             let file_ctx.undos = []
         else
             let undo = remove(file_ctx.undos, len(file_ctx.undos)-1)
-            " echo file_ctx.fname . 'undo.num ='  . undo.num  . 'len(undo.items)=' . len(undo.items)
-            " sleep 5
+            " echo file_ctx.fname . ' undo.num = '  . undo.num  . ' len(undo.items)=' . len(undo.items)
+            " sleep 1
             " if undo.num
             if len(undo.items)
-                exec 'silent! undo'
+                " exec 'silent! undo'
+                exec 'silent! undo ' . undo.num
                 " exec 'silent! earlier'
             endif
             " exec 'silent! undo '.undo.num
@@ -1439,6 +1480,13 @@ function! s:update_far_buffer(far_ctx, bufnr) abort "{{{
 endfunction "}}}
 
 function! far#close_far_buff() abort "{{{
+    call far#tools#log('far#close_far_buff() ' . bufnr('%') . ' ' . bufname('%'))
+
+    if !empty(b:temp_files)
+        call far#tools#log('delete buffers: '.join(b:temp_files, ' '))
+        exec 'silent bd! '.join(b:temp_files, ' ')
+    endif
+
     let parent_buffnr = b:win_params.parent_buffnr
     bdelete
 
@@ -1446,7 +1494,6 @@ function! far#close_far_buff() abort "{{{
     if winnr != -1
         exe winnr . "wincmd w"
     endif
-
 endfunction
 " }}}
 
@@ -1490,6 +1537,7 @@ function! s:open_far_buff(far_ctx, win_params) abort "{{{
             call g:far#apply_default_mappings()
         endif
         call s:update_far_buffer(a:far_ctx, bufnr)
+        call setbufvar(bufnr, 'temp_files', [])
     endif
 
     call s:start_resize_timer()

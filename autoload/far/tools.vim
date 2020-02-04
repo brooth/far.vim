@@ -65,17 +65,36 @@ function! far#tools#win_layout(win_params, param_prefix, fname) abort "{{{
     return layout.' new '.fname
 endfunction "}}}
 
+" function! far#tools#undo_nextnr() "{{{
+"     let undonum = changenr()
+"     let curhead = 0
+"     for undoentry in reverse(undotree().entries)
+"         if curhead
+"             call far#tools#log('undo seq:'.undoentry.seq)
+"             let undonum = undoentry.seq
+"             break
+"         endif
+"         let curhead = get(undoentry, 'curhead', 0)
+"     endfor
+"     return undonum
+" endfunction "}}}
+
 function! far#tools#undo_nextnr() "{{{
+    " the undo sequence number of current status
     let undonum = changenr()
-    let curhead = 0
-    for undoentry in reverse(undotree().entries)
-        if curhead
-            call far#tools#log('undo seq:'.undoentry.seq)
-            let undonum = undoentry.seq
-            break
-        endif
-        let curhead = get(undoentry, 'curhead', 0)
-    endfor
+
+    " " if current status is just after an `undo` command,
+    " " get the undo sequence number of current status
+    " let curhead = 0
+    " for undoentry in reverse(undotree().entries)
+    "     if curhead
+    "         call far#tools#log('undo seq:'.undoentry.seq)
+    "         let undonum = undoentry.seq
+    "         break
+    "     endif
+    "     let curhead = get(undoentry, 'curhead', 0)
+    " endfor
+
     return undonum
 endfunction "}}}
 
