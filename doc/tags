@@ -87,5 +87,5 @@ g:far#window_height	far.txt	/*g:far#window_height*
 g:far#window_layout	far.txt	/*g:far#window_layout*
 g:far#window_min_content_width	far.txt	/*g:far#window_min_content_width*
 g:far#window_width	far.txt	/*g:far#window_width*
-g:show_prompt_key	far.txt	/*g:show_prompt_key*
+g:far#show_prompt_key	far.txt	/*g:far#show_prompt_key*
 refar-params	far.txt	/*refar-params*

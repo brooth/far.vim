@@ -46,7 +46,7 @@ Interative `F`. The interaction is similar to `Farr`.
 Runs the replacement task. The shortcut for it is `s` (substitute).
 
 #### :Farundo [params]
-Undo the recurrent replacement. The shortcut for it is `u` (undo).
+Undo the recurrent replacement. The shortcut for it is `u` (undo). It is available when set `let g:far#enable_undo=1`.
 
 #### :Refar [params]
 Change `Far`/`F`/`Farr`/`Farf` params.

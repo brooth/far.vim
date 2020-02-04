@@ -125,12 +125,17 @@ USAGE                                                              *far-usage*
     Customer settings:
     To change the key mappings, see |g:far#prompt_mapping|.
     To set initial mode status on starting vim, see |g:far#mode_open|.
-    To enable/disable mapping prompt like (^X), see |g:show_prompt_key|.
+    To enable/disable mapping prompt like (^X), see |g:far#show_prompt_key|.
 
 *:Fardo* [params]
     |Fardo| starts the replacement task. This command must be executed in a FAR
     buffer (buffer with |Far| or |Farp| result).
     For [params] see |fardo-params|.
+
+*:Farundo* [params]
+    |Farundo| undos the last replacement tasktaken by |Fardo|. This command is
+    only available when you set `let |g:far#enable_undo|=1`.
+    For [params] see |farundo-params|.
 
 *:Refar* [params]
     |Refar| reruns |Far| or |Farp| with the same arguments or you can change
@@ -151,8 +156,8 @@ EXTRAS                                                            *far-extras*
 
 Multiline Replacement                                          *far-multiline*
 
-    It's allowed to use multiline text as {pattern} or/and {replace-with}
-    expressions for |Far|, |Farp| and |F| commands.
+    It's allowed to use oneline or multiline text as {pattern} or/and
+    {replace-with} expressions for |Far|, |Farp| and |F| commands.
 
     a) The first approach is to use visual selection. Go to Visual mode,
     highlight the text you want to replace and hit ':'. Use '*' as {pattern}:
@@ -166,6 +171,18 @@ Multiline Replacement                                          *far-multiline*
      >Replace with: [replace-with]
      >File mask: {file-mask}
 <
+    For |Farr| and |Farf|, '*' is unnecessary. They will automatically use the
+    visual selection as searching pattern:
+>
+     :'<,'>Farr [<params>]
+     >Replace with: [replace-with]
+     >File mask: {file-mask}
+<
+>
+     :'<,'>Farf [<params>]
+     >File mask: {file-mask}
+<
+
     b) The second approach - simply paste yanked text.
 >
     :Far <^ra> <^rb> {file-mask} [params]
@@ -274,6 +291,7 @@ CONFIGURATION                                                     *far-config*
             Synchronous source. Uses |:vimgrep| to find candidates.
             Doesn't need external dependencies.
             Supports multiline search.
+            Only 'vimgrep' supports |:Farr| and |:Farf|.
 
         'ag'
             Synchronous source. Uses "Ag" (The Silver Searcher) to find
@@ -422,6 +440,15 @@ CONFIGURATION                                                     *far-config*
     Options: 0, 1
     Default: 0
 
+*g:far#enable_undo*
+    To enable |:Farundo| set this variable to 1. This setting will override
+    |g:far#auto_write_replaced_buffers| and |g:far#auto_delete_replaced_buffers,
+    so that |:Fardo| and |:Farundo| automatically write replaced/undone buffers
+    (if it hasn't been loaded), and do not delete those buffers.
+
+    Options: 0, 1
+    Default: 0
+
 *g:far#window_min_content_width*
     Minimal width of a FAR buffer content.
 
@@ -467,7 +494,7 @@ CONFIGURATION                                                     *far-config*
 
     Default: { "regex": 1, "case_sensitive": 0, "word": 0, "substitute": 0 }
 
-*g:show_prompt_key*
+*g:far#show_prompt_key*
     This variable controls whether to display prompt for the key mappings in
     |Farr| and |Farf|.
 
@@ -627,6 +654,10 @@ s                                                *g:far#mapping['replace_do']*
 u                                              *g:far#mapping['replace_undo']*
     Execute |:Farundo|<CR>, to undo the last replacement by |:Fardo|.
 
+U                                          *g:far#mapping['replace_undo_all']*
+    Execute |:Farundo| --all=1<CR>, to undo all replacements by |:Fardo|.
+    For param `--all=` see |farundo-params|.
+
 ------------------------------------------------------------------------------
 Customer Mappings:
 
@@ -726,6 +757,18 @@ COMMAND PARAMS
 --auto-delete-bufs
     |Fardo| param. Changes |g:far#auto_delete_replaced_buffers| value for
     current execution.
+
+--auto-write-bufs                                            *farundo-params*
+    |Farundo| param. Changes |g:far#auto_write_replaced_buffers| value for
+    current execution.
+
+--auto-delete-bufs
+    |Farundo| param. Changes |g:far#auto_delete_replaced_buffers| value for
+    current execution.
+
+--all
+    |Farundo| param. Set `--all=1` to undo all replacements taken by |:Fardo|,
+    otherwise to undo the last replacement.
 
 --pattern                                                       *refar-params*
     |Refar| param. Changes {pattern} value for current execution.

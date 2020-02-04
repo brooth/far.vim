@@ -1643,8 +1643,8 @@ endfunction "}}}
 
 " vim: set et fdm=marker sts=4 sw=4:
 
-if !exists('g:show_prompt_key')
-    let g:show_prompt_key=1
+if !exists('g:far#show_prompt_key')
+    let g:far#show_prompt_key=1
 endif
 
 let s:default_prompt_mapping={
@@ -1703,7 +1703,7 @@ function! s:mode_prompt_update()  abort "{{{
         endif
         let new_prompt.=far_mode_icon[mode]
         let new_prompt.='%*'
-        if g:show_prompt_key
+        if g:far#show_prompt_key
             let new_prompt.='('.s:prompt_key_display[mode].')'
         endif
     endfor
