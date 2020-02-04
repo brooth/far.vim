@@ -79,6 +79,14 @@ function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, .
     call far#tools#log('=========== FAR MODE PROMPT ============')
 
     let cargs = far#tools#splitcmd(a:cmdline)
+    for i in cargs
+        if i =~ '^--source=' && i != '--source=vimgrep'
+            call far#tools#echo_err('FarModePrompt is only available for `--source=vimgrep` (dafault).')
+            return
+        endif
+    endfor
+
+
     if a:rngmode != -1
         let selected = far#tools#visualtext("\n")
     endif
@@ -174,9 +182,9 @@ function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, .
 
     call far#find(far_params, cargs)
 endfunction
-command! -complete=customlist,far#FarArgsComplete -nargs=* -range=-1 Farr
+command! -complete=customlist,far#ModePromptComplete -nargs=* -range=-1 Farr
     \  call FarModePrompt(<count>,<line1>,<line2>,1,<q-args>)
-command! -complete=customlist,far#FarArgsComplete -nargs=* -range=-1 Farf
+command! -complete=customlist,far#ModePromptComplete -nargs=* -range=-1 Farf
     \  call FarModePrompt(<count>,<line1>,<line2>,0,<q-args>)
 "}}}
 
@@ -231,6 +239,10 @@ command! -complete=customlist,far#FardoComplete -nargs=* Fardo call FarDo(<f-arg
 "}}}
 
 function! FarUndo(...) abort "{{{
+    if ! ( exists('g:far#enable_undo') && g:far#enable_undo )
+        call far#tools#echo_err('`:Farundo` is not available now. Please `let g:far#enable_undo=1`')
+        return
+    endif
     call far#tools#log('============= FAR UNDO ================')
     call far#undo(a:000)
 endfunction

@@ -108,12 +108,14 @@ if executable('rg')
         \   '--max-count={limit}']
     if &smartcase
         call add(cmd, '--smart-case')
-    endif
-    if &ignorecase
-        call add(cmd, '--ignore-case')
     else
-        call add(cmd, '--case-sensitive')
+        if &ignorecase
+            call add(cmd, '--ignore-case')
+        else
+            call add(cmd, '--case-sensitive')
+        endif
     endif
+
     call add(cmd, '--glob={file_mask}')
     call add(cmd, '{pattern}')
 
@@ -165,11 +167,11 @@ function! s:create_win_params() abort
 endfunction
 
 function! s:create_repl_params() abort
-    if exists('g:far#enable_undo')
+    if exists('g:far#enable_undo') && g:far#enable_undo
         return { 'auto_write': 1, 'auto_delete': 0 }
     else
         return {
-        \   'auto_write': exists('g:far#auto_write_replaced_buffers') &&
+        \   'auto_write': exists('g:far#auto_write_replaced_buffers')?
         \       g:far#auto_write_replaced_buffers : 1,
         \   'auto_delete': exists('g:far#auto_delete_replaced_buffers')?
         \       g:far#auto_delete_replaced_buffers : 0,
@@ -178,7 +180,7 @@ function! s:create_repl_params() abort
 endfunction
 
 function! s:create_undo_params() abort
-    if exists('g:far#enable_undo')
+    if exists('g:far#enable_undo') && g:far#enable_undo
         return { 'auto_write': 1, 'auto_delete': 0, 'all': 0 }
     else
         return {
@@ -197,6 +199,11 @@ let s:suggest_sources = keys(filter(copy(g:far#sources), "get(g:far#sources[v:ke
 
 let s:far_params_meta = {
     \   '--source': {'param': 'source', 'values': s:suggest_sources},
+    \   '--cwd': {'param': 'cwd', 'values': [getcwd()], 'fnvalues': 's:complete_dir'},
+    \   '--limit': {'param': 'limit', 'values': [g:far#limit]},
+    \   }
+
+let s:far_params_meta_vimgrep = {
     \   '--cwd': {'param': 'cwd', 'values': [getcwd()], 'fnvalues': 's:complete_dir'},
     \   '--limit': {'param': 'limit', 'values': [g:far#limit]},
     \   }
@@ -768,6 +775,12 @@ function! far#FarArgsComplete(arglead, cmdline, cursorpos) abort
     let all_params_meta = extend(copy(s:far_params_meta), s:win_params_meta)
     return s:metargs_complete(a:arglead, a:cmdline, a:cursorpos, all_params_meta)
 endfunction
+
+function! far#ModePromptComplete(arglead, cmdline, cursorpos) abort
+    let all_params_meta = extend(copy(s:far_params_meta_vimgrep), s:win_params_meta)
+    return s:metargs_complete(a:arglead, a:cmdline, a:cursorpos, all_params_meta)
+endfunction
+
 
 function! far#FindArgsComplete(arglead, cmdline, cursorpos) abort
     let all_params_meta = extend(copy(s:far_params_meta), s:find_win_params_meta)
@@ -1605,10 +1618,10 @@ function! s:param_proc(far_params, win_params, cmdargs) "{{{
         let a:far_params.range = [-1, -1]
         call far#tools#log('*pattern:'.a:far_params.pattern)
     else
-        let a:far_params.pattern = substitute(a:far_params.pattern, "\<Char-0x0D>", '\\n', 'g')
+        let a:far_params.pattern = substitute(a:far_params.pattern, "\<C-M>", '\\n', 'g')
     endif
 
-    let a:far_params.replace_with = substitute(a:far_params.replace_with,  "\<Char-0x0D>", '\\r', 'g')
+    let a:far_params.replace_with = substitute(a:far_params.replace_with,  "\<C-M>", '\\r', 'g')
 
     if a:far_params.file_mask == '%'
         let a:far_params.cwd = expand('%:p:h')
