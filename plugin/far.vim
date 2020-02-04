@@ -107,9 +107,6 @@ function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, .
         endif
     endfor
 
-    " sleep 100
-
-
     let current_winnr = printf('%d', bufwinnr(winbufnr(winnr())))
 
     " new a buffer for searching mode bar
@@ -117,7 +114,6 @@ function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, .
 
     " init mode status
     let g:far#mode_open['substitute'] = a:substitute_open
-
 
     " get item "Find"
     if a:rngmode != -1
@@ -161,7 +157,6 @@ function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, .
 
     call far#mode_prompt_close()
     exe current_winnr . "wincmd w"
-    " if mode
 
     " disable escaped sequence
     let pattern = g:far#mode_open['regex'] ? pattern : substitute(pattern, '\\', '\\\\', 'g')
@@ -178,7 +173,6 @@ function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, .
         \   'range': [-1, -1]
         \  }
         " a:rngmode == -1? [-1,-1] : [a:rngline1, a:rngline2],
-        " \   }
 
     call far#find(far_params, cargs)
 endfunction
