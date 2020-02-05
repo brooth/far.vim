@@ -234,13 +234,20 @@ Preview Window                                                   *far-preview*
     the preview window on cursor movement. If |g:far#auto_preview| is set to 0,
     you can control preview window manually (see |far-mappings|). You can also
     scroll preview window up and down from a FAR buffer (no need to switch
-    focus to the preview window).
+    focus to the preview window). By default <c-k> scrolls up and <c-j> scrolls
+    down.
 
-    By default <c-k> scrolls up and <c-j> scrolls down.
+    When |g:far#auto_preview| = 1 , if |g:far#auto_preview-on-start| flag is
+    set to 1, the preview window will be opened on cursor movement, once starting
+    the result window; if  |g:far#auto_preview-on-start| flag is set to 0, the
+    preview window will not be opened on cursor movement, until you press 'p',
+    the key mapping to manually open the preview window. For the key mapping in
+    result window see |default-far-mappings|.
 
     See |far-mappings|, |g:far#preview_window_scroll_step|,
-        |g:far#auto_preview|, |g:far#preview_window_layout|,
-        |g:far#preview_window_width|, |g:far#preview_window_height|.
+        |g:far#auto_preview|, |g:far#auto_preview_on_start|,
+        |g:far#preview_window_layout|,|g:far#preview_window_width|,
+        |g:far#preview_window_height|.
 
 
 Jump to source                                                      *far-jump*
@@ -346,6 +353,13 @@ CONFIGURATION                                                     *far-config*
 *g:far#auto_preview*
     Automatically open/scroll preview window on cursor movement.
     See |far-preview|, |--auto-preview|
+
+    Options: 0, 1
+    Default: 1
+
+*g:far#auto_preview_on_start*
+    Automatically open/scroll preview window on starting result windows.
+    See |far-preview|, |--auto-preview-on-start|
 
     Options: 0, 1
     Default: 1
@@ -744,6 +758,10 @@ COMMAND PARAMS
 
 --auto-preview
     |Far|, |Farp| and |F| param. Changes |g:far#auto_preview| value for
+    current execution.
+
+---auto-preview-on-start
+    |Far|, |Farp| and |F| param. Changes |g:far#auto_preview_on_start| value for
     current execution.
 
 --hl-match
