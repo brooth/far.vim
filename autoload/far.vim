@@ -158,6 +158,7 @@ function! s:create_win_params() abort
     \   'preview_width': exists('g:far#preview_window_width')? g:far#preview_window_width : 100,
     \   'preview_height': exists('g:far#preview_window_height')? g:far#preview_window_height : 11,
     \   'auto_preview': exists('g:far#auto_preview')? g:far#auto_preview : 1,
+    \   'auto_preview_on_start' : exists('g:far#auto_preview_on_start') ? g:far#auto_preview_on_start : 1,
     \   'highlight_match': exists('g:far#highlight_match')? g:far#highlight_match : 1,
     \   'collapse_result': exists('g:far#collapse_result')? g:far#collapse_result : 0,
     \   'result_preview': exists('g:far#result_preview')? g:far#result_preview : 1,
@@ -217,6 +218,7 @@ let s:win_params_meta = {
     \   '--preview-win-width': {'param': 'preview_width', 'values': [60, 70, 80, 90, 100, 110, 120, 130, 140, 150]},
     \   '--preview-win-height': {'param': 'preview_height', 'values': [5, 7, 10, 15, 20, 25, 30]},
     \   '--auto-preview': {'param': 'auto_preview', 'values': [0, 1]},
+    \   '--auto-preview-on-start': {'param': 'auto_preview_on_start', 'values': [0, 1]},
     \   '--hl-match': {'param': 'highlight_match', 'values': [0, 1]},
     \   '--collapse': {'param': 'collapse_result', 'values': [0, 1]},
     \   '--result-preview': {'param': 'result_preview', 'values': [0, 1]},
@@ -456,7 +458,9 @@ function! far#show_preview_window_under_cursor() abort "{{{
         return
     endif
 
-    let b:win_params.auto_preview = s:create_win_params().auto_preview
+    let b:win_params.preview_on = b:win_params.auto_preview
+
+    " let b:win_params.auto_preview = s:create_win_params().auto_preview
 
     let far_bufnr = bufnr('%')
     let far_winid = win_getid(winnr())
@@ -527,15 +531,15 @@ endfunction "}}}
 function! far#close_preview_window() abort "{{{
     call far#tools#log('far#close_preview_window()')
 
-    if !exists('b:far_preview_winid')
-        call far#tools#echo_err('No preview window for current buffer')
-        return
-    endif
+    let b:win_params.preview_on = 0
 
-    let winnr = win_id2win(b:far_preview_winid)
-    if winnr > 0
-        let b:win_params.auto_preview = 0
-        exec 'quit '.winnr
+    if exists('b:far_preview_winid')
+        let winnr = win_id2win(b:far_preview_winid)
+        if winnr > 0
+            exec 'quit '.winnr
+        endif
+    else
+        call far#tools#echo_err('No preview window for current buffer')
     endif
 endfunction "}}}
 
@@ -1724,13 +1728,21 @@ function! s:open_far_buff(far_ctx, win_params) abort "{{{
 
     call s:start_resize_timer()
 
-    if a:win_params.auto_preview && !a:win_params.mode_prompt
-        if v:version >= 704
-            autocmd CursorMoved <buffer> if b:win_params.auto_preview |
-                \   call g:far#show_preview_window_under_cursor() | endif
-        else
-            call far#tools#echo_err('auto preview is available on vim 7.4+')
+    if !a:win_params.mode_prompt
+        let b:win_params.preview_on = a:win_params.auto_preview &&
+                                         \ a:win_params.auto_preview_on_start
+        if a:win_params.auto_preview
+            if v:version >= 704
+                autocmd CursorMoved <buffer> if b:win_params.preview_on |
+                    \   call g:far#show_preview_window_under_cursor() | endif
+            else
+                call far#tools#echo_err('auto preview is available on vim 7.4+')
+            endif
         endif
+        " if !a:win_params.auto_preview_on_start
+        "     call far#show_preview_window_under_cursor()
+        "     call far#close_preview_window()
+        " endif
     endif
 endfunction "}}}
 
