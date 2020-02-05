@@ -161,6 +161,7 @@ function! s:create_win_params() abort
     \   'highlight_match': exists('g:far#highlight_match')? g:far#highlight_match : 1,
     \   'collapse_result': exists('g:far#collapse_result')? g:far#collapse_result : 0,
     \   'result_preview': exists('g:far#result_preview')? g:far#result_preview : 1,
+    \   'enable_replace': 1,
     \   'mode_prompt': 0,
     \   'parent_buffnr': '',
     \   }
@@ -219,10 +220,12 @@ let s:win_params_meta = {
     \   '--hl-match': {'param': 'highlight_match', 'values': [0, 1]},
     \   '--collapse': {'param': 'collapse_result', 'values': [0, 1]},
     \   '--result-preview': {'param': 'result_preview', 'values': [0, 1]},
+    \   '--enable-replace': {'param': 'enable_replace', 'values': [0, 1]},
     \   }
 
 let s:find_win_params_meta = copy(s:win_params_meta)
 call remove(s:find_win_params_meta, '--result-preview')
+call remove(s:find_win_params_meta, '--enable-replace')
 
 let s:repl_params_meta = {
     \   '--auto-write-bufs': {'param': 'auto_write', 'values': [0, 1]},
@@ -260,24 +263,31 @@ let g:far#file_mask_history = []
 " s:#default_mapping {{{
 let s:default_mapping = {
     \ "toggle_expand_all" : "zA",
-    \ "stoggle_expand_all" : "zs",
+    \ "stoggle_expand_all" : "zS",
     \ "expand_all" : "zr",
     \ "collapse_all" : "zm",
+    \
     \ "toggle_expand" : "za",
+    \ "stoggle_expand" : "zs",
     \ "expand" : "zo",
     \ "collapse" : "zc",
+    \
     \ "exclude" : "x",
     \ "include" : "i",
     \ "toggle_exclude" : "t",
+    \ "stoggle_exclude" : "f",
+    \
     \ "exclude_all" : "X",
     \ "include_all" : "I",
     \ "toggle_exclude_all" : "T",
-    \ "stoggle_exclude_all" : "S",
+    \ "stoggle_exclude_all" : "F",
+    \
     \ "jump_to_source" : "<cr>",
     \ "open_preview" : "p",
     \ "close_preview" : "P",
     \ "preview_scroll_up" : "<c-k>",
     \ "preview_scroll_down" : "<c-j>",
+    \
     \ "replace_do" : 's',
     \ "replace_undo" : 'u',
     \ "replace_undo_all" : 'U',
@@ -300,24 +310,36 @@ let s:act_func_ref = {
     \ "toggle_expand_all"   : { "nnoremap <silent>" : ":call far#change_collapse_all(-1)<CR>" },
     \ "expand_all"          : { "nnoremap <silent>" : ":call far#change_collapse_all(0)<CR>" },
     \ "collapse_all"        : { "nnoremap <silent>" : ":call far#change_collapse_all(1)<CR>" },
-    \ "toggle_expand"       : { "nnoremap <silent>" : ":call far#change_collapse_under_cursor(-1)<CR>" },
-    \ "expand"              : { "nnoremap <silent>" : ":call far#change_collapse_under_cursor(0)<CR>" },
-    \ "collapse"            : { "nnoremap <silent>" : ":call far#change_collapse_under_cursor(1)<CR>" },
+    \
+    \ "stoggle_expand"      : { "nnoremap <silent>" : ":call far#change_collapse_under_cursor(-1)<CR>",
+    \                           "vnoremap <silent>" : ":call far#change_collapse_under_selection(-2)<CR>" },
+    \ "toggle_expand"       : { "nnoremap <silent>" : ":call far#change_collapse_under_cursor(-1)<CR>",
+    \                           "vnoremap <silent>" : ":call far#change_collapse_under_selection(-1)<CR>" },
+    \ "expand"              : { "nnoremap <silent>" : ":call far#change_collapse_under_cursor(0)<CR>",
+    \                           "vnoremap <silent>" : ":call far#change_collapse_under_selection(0)<CR>" },
+    \ "collapse"            : { "nnoremap <silent>" : ":call far#change_collapse_under_cursor(1)<CR>",
+    \                           "vnoremap <silent>" : ":call far#change_collapse_under_selection(1)<CR>" },
+    \
     \ "exclude"             : { "nnoremap <silent>" : ":call far#change_exclude_under_cursor(1)<CR>",
-    \                           "vnoremap <silent>" : ":call far#change_exclude_under_cursor(1)<CR>" },
+    \                           "vnoremap <silent>" : ":call far#change_exclude_under_selection(1)<CR>" },
     \ "include"             : { "nnoremap <silent>" : ":call far#change_exclude_under_cursor(0)<CR>",
-    \                           "vnoremap <silent>" : ":call far#change_exclude_under_cursor(0)<CR>" },
+    \                           "vnoremap <silent>" : ":call far#change_exclude_under_selection(0)<CR>" },
     \ "toggle_exclude"      : { "nnoremap <silent>" : ":call far#change_exclude_under_cursor(-1)<CR>",
-    \                           "vnoremap <silent>" : ":call far#change_exclude_under_cursor(-1)<CR>" },
+    \                           "vnoremap <silent>" : ":call far#change_exclude_under_selection(-1)<CR>" },
+    \ "stoggle_exclude"     : { "nnoremap <silent>" : ":call far#change_exclude_under_cursor(-1)<CR>",
+    \                           "vnoremap <silent>" : ":call far#change_exclude_under_selection(-2)<CR>" },
+    \
     \ "exclude_all"         : { "nnoremap <silent>" : ":call far#change_exclude_all(1)<CR>" },
     \ "include_all"         : { "nnoremap <silent>" : ":call far#change_exclude_all(0)<CR>" },
     \ "toggle_exclude_all"  : { "nnoremap <silent>" : ":call far#change_exclude_all(-1)<CR>" },
     \ "stoggle_exclude_all" : { "nnoremap <silent>" : ":call far#change_exclude_all(-2)<CR>" },
+    \
     \ "jump_to_source"      : { "nnoremap <silent>" : ":call far#jump_buffer_under_cursor()<CR>" },
     \ "open_preview"        : { "nnoremap <silent>" : ":call far#show_preview_window_under_cursor()<CR>" },
     \ "close_preview"       : { "nnoremap <silent>" : ":call far#close_preview_window()<CR>" },
     \ "preview_scroll_up"   : { "nnoremap <silent>" : ":call far#scroll_preview_window(-g:far#preview_window_scroll_step)<CR>" },
     \ "preview_scroll_down" : { "nnoremap <silent>" : ":call far#scroll_preview_window(g:far#preview_window_scroll_step)<CR>" },
+    \
     \ "replace_do"          : { "nnoremap <silent>" : ":Fardo<CR>" },
     \ "replace_undo"        : { "nnoremap <silent>" : ":Farundo<CR>" },
     \ "replace_undo_all"    : { "nnoremap <silent>" : ":Farundo --all=1<CR>" },
@@ -680,6 +702,200 @@ function! far#change_exclude_under_cursor(cmode) abort "{{{
     endfor
 endfunction "}}}
 
+
+function! far#change_exclude_under_selection(cmode) abort range "{{{
+    call far#tools#log('far#change_exclude_under_selection('.a:cmode.')')
+
+
+    let pos1 = getpos("'<")
+    let pos2 = getpos("'>")
+
+    let [lnum1, col1] = getpos("'<")[1:2]
+    let [lnum2, col2] = getpos("'>")[1:2]
+
+    " echo lnum1 lnum2
+
+    let bufnr = bufnr('%')
+    let far_ctx = s:get_buf_far_ctx(bufnr)
+    let loop_num = 0
+    let all_excluded = 1
+
+    while 1
+        let loop_num += 1
+        let index = g:far#status_line ? 1 : 0
+
+        for file_ctx in far_ctx.items
+            let index += 1
+
+            " echo 'file' index
+
+            if file_ctx.collapsed || index == lnum2
+                " echo 'toogle file' index
+                if lnum1 <= index && index <= lnum2
+                    for item_ctx in file_ctx.items
+                        if !item_ctx.replaced
+                            if a:cmode == -2
+                                if loop_num == 1
+                                    let all_excluded = all_excluded && item_ctx.excluded
+                                else
+                                    " echo 'all_excluded = ' all_excluded
+                                    let item_ctx.excluded = ! all_excluded
+                                endif
+                            else
+                                let item_ctx.excluded = a:cmode == -1? (item_ctx.excluded == 0? 1 : 0) : a:cmode
+                            endif
+                        endif
+                    endfor
+                endif
+            else
+                for item_ctx in file_ctx.items
+                    let index += 1
+                    " echo 'item' index
+                    if lnum1 <= index && index <= lnum2  && !item_ctx.replaced
+                        " echo 'toogle item' index
+                        if a:cmode == -2
+                            if loop_num == 1
+                                let all_excluded = all_excluded && item_ctx.excluded
+                            else
+                                " echo 'all_excluded = ' all_excluded
+                                let item_ctx.excluded = ! all_excluded
+                            endif
+                        else
+                            let item_ctx.excluded = a:cmode == -1? (item_ctx.excluded == 0? 1 : 0) : a:cmode
+                        endif
+                        " exec 'norm! j'
+                    endif
+                    if index >= lnum2
+                        break
+                    endif
+                endfor
+            endif
+
+            if index >= lnum2
+                " echo 'return' index
+                break
+            endif
+        endfor
+
+        if a:cmode == -2
+            if loop_num >= 2
+                break
+            endif
+        else
+            break
+        endif
+    endwhile
+
+    call s:update_far_buffer(far_ctx, bufnr)
+
+    call setpos("'<", pos1)
+    call setpos("'>", pos2)
+    exe 'normal! gv'
+    " \\|exe'normal! gv'
+
+endfunction "}}}
+
+
+function! far#change_collapse_under_selection(cmode) abort range "{{{
+    call far#tools#log('far#change_collapse_under_selection('.a:cmode.')')
+
+    let pos1 = getpos("'<")
+    let pos2 = getpos("'>")
+
+    let [lnum1, col1] = getpos("'<")[1:2]
+    let [lnum2, col2] = getpos("'>")[1:2]
+
+    let bufnr = bufnr('%')
+    let far_ctx = s:get_buf_far_ctx(bufnr)
+
+    " let pos = getcurpos()[1]
+
+    let all_collapsed = 1
+    let loop_num = 0
+
+    while 1
+        let loop_num += 1
+        let index = g:far#status_line ? 1 : 0
+        let new_index = index
+        let new_lnum1 = lnum1
+        let new_lnum2 = lnum2
+
+        for file_ctx in far_ctx.items
+            let index += 1
+            let new_index += 1
+            let this_buf = 0
+            let is_start_buff = 0
+            let is_end_buff = 0
+
+            let this_buf = this_buf || (lnum1 <= index && index <= lnum2)
+
+            if file_ctx.collapsed || lnum2 == index
+                let is_start_buff = is_start_buff || (lnum1 == index)
+                let is_end_buff = is_end_buff || (lnum2 == index)
+            else
+                for item_ctx in file_ctx.items
+                    let index += 1
+                    let this_buf = this_buf || (lnum1 <= index && index <= lnum2)
+                    let is_start_buff = is_start_buff || (lnum1 == index)
+                    let is_end_buff = is_end_buff || (lnum2 == index)
+                    if index >= lnum2
+                        break
+                    endif
+                endfor
+            endif
+
+            if this_buf
+                if a:cmode == -2
+                    if loop_num == 1
+                        let all_collapsed = file_ctx.collapsed && all_collapsed
+                    else
+                        let file_ctx.collapsed = ! all_collapsed
+                    endif
+                else
+                    let file_ctx.collapsed = (a:cmode == -1)? !file_ctx.collapsed : a:cmode
+                endif
+            endif
+
+            " echo 'len(file_ctx.items)' file_ctx.fname 'this_buf' this_buf 'collapsed' file_ctx.collapsed 'new_index' new_index
+
+            let new_lnum1 = is_start_buff ? new_index : new_lnum1
+            let new_index += ( file_ctx.collapsed ? 0 : len(file_ctx.items) )
+            let new_lnum2 = is_end_buff ? new_index : new_lnum2
+
+
+            if index >= lnum2
+                " echo 'return' index
+                break
+            endif
+
+        endfor
+
+        if a:cmode == -2
+            if loop_num >= 2
+                break
+            endif
+        else
+            break
+        endif
+
+    endwhile
+
+    " echo new_lnum1 new_lnum2
+    " sleep 2
+
+    call s:update_far_buffer(far_ctx, bufnr)
+
+    let new_pos1 = pos1
+    let new_pos2 = pos2
+    let new_pos1[1:2] = [new_lnum1,0]
+    let new_pos2[1:2] = [new_lnum2,0]
+
+    call setpos("'<", new_pos1)
+    call setpos("'>", new_pos2)
+    exe 'normal! gv$'
+endfunction "}}}
+
+
 "command complete functions {{{
 function! s:find_matches(items, key) abort
     call far#tools#log('find matches: "'.a:key.'" in '.string(a:items))
@@ -876,6 +1092,7 @@ function! far#find(far_params, xargs) "{{{
         endif
         call add(cmdargs, xarg)
     endfor
+
     call s:assemble_context(far_params, win_params, cmdargs,
     \   function('s:open_far_buff'), [win_params])
 endfunction
@@ -914,6 +1131,11 @@ endfunction "}}}
 
 function! far#replace(xargs) abort "{{{
     call far#tools#log('far#replace('.string(a:xargs).')')
+
+    if !b:win_params.enable_replace
+        call far#tools#echo_err('Replacement is disabled now! Maybe you are using "far" find without replacement!')
+        return
+    endif
 
     if !exists('b:far_ctx')
         call far#tools#echo_err('Not a FAR buffer!')
@@ -1052,6 +1274,11 @@ endfunction "}}}
 
 function! far#undo(xargs) abort "{{{
     call far#tools#log('far#undo('.string(a:xargs).')')
+
+    if !b:win_params.enable_replace
+        call far#tools#echo_err('Undo is disabled now! Maybe you are using "far" find without replacement!')
+        return
+    endif
 
     if !exists('b:far_ctx')
         call far#tools#echo_err('Not a FAR buffer!')
@@ -1230,6 +1457,8 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
         call far#tools#log('build_buffer_content(...,'.string(a:win_params).')')
     endif
 
+    " echo 'build_buffer_content() win_params = ' a:win_params
+
     let content = []
     let syntaxs = []
     let line_num = 0
@@ -1245,6 +1474,7 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
         let total_matches = 0
         let total_excludes = 0
         let total_repls = 0
+        let win_width = a:win_params.width - 1
 
         for file_ctx in a:far_ctx.items
             for item_ctx in file_ctx.items
@@ -1265,8 +1495,9 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
                 \   '  Time:'.a:far_ctx.repl_time
         endif
 
-        if strchars(statusline) < a:win_params.width
-            let statusline = statusline.repeat(' ', a:win_params.width - strchars(statusline))
+
+        if strchars(statusline) < win_width
+            let statusline = statusline.repeat(' ', win_width - strchars(statusline))
         endif
         call add(content, statusline)
 
@@ -1288,7 +1519,7 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
 
         let file_sep = has('unix')? '/' : '\'
         let filestats = ' ('.len(file_ctx.items).' matches)'
-        let maxfilewidth = a:win_params.width - strchars(filestats) - strchars(collapse_sign) + 1
+        let maxfilewidth = win_width - strchars(filestats) - strchars(collapse_sign) + 1
         let fileidx = strridx(file_ctx.fname, file_sep)
         let filepath = far#tools#cut_text_middle(file_ctx.fname[:fileidx-1], maxfilewidth/2 - (maxfilewidth % 2? 0 : 1) - 1).
             \ file_sep.far#tools#cut_text_middle(file_ctx.fname[fileidx+1:], maxfilewidth/2)
@@ -1324,8 +1555,8 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
 
                 if a:win_params.result_preview && !multiline && !item_ctx.replaced
                     " strdisplaywidth: actual displayed width, so as to deal with wide characters
-                    let max_text_len = a:win_params.width / 2 - strdisplaywidth(line_num_col_text)
-                    let max_repl_len = a:win_params.width / 2 - strdisplaywidth(g:far#repl_devider)
+                    let max_text_len = win_width / 2 - strdisplaywidth(line_num_col_text)
+                    let max_repl_len = win_width / 2 - strdisplaywidth(g:far#repl_devider)
                     " item_ctx.cnum : byte id (begin with 1) the matched substring start from
                     let repl_val = substitute(match_val, pattern, a:far_ctx.replace_with, "")
                     let repl_text = (item_ctx.cnum == 1? '' : item_ctx.text[0:item_ctx.cnum-2]).
@@ -1334,7 +1565,7 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
                     let repl_text = far#tools#centrify_text(repl_text, max_repl_len, item_ctx.cnum)
                     let out = line_num_col_text.match_text.text.g:far#repl_devider.repl_text.text
                 else
-                    let max_text_len = a:win_params.width - strchars(line_num_col_text)
+                    let max_text_len = win_width - strchars(line_num_col_text)
                     let match_text = far#tools#centrify_text((item_ctx.replaced ? item_ctx.repl_text : item_ctx.text),
                         \   max_text_len, item_ctx.cnum)
                     if multiline

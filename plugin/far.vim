@@ -34,6 +34,7 @@ function! Find(rngmode, rngline1, rngline2, cmdline, ...) range abort "{{{
         return
     endif
     call add(cargs, '--result-preview=0')
+    call add(cargs, '--enable-replace=0')
 
     let far_params = {
         \   'pattern': cargs[0],
@@ -152,6 +153,7 @@ function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, .
     if !g:far#mode_open['substitute']
         let replace_with = pattern
         call add(cargs, '--result-preview=0')
+        call add(cargs, '--enable-replace=0')
     endif
     call far#tools#log('>replace_with: '.replace_with)
 
