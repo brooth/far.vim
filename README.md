@@ -13,7 +13,7 @@ Plug 'brooth/far.vim'
 
 ## Usage
 
-### Searching with command
+### Searching with Command
 ```bash
 :Far foo bar **/*.py
 :Fardo
@@ -26,7 +26,7 @@ Find the text to replace.
 #### :F {pattern} {file-mask} [params]
 Find only.
 
-### Searching interatively 
+### Searching Interatively
 
 ```bash
 :Farr foo bar **/*.py
@@ -46,7 +46,7 @@ Interative `F`. The interaction is similar to `Farr`.
 Runs the replacement task. The shortcut for it is `s` (substitute).
 
 #### :Farundo [params]
-Undo the recurrent replacement. The shortcut for it is `u` (undo).
+Undo the recurrent replacement. The shortcut for it is `u` (undo). It is available when set `let g:far#enable_undo=1`.
 
 #### :Refar [params]
 Change `Far`/`F`/`Farr`/`Farf` params.
@@ -74,12 +74,14 @@ Change `Far`/`F`/`Farr`/`Farf` params.
 ..and many more! Check out `:help far.vim`.
 
 ## Troubleshooting
-#### Improving scrolling performance
-You can improve the scrolling performance when navigating through large results by adding the following settings
-to your vim configuration:
+
+#### Recommented Setting
+You can add he following settings to your vim configuration:
+
 ```vim
-set lazyredraw
-set regexpengine=1
+set lazyredraw            " improve scrolling performance when navigating through large results
+set regexpengine=1        " use old regexp engine
+set ignorecase smartcase  " ignore case only when the pattern contains no capital letters
 ```
 
 ## License

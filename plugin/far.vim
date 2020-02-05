@@ -34,6 +34,7 @@ function! Find(rngmode, rngline1, rngline2, cmdline, ...) range abort "{{{
         return
     endif
     call add(cargs, '--result-preview=0')
+    call add(cargs, '--enable-replace=0')
 
     let far_params = {
         \   'pattern': cargs[0],
@@ -79,6 +80,17 @@ function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, .
     call far#tools#log('=========== FAR MODE PROMPT ============')
 
     let cargs = far#tools#splitcmd(a:cmdline)
+    for i in cargs
+        if i =~ '^--source=' && i != '--source=vimgrep'
+            call far#tools#echo_err('FarModePrompt is only available for `--source=vimgrep` (dafault).')
+            return
+        endif
+    endfor
+
+
+    if a:rngmode != -1
+        let selected = far#tools#visualtext("\n")
+    endif
 
     " close existing buffer in current tab
     let origin_bufnr = winbufnr(winnr())
@@ -105,8 +117,12 @@ function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, .
     let g:far#mode_open['substitute'] = a:substitute_open
 
     " get item "Find"
-    let pattern = far#mode_prompt_get_item('Find', '',
-        \ 'customlist,far#FarSearchComplete')
+    if a:rngmode != -1
+        let pattern = selected
+    else
+        let pattern = far#mode_prompt_get_item('Find', '',
+            \ 'customlist,far#FarSearchComplete')
+    endif
     if pattern == '' | return | endif
     call far#tools#log('>pattern: '.pattern)
 
@@ -137,6 +153,7 @@ function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, .
     if !g:far#mode_open['substitute']
         let replace_with = pattern
         call add(cargs, '--result-preview=0')
+        call add(cargs, '--enable-replace=0')
     endif
     call far#tools#log('>replace_with: '.replace_with)
 
@@ -145,23 +162,25 @@ function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, .
 
     " disable escaped sequence
     let pattern = g:far#mode_open['regex'] ? pattern : substitute(pattern, '\\', '\\\\', 'g')
+    let pattern = substitute(pattern, '\n', '\\n', 'g')
     let pattern = (g:far#mode_open['case_sensitive'] ? '\C' : '\c') . pattern
     let pattern = g:far#mode_open['word']            ? ('\<'.pattern.'\>') : pattern
     let pattern = (g:far#mode_open['regex']          ? ''   : '\V') . pattern
+
 
     let far_params = {
         \   'pattern': pattern,
         \   'replace_with': replace_with,
         \   'file_mask': file_mask,
-        \   'range': a:rngmode == -1? [-1,-1] : [a:rngline1, a:rngline2],
-        \   }
+        \   'range': [-1, -1]
+        \  }
+        " a:rngmode == -1? [-1,-1] : [a:rngline1, a:rngline2],
 
     call far#find(far_params, cargs)
-
 endfunction
-command! -complete=customlist,far#FarArgsComplete -nargs=* -range=-1 Farr
+command! -complete=customlist,far#ModePromptComplete -nargs=* -range=-1 Farr
     \  call FarModePrompt(<count>,<line1>,<line2>,1,<q-args>)
-command! -complete=customlist,far#FarArgsComplete -nargs=* -range=-1 Farf
+command! -complete=customlist,far#ModePromptComplete -nargs=* -range=-1 Farf
     \  call FarModePrompt(<count>,<line1>,<line2>,0,<q-args>)
 "}}}
 
@@ -216,6 +235,10 @@ command! -complete=customlist,far#FardoComplete -nargs=* Fardo call FarDo(<f-arg
 "}}}
 
 function! FarUndo(...) abort "{{{
+    if ! ( exists('g:far#enable_undo') && g:far#enable_undo )
+        call far#tools#echo_err('`:Farundo` is not available now. Please `let g:far#enable_undo=1`')
+        return
+    endif
     call far#tools#log('============= FAR UNDO ================')
     call far#undo(a:000)
 endfunction

@@ -108,12 +108,14 @@ if executable('rg')
         \   '--max-count={limit}']
     if &smartcase
         call add(cmd, '--smart-case')
-    endif
-    if &ignorecase
-        call add(cmd, '--ignore-case')
     else
-        call add(cmd, '--case-sensitive')
+        if &ignorecase
+            call add(cmd, '--ignore-case')
+        else
+            call add(cmd, '--case-sensitive')
+        endif
     endif
+
     call add(cmd, '--glob={file_mask}')
     call add(cmd, '{pattern}')
 
@@ -156,31 +158,41 @@ function! s:create_win_params() abort
     \   'preview_width': exists('g:far#preview_window_width')? g:far#preview_window_width : 100,
     \   'preview_height': exists('g:far#preview_window_height')? g:far#preview_window_height : 11,
     \   'auto_preview': exists('g:far#auto_preview')? g:far#auto_preview : 1,
+    \   'auto_preview_on_start' : exists('g:far#auto_preview_on_start') ? g:far#auto_preview_on_start : 1,
     \   'highlight_match': exists('g:far#highlight_match')? g:far#highlight_match : 1,
     \   'collapse_result': exists('g:far#collapse_result')? g:far#collapse_result : 0,
     \   'result_preview': exists('g:far#result_preview')? g:far#result_preview : 1,
+    \   'enable_replace': 1,
     \   'mode_prompt': 0,
     \   'parent_buffnr': '',
     \   }
 endfunction
 
 function! s:create_repl_params() abort
-    return {
-    \   'auto_write': exists('g:far#auto_write_replaced_buffers')?
-    \       g:far#auto_write_replaced_buffers : 1,
-    \   'auto_delete': exists('g:far#auto_delete_replaced_buffers')?
-    \       g:far#auto_delete_replaced_buffers : 1,
-    \   }
+    if exists('g:far#enable_undo') && g:far#enable_undo
+        return { 'auto_write': 1, 'auto_delete': 0 }
+    else
+        return {
+        \   'auto_write': exists('g:far#auto_write_replaced_buffers')?
+        \       g:far#auto_write_replaced_buffers : 1,
+        \   'auto_delete': exists('g:far#auto_delete_replaced_buffers')?
+        \       g:far#auto_delete_replaced_buffers : 0,
+        \   }
+    endif
 endfunction
 
 function! s:create_undo_params() abort
-    return {
-    \   'auto_write': exists('g:far#auto_write_undo_buffers')?
-    \       g:far#auto_write_undo_buffers : 1,
-    \   'auto_delete': exists('g:far#auto_delete_undo_buffers')?
-    \       g:far#auto_delete_undo_buffers : 0,
-    \   'all': 0,
-    \   }
+    if exists('g:far#enable_undo') && g:far#enable_undo
+        return { 'auto_write': 1, 'auto_delete': 0, 'all': 0 }
+    else
+        return {
+        \   'auto_write': exists('g:far#auto_write_undo_buffers')?
+        \       g:far#auto_write_undo_buffers : 1,
+        \   'auto_delete': exists('g:far#auto_delete_undo_buffers')?
+        \       g:far#auto_delete_undo_buffers : 0,
+        \   'all': 0,
+        \   }
+    endif
 endfunction
 "}}}
 
@@ -193,6 +205,11 @@ let s:far_params_meta = {
     \   '--limit': {'param': 'limit', 'values': [g:far#limit]},
     \   }
 
+let s:far_params_meta_vimgrep = {
+    \   '--cwd': {'param': 'cwd', 'values': [getcwd()], 'fnvalues': 's:complete_dir'},
+    \   '--limit': {'param': 'limit', 'values': [g:far#limit]},
+    \   }
+
 let s:win_params_meta = {
     \   '--win-layout': {'param': 'layout', 'values': ['top', 'left', 'right', 'bottom', 'tab', 'current']},
     \   '--win-width': {'param': 'width', 'values': [60, 70, 80, 90, 100, 110, 120, 130, 140, 150]},
@@ -201,13 +218,16 @@ let s:win_params_meta = {
     \   '--preview-win-width': {'param': 'preview_width', 'values': [60, 70, 80, 90, 100, 110, 120, 130, 140, 150]},
     \   '--preview-win-height': {'param': 'preview_height', 'values': [5, 7, 10, 15, 20, 25, 30]},
     \   '--auto-preview': {'param': 'auto_preview', 'values': [0, 1]},
+    \   '--auto-preview-on-start': {'param': 'auto_preview_on_start', 'values': [0, 1]},
     \   '--hl-match': {'param': 'highlight_match', 'values': [0, 1]},
     \   '--collapse': {'param': 'collapse_result', 'values': [0, 1]},
     \   '--result-preview': {'param': 'result_preview', 'values': [0, 1]},
+    \   '--enable-replace': {'param': 'enable_replace', 'values': [0, 1]},
     \   }
 
 let s:find_win_params_meta = copy(s:win_params_meta)
 call remove(s:find_win_params_meta, '--result-preview')
+call remove(s:find_win_params_meta, '--enable-replace')
 
 let s:repl_params_meta = {
     \   '--auto-write-bufs': {'param': 'auto_write', 'values': [0, 1]},
@@ -245,26 +265,34 @@ let g:far#file_mask_history = []
 " s:#default_mapping {{{
 let s:default_mapping = {
     \ "toggle_expand_all" : "zA",
-    \ "stoggle_expand_all" : "zs",
+    \ "stoggle_expand_all" : "zS",
     \ "expand_all" : "zr",
     \ "collapse_all" : "zm",
+    \
     \ "toggle_expand" : "za",
+    \ "stoggle_expand" : "zs",
     \ "expand" : "zo",
     \ "collapse" : "zc",
+    \
     \ "exclude" : "x",
     \ "include" : "i",
     \ "toggle_exclude" : "t",
+    \ "stoggle_exclude" : "f",
+    \
     \ "exclude_all" : "X",
     \ "include_all" : "I",
     \ "toggle_exclude_all" : "T",
-    \ "stoggle_exclude_all" : "S",
+    \ "stoggle_exclude_all" : "F",
+    \
     \ "jump_to_source" : "<cr>",
     \ "open_preview" : "p",
     \ "close_preview" : "P",
     \ "preview_scroll_up" : "<c-k>",
     \ "preview_scroll_down" : "<c-j>",
+    \
     \ "replace_do" : 's',
     \ "replace_undo" : 'u',
+    \ "replace_undo_all" : 'U',
     \ "quit" : 'q',
     \ }
 
@@ -284,26 +312,39 @@ let s:act_func_ref = {
     \ "toggle_expand_all"   : { "nnoremap <silent>" : ":call far#change_collapse_all(-1)<CR>" },
     \ "expand_all"          : { "nnoremap <silent>" : ":call far#change_collapse_all(0)<CR>" },
     \ "collapse_all"        : { "nnoremap <silent>" : ":call far#change_collapse_all(1)<CR>" },
-    \ "toggle_expand"       : { "nnoremap <silent>" : ":call far#change_collapse_under_cursor(-1)<CR>" },
-    \ "expand"              : { "nnoremap <silent>" : ":call far#change_collapse_under_cursor(0)<CR>" },
-    \ "collapse"            : { "nnoremap <silent>" : ":call far#change_collapse_under_cursor(1)<CR>" },
+    \
+    \ "stoggle_expand"      : { "nnoremap <silent>" : ":call far#change_collapse_under_cursor(-1)<CR>",
+    \                           "vnoremap <silent>" : ":call far#change_collapse_under_selection(-2)<CR>" },
+    \ "toggle_expand"       : { "nnoremap <silent>" : ":call far#change_collapse_under_cursor(-1)<CR>",
+    \                           "vnoremap <silent>" : ":call far#change_collapse_under_selection(-1)<CR>" },
+    \ "expand"              : { "nnoremap <silent>" : ":call far#change_collapse_under_cursor(0)<CR>",
+    \                           "vnoremap <silent>" : ":call far#change_collapse_under_selection(0)<CR>" },
+    \ "collapse"            : { "nnoremap <silent>" : ":call far#change_collapse_under_cursor(1)<CR>",
+    \                           "vnoremap <silent>" : ":call far#change_collapse_under_selection(1)<CR>" },
+    \
     \ "exclude"             : { "nnoremap <silent>" : ":call far#change_exclude_under_cursor(1)<CR>",
-    \                           "vnoremap <silent>" : ":call far#change_exclude_under_cursor(1)<CR>" },
+    \                           "vnoremap <silent>" : ":call far#change_exclude_under_selection(1)<CR>" },
     \ "include"             : { "nnoremap <silent>" : ":call far#change_exclude_under_cursor(0)<CR>",
-    \                           "vnoremap <silent>" : ":call far#change_exclude_under_cursor(0)<CR>" },
+    \                           "vnoremap <silent>" : ":call far#change_exclude_under_selection(0)<CR>" },
     \ "toggle_exclude"      : { "nnoremap <silent>" : ":call far#change_exclude_under_cursor(-1)<CR>",
-    \                           "vnoremap <silent>" : ":call far#change_exclude_under_cursor(-1)<CR>" },
+    \                           "vnoremap <silent>" : ":call far#change_exclude_under_selection(-1)<CR>" },
+    \ "stoggle_exclude"     : { "nnoremap <silent>" : ":call far#change_exclude_under_cursor(-1)<CR>",
+    \                           "vnoremap <silent>" : ":call far#change_exclude_under_selection(-2)<CR>" },
+    \
     \ "exclude_all"         : { "nnoremap <silent>" : ":call far#change_exclude_all(1)<CR>" },
     \ "include_all"         : { "nnoremap <silent>" : ":call far#change_exclude_all(0)<CR>" },
     \ "toggle_exclude_all"  : { "nnoremap <silent>" : ":call far#change_exclude_all(-1)<CR>" },
     \ "stoggle_exclude_all" : { "nnoremap <silent>" : ":call far#change_exclude_all(-2)<CR>" },
+    \
     \ "jump_to_source"      : { "nnoremap <silent>" : ":call far#jump_buffer_under_cursor()<CR>" },
     \ "open_preview"        : { "nnoremap <silent>" : ":call far#show_preview_window_under_cursor()<CR>" },
     \ "close_preview"       : { "nnoremap <silent>" : ":call far#close_preview_window()<CR>" },
     \ "preview_scroll_up"   : { "nnoremap <silent>" : ":call far#scroll_preview_window(-g:far#preview_window_scroll_step)<CR>" },
     \ "preview_scroll_down" : { "nnoremap <silent>" : ":call far#scroll_preview_window(g:far#preview_window_scroll_step)<CR>" },
+    \
     \ "replace_do"          : { "nnoremap <silent>" : ":Fardo<CR>" },
     \ "replace_undo"        : { "nnoremap <silent>" : ":Farundo<CR>" },
+    \ "replace_undo_all"    : { "nnoremap <silent>" : ":Farundo --all=1<CR>" },
     \ "quit"                : { "nnoremap <silent>" : ":call far#close_far_buff()<CR>" },
     \ }
 " }}}
@@ -417,7 +458,9 @@ function! far#show_preview_window_under_cursor() abort "{{{
         return
     endif
 
-    let b:win_params.auto_preview = s:create_win_params().auto_preview
+    let b:win_params.preview_on = b:win_params.auto_preview
+
+    " let b:win_params.auto_preview = s:create_win_params().auto_preview
 
     let far_bufnr = bufnr('%')
     let far_winid = win_getid(winnr())
@@ -488,15 +531,15 @@ endfunction "}}}
 function! far#close_preview_window() abort "{{{
     call far#tools#log('far#close_preview_window()')
 
-    if !exists('b:far_preview_winid')
-        call far#tools#echo_err('No preview window for current buffer')
-        return
-    endif
+    let b:win_params.preview_on = 0
 
-    let winnr = win_id2win(b:far_preview_winid)
-    if winnr > 0
-        let b:win_params.auto_preview = 0
-        exec 'quit '.winnr
+    if exists('b:far_preview_winid')
+        let winnr = win_id2win(b:far_preview_winid)
+        if winnr > 0
+            exec 'quit '.winnr
+        endif
+    else
+        call far#tools#echo_err('No preview window for current buffer')
     endif
 endfunction "}}}
 
@@ -603,19 +646,25 @@ function! far#change_exclude_all(cmode) abort "{{{
         let all_excluded = 1
         for file_ctx in far_ctx.items
             for item_ctx in file_ctx.items
-                let all_excluded = all_excluded && item_ctx.excluded
+                if !item_ctx.replaced
+                    let all_excluded = all_excluded && item_ctx.excluded
+                endif
             endfor
         endfor
 
         for file_ctx in far_ctx.items
             for item_ctx in file_ctx.items
-                let item_ctx.excluded = !all_excluded
+                if !item_ctx.replaced
+                    let item_ctx.excluded = !all_excluded
+                endif
             endfor
         endfor
     else
         for file_ctx in far_ctx.items
             for item_ctx in file_ctx.items
-                let item_ctx.excluded = a:cmode == -1? (item_ctx.excluded == 0? 1 : 0) : a:cmode
+                if !item_ctx.replaced
+                    let item_ctx.excluded = a:cmode == -1? (item_ctx.excluded == 0? 1 : 0) : a:cmode
+                endif
             endfor
         endfor
     endif
@@ -635,7 +684,9 @@ function! far#change_exclude_under_cursor(cmode) abort "{{{
         let index += 1
         if pos == index
             for item_ctx in file_ctx.items
-                let item_ctx.excluded = a:cmode == -1? (item_ctx.excluded == 0? 1 : 0) : a:cmode
+                if !item_ctx.replaced
+                    let item_ctx.excluded = a:cmode == -1? (item_ctx.excluded == 0? 1 : 0) : a:cmode
+                endif
             endfor
             call s:update_far_buffer(far_ctx, bufnr)
             return
@@ -644,7 +695,7 @@ function! far#change_exclude_under_cursor(cmode) abort "{{{
         if !file_ctx.collapsed
             for item_ctx in file_ctx.items
                 let index += 1
-                if pos == index
+                if pos == index && !item_ctx.replaced
                     let item_ctx.excluded = a:cmode == -1? (item_ctx.excluded == 0? 1 : 0) : a:cmode
                     call s:update_far_buffer(far_ctx, bufnr)
                     exec 'norm! j'
@@ -654,6 +705,180 @@ function! far#change_exclude_under_cursor(cmode) abort "{{{
         endif
     endfor
 endfunction "}}}
+
+
+function! far#change_exclude_under_selection(cmode) abort range "{{{
+    call far#tools#log('far#change_exclude_under_selection('.a:cmode.')')
+
+    let pos1 = getpos("'<")
+    let pos2 = getpos("'>")
+
+    let [lnum1, col1] = getpos("'<")[1:2]
+    let [lnum2, col2] = getpos("'>")[1:2]
+
+    let bufnr = bufnr('%')
+    let far_ctx = s:get_buf_far_ctx(bufnr)
+    let loop_num = 0
+    let all_excluded = 1
+
+    while 1
+        let loop_num += 1
+        let index = g:far#status_line ? 1 : 0
+
+        for file_ctx in far_ctx.items
+            let index += 1
+            if file_ctx.collapsed || index == lnum2
+                if lnum1 <= index && index <= lnum2
+                    for item_ctx in file_ctx.items
+                        if !item_ctx.replaced
+                            if a:cmode == -2
+                                if loop_num == 1
+                                    let all_excluded = all_excluded && item_ctx.excluded
+                                else
+                                    let item_ctx.excluded = ! all_excluded
+                                endif
+                            else
+                                let item_ctx.excluded = a:cmode == -1? (item_ctx.excluded == 0? 1 : 0) : a:cmode
+                            endif
+                        endif
+                    endfor
+                endif
+            else
+                for item_ctx in file_ctx.items
+                    let index += 1
+                    if lnum1 <= index && index <= lnum2  && !item_ctx.replaced
+                        if a:cmode == -2
+                            if loop_num == 1
+                                let all_excluded = all_excluded && item_ctx.excluded
+                            else
+                                let item_ctx.excluded = ! all_excluded
+                            endif
+                        else
+                            let item_ctx.excluded = a:cmode == -1? (item_ctx.excluded == 0? 1 : 0) : a:cmode
+                        endif
+                    endif
+                    if index >= lnum2
+                        break
+                    endif
+                endfor
+            endif
+
+            if index >= lnum2
+                break
+            endif
+        endfor
+
+        if a:cmode == -2
+            if loop_num >= 2
+                break
+            endif
+        else
+            break
+        endif
+    endwhile
+
+    call s:update_far_buffer(far_ctx, bufnr)
+
+    call setpos("'<", pos1)
+    call setpos("'>", pos2)
+    exe 'normal! gv'
+
+endfunction "}}}
+
+
+function! far#change_collapse_under_selection(cmode) abort range "{{{
+    call far#tools#log('far#change_collapse_under_selection('.a:cmode.')')
+
+    let pos1 = getpos("'<")
+    let pos2 = getpos("'>")
+
+    let [lnum1, col1] = getpos("'<")[1:2]
+    let [lnum2, col2] = getpos("'>")[1:2]
+
+    let bufnr = bufnr('%')
+    let far_ctx = s:get_buf_far_ctx(bufnr)
+
+
+    let all_collapsed = 1
+    let loop_num = 0
+
+    while 1
+        let loop_num += 1
+        let index = g:far#status_line ? 1 : 0
+        let new_index = index
+        let new_lnum1 = lnum1
+        let new_lnum2 = lnum2
+
+        for file_ctx in far_ctx.items
+            let index += 1
+            let new_index += 1
+            let this_buf = 0
+            let is_start_buff = 0
+            let is_end_buff = 0
+
+            let this_buf = this_buf || (lnum1 <= index && index <= lnum2)
+
+            if file_ctx.collapsed || lnum2 == index
+                let is_start_buff = is_start_buff || (lnum1 == index)
+                let is_end_buff = is_end_buff || (lnum2 == index)
+            else
+                for item_ctx in file_ctx.items
+                    let index += 1
+                    let this_buf = this_buf || (lnum1 <= index && index <= lnum2)
+                    let is_start_buff = is_start_buff || (lnum1 == index)
+                    let is_end_buff = is_end_buff || (lnum2 == index)
+                    if index >= lnum2
+                        break
+                    endif
+                endfor
+            endif
+
+            if this_buf
+                if a:cmode == -2
+                    if loop_num == 1
+                        let all_collapsed = file_ctx.collapsed && all_collapsed
+                    else
+                        let file_ctx.collapsed = ! all_collapsed
+                    endif
+                else
+                    let file_ctx.collapsed = (a:cmode == -1)? !file_ctx.collapsed : a:cmode
+                endif
+            endif
+
+
+            let new_lnum1 = is_start_buff ? new_index : new_lnum1
+            let new_index += ( file_ctx.collapsed ? 0 : len(file_ctx.items) )
+            let new_lnum2 = is_end_buff ? new_index : new_lnum2
+
+
+            if index >= lnum2
+                break
+            endif
+
+        endfor
+
+        if a:cmode == -2
+            if loop_num >= 2
+                break
+            endif
+        else
+            break
+        endif
+
+    endwhile
+
+    call s:update_far_buffer(far_ctx, bufnr)
+
+    let new_pos1 = pos1
+    let new_pos2 = pos2
+    let new_pos1[1:2] = [new_lnum1,0]
+    let new_pos2[1:2] = [new_lnum2,0]
+
+    call setpos("'<", new_pos1)
+    call setpos("'>", new_pos2)
+    exe 'normal! gv$'
+endfunction "}}}
+
 
 "command complete functions {{{
 function! s:find_matches(items, key) abort
@@ -751,6 +976,12 @@ function! far#FarArgsComplete(arglead, cmdline, cursorpos) abort
     return s:metargs_complete(a:arglead, a:cmdline, a:cursorpos, all_params_meta)
 endfunction
 
+function! far#ModePromptComplete(arglead, cmdline, cursorpos) abort
+    let all_params_meta = extend(copy(s:far_params_meta_vimgrep), s:win_params_meta)
+    return s:metargs_complete(a:arglead, a:cmdline, a:cursorpos, all_params_meta)
+endfunction
+
+
 function! far#FindArgsComplete(arglead, cmdline, cursorpos) abort
     let all_params_meta = extend(copy(s:far_params_meta), s:find_win_params_meta)
     return s:metargs_complete(a:arglead, a:cmdline, a:cursorpos, all_params_meta)
@@ -845,6 +1076,7 @@ function! far#find(far_params, xargs) "{{{
         endif
         call add(cmdargs, xarg)
     endfor
+
     call s:assemble_context(far_params, win_params, cmdargs,
     \   function('s:open_far_buff'), [win_params])
 endfunction
@@ -884,6 +1116,11 @@ endfunction "}}}
 function! far#replace(xargs) abort "{{{
     call far#tools#log('far#replace('.string(a:xargs).')')
 
+    if !b:win_params.enable_replace
+        call far#tools#echo_err('Replacement is disabled now! Maybe you are using "far" find without replacement!')
+        return
+    endif
+
     if !exists('b:far_ctx')
         call far#tools#echo_err('Not a FAR buffer!')
         return
@@ -907,6 +1144,10 @@ function! far#replace(xargs) abort "{{{
         endfor
     endfor
 
+    let undonum_list = []
+    let undoitems_list = []
+    let temp_files = []
+
     for file_ctx in far_ctx.items
         call far#tools#log('replacing buffer '.file_ctx.fname)
 
@@ -922,19 +1163,23 @@ function! far#replace(xargs) abort "{{{
             endif
         endfor
 
+        let undonum = -1
+        let undoitems = []
+
         if !empty(cmds)
             let buf_repls = 0
             let cmds = reverse(cmds)
-            let undonum = far#tools#undo_nextnr()
-            let undoitems = []
 
             if !bufloaded(file_ctx.fname)
                 exec 'e! '.substitute(file_ctx.fname, ' ', '\\ ', 'g')
                 if repl_params.auto_delete
                     call add(del_bufs, bufnr(file_ctx.fname))
                 endif
+                call add(temp_files, file_ctx.fname)
             endif
+
             exec 'buffer! '.file_ctx.fname
+            let undonum = far#tools#undo_nextnr()
 
             if !repl_params.auto_delete && !buflisted(file_ctx.fname)
                 set buflisted
@@ -978,12 +1223,22 @@ function! far#replace(xargs) abort "{{{
                     let item_ctx.broken = 1
                 endif
             endfor
-
-            if !empty(undoitems)
-                call add(file_ctx.undos, {'num': undonum, 'items': undoitems})
-            endif
         endif
+
+        call add(undonum_list, undonum)
+        call add(undoitems_list, undoitems)
     endfor
+
+    let sum_undoitem_num = 0
+    for undoitems in undoitems_list
+        let sum_undoitem_num += len(undoitems)
+    endfor
+
+    if sum_undoitem_num
+        for i in range(0, len(undonum_list)-1)
+            call add(far_ctx.items[i].undos, {'num': undonum_list[i], 'items': undoitems_list[i]})
+        endfor
+    endif
 
     exec 'b! '.bufnr
     if !empty(del_bufs)
@@ -991,12 +1246,23 @@ function! far#replace(xargs) abort "{{{
         exec 'silent bd! '.join(del_bufs, ' ')
     endif
 
+    if !exists('b:temp_files')
+        let b:temp_files = []
+    endif
+    let b:temp_files += temp_files
+    let b:temp_files = uniq(sort(b:temp_files))
+
     let b:far_ctx.repl_time = printf('%.3fms', reltimefloat(reltime()) - start_ts)
     call s:update_far_buffer(b:far_ctx, bufnr)
 endfunction "}}}
 
 function! far#undo(xargs) abort "{{{
     call far#tools#log('far#undo('.string(a:xargs).')')
+
+    if !b:win_params.enable_replace
+        call far#tools#echo_err('Undo is disabled now! Maybe you are using "far" find without replacement!')
+        return
+    endif
 
     if !exists('b:far_ctx')
         call far#tools#echo_err('Not a FAR buffer!')
@@ -1036,16 +1302,31 @@ function! far#undo(xargs) abort "{{{
 
         let items = []
         if undo_params.all
-            exec 'silent! undo '.file_ctx.undos[0].num
+
             for undo in file_ctx.undos
                 let items += undo.items
             endfor
+
+            let undo_num = -1
+            for undo in file_ctx.undos
+                if len(undo.items)
+                    let undo_num = undo.num
+                    break
+                endif
+            endfor
+
+            if undo_num != -1
+                exec 'silent! undo '. undo_num
+            endif
             let file_ctx.undos = []
         else
             let undo = remove(file_ctx.undos, len(file_ctx.undos)-1)
-            exec 'silent! undo '.undo.num
+            if len(undo.items)
+                exec 'silent! undo ' . undo.num
+            endif
             let items = undo.items
         endif
+
 
         if write_buf
             exec 'silent! write'
@@ -1173,6 +1454,7 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
         let total_matches = 0
         let total_excludes = 0
         let total_repls = 0
+        let win_width = a:win_params.width - 1
 
         for file_ctx in a:far_ctx.items
             for item_ctx in file_ctx.items
@@ -1193,8 +1475,9 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
                 \   '  Time:'.a:far_ctx.repl_time
         endif
 
-        if strchars(statusline) < a:win_params.width
-            let statusline = statusline.repeat(' ', a:win_params.width - strchars(statusline))
+
+        if strchars(statusline) < win_width
+            let statusline = statusline.repeat(' ', win_width - strchars(statusline))
         endif
         call add(content, statusline)
 
@@ -1216,7 +1499,7 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
 
         let file_sep = has('unix')? '/' : '\'
         let filestats = ' ('.len(file_ctx.items).' matches)'
-        let maxfilewidth = a:win_params.width - strchars(filestats) - strchars(collapse_sign) + 1
+        let maxfilewidth = win_width - strchars(filestats) - strchars(collapse_sign) + 1
         let fileidx = strridx(file_ctx.fname, file_sep)
         let filepath = far#tools#cut_text_middle(file_ctx.fname[:fileidx-1], maxfilewidth/2 - (maxfilewidth % 2? 0 : 1) - 1).
             \ file_sep.far#tools#cut_text_middle(file_ctx.fname[fileidx+1:], maxfilewidth/2)
@@ -1252,8 +1535,8 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
 
                 if a:win_params.result_preview && !multiline && !item_ctx.replaced
                     " strdisplaywidth: actual displayed width, so as to deal with wide characters
-                    let max_text_len = a:win_params.width / 2 - strdisplaywidth(line_num_col_text)
-                    let max_repl_len = a:win_params.width / 2 - strdisplaywidth(g:far#repl_devider)
+                    let max_text_len = win_width / 2 - strdisplaywidth(line_num_col_text)
+                    let max_repl_len = win_width / 2 - strdisplaywidth(g:far#repl_devider)
                     " item_ctx.cnum : byte id (begin with 1) the matched substring start from
                     let repl_val = substitute(match_val, pattern, a:far_ctx.replace_with, "")
                     let repl_text = (item_ctx.cnum == 1? '' : item_ctx.text[0:item_ctx.cnum-2]).
@@ -1262,7 +1545,7 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
                     let repl_text = far#tools#centrify_text(repl_text, max_repl_len, item_ctx.cnum)
                     let out = line_num_col_text.match_text.text.g:far#repl_devider.repl_text.text
                 else
-                    let max_text_len = a:win_params.width - strchars(line_num_col_text)
+                    let max_text_len = win_width - strchars(line_num_col_text)
                     let match_text = far#tools#centrify_text((item_ctx.replaced ? item_ctx.repl_text : item_ctx.text),
                         \   max_text_len, item_ctx.cnum)
                     if multiline
@@ -1383,6 +1666,13 @@ function! s:update_far_buffer(far_ctx, bufnr) abort "{{{
 endfunction "}}}
 
 function! far#close_far_buff() abort "{{{
+    call far#tools#log('far#close_far_buff() ' . bufnr('%') . ' ' . bufname('%'))
+
+    if !empty(b:temp_files)
+        call far#tools#log('delete buffers: '.join(b:temp_files, ' '))
+        exec 'silent bd! '.join(b:temp_files, ' ')
+    endif
+
     let parent_buffnr = b:win_params.parent_buffnr
     bdelete
 
@@ -1390,7 +1680,6 @@ function! far#close_far_buff() abort "{{{
     if winnr != -1
         exe winnr . "wincmd w"
     endif
-
 endfunction
 " }}}
 
@@ -1434,17 +1723,26 @@ function! s:open_far_buff(far_ctx, win_params) abort "{{{
             call g:far#apply_default_mappings()
         endif
         call s:update_far_buffer(a:far_ctx, bufnr)
+        call setbufvar(bufnr, 'temp_files', [])
     endif
 
     call s:start_resize_timer()
 
-    if a:win_params.auto_preview && !a:win_params.mode_prompt
-        if v:version >= 704
-            autocmd CursorMoved <buffer> if b:win_params.auto_preview |
-                \   call g:far#show_preview_window_under_cursor() | endif
-        else
-            call far#tools#echo_err('auto preview is available on vim 7.4+')
+    if !a:win_params.mode_prompt
+        let b:win_params.preview_on = a:win_params.auto_preview &&
+                                         \ a:win_params.auto_preview_on_start
+        if a:win_params.auto_preview
+            if v:version >= 704
+                autocmd CursorMoved <buffer> if b:win_params.preview_on |
+                    \   call g:far#show_preview_window_under_cursor() | endif
+            else
+                call far#tools#echo_err('auto preview is available on vim 7.4+')
+            endif
         endif
+        " if !a:win_params.auto_preview_on_start
+        "     call far#show_preview_window_under_cursor()
+        "     call far#close_preview_window()
+        " endif
     endif
 endfunction "}}}
 
@@ -1501,10 +1799,10 @@ function! s:param_proc(far_params, win_params, cmdargs) "{{{
         let a:far_params.range = [-1, -1]
         call far#tools#log('*pattern:'.a:far_params.pattern)
     else
-        let a:far_params.pattern = substitute(a:far_params.pattern, "\<Char-0x0D>", '\\n', 'g')
+        let a:far_params.pattern = substitute(a:far_params.pattern, "\<C-M>", '\\n', 'g')
     endif
 
-    let a:far_params.replace_with = substitute(a:far_params.replace_with,  "\<Char-0x0D>", '\\r', 'g')
+    let a:far_params.replace_with = substitute(a:far_params.replace_with,  "\<C-M>", '\\r', 'g')
 
     if a:far_params.file_mask == '%'
         let a:far_params.cwd = expand('%:p:h')
@@ -1526,8 +1824,8 @@ endfunction "}}}
 
 " vim: set et fdm=marker sts=4 sw=4:
 
-if !exists('g:show_prompt_key')
-    let g:show_prompt_key=1
+if !exists('g:far#show_prompt_key')
+    let g:far#show_prompt_key=1
 endif
 
 let s:default_prompt_mapping={
@@ -1586,7 +1884,7 @@ function! s:mode_prompt_update()  abort "{{{
         endif
         let new_prompt.=far_mode_icon[mode]
         let new_prompt.='%*'
-        if g:show_prompt_key
+        if g:far#show_prompt_key
             let new_prompt.='('.s:prompt_key_display[mode].')'
         endif
     endfor
