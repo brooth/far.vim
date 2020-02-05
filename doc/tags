@@ -4,6 +4,7 @@
 :Farf	far.txt	/*:Farf*
 :Farp	far.txt	/*:Farp*
 :Farr	far.txt	/*:Farr*
+:Farundo	far.txt	/*:Farundo*
 :Refar	far.txt	/*:Refar*
 B	far.txt	/*B*
 FarBrokenItem	far.txt	/*FarBrokenItem*
@@ -37,8 +38,10 @@ far-range	far.txt	/*far-range*
 far-usage	far.txt	/*far-usage*
 far.vim	far.txt	/*far.vim*
 fardo-params	far.txt	/*fardo-params*
+farundo-params	far.txt	/*farundo-params*
 g:far#auto_delete_replaced_buffers	far.txt	/*g:far#auto_delete_replaced_buffers*
 g:far#auto_preview	far.txt	/*g:far#auto_preview*
+g:far#auto_preview_on_start	far.txt	/*g:far#auto_preview_on_start*
 g:far#auto_write_replaced_buffers	far.txt	/*g:far#auto_write_replaced_buffers*
 g:far#check_window_resize_period	far.txt	/*g:far#check_window_resize_period*
 g:far#collapse_result	far.txt	/*g:far#collapse_result*
@@ -47,6 +50,7 @@ g:far#cut_text_sign	far.txt	/*g:far#cut_text_sign*
 g:far#cwd	far.txt	/*g:far#cwd*
 g:far#default_file_mask	far.txt	/*g:far#default_file_mask*
 g:far#default_mappings	far.txt	/*g:far#default_mappings*
+g:far#enable_undo	far.txt	/*g:far#enable_undo*
 g:far#expand_sign	far.txt	/*g:far#expand_sign*
 g:far#file_mask_favorites	far.txt	/*g:far#file_mask_favorites*
 g:far#highlight_match	far.txt	/*g:far#highlight_match*
@@ -67,7 +71,10 @@ g:far#mapping['preview_scroll_down']	far.txt	/*g:far#mapping['preview_scroll_dow
 g:far#mapping['preview_scroll_up']	far.txt	/*g:far#mapping['preview_scroll_up']*
 g:far#mapping['replace_do']	far.txt	/*g:far#mapping['replace_do']*
 g:far#mapping['replace_undo']	far.txt	/*g:far#mapping['replace_undo']*
+g:far#mapping['replace_undo_all']	far.txt	/*g:far#mapping['replace_undo_all']*
+g:far#mapping['stoggle_exclude']	far.txt	/*g:far#mapping['stoggle_exclude']*
 g:far#mapping['stoggle_exclude_all']	far.txt	/*g:far#mapping['stoggle_exclude_all']*
+g:far#mapping['stoggle_expand_all']	far.txt	/*g:far#mapping['stoggle_expand_all']*
 g:far#mapping['stoggle_expand_all']	far.txt	/*g:far#mapping['stoggle_expand_all']*
 g:far#mapping['toggle_exclude']	far.txt	/*g:far#mapping['toggle_exclude']*
 g:far#mapping['toggle_exclude_all']	far.txt	/*g:far#mapping['toggle_exclude_all']*
@@ -82,10 +89,10 @@ g:far#preview_window_width	far.txt	/*g:far#preview_window_width*
 g:far#prompt_mapping	far.txt	/*g:far#prompt_mapping*
 g:far#repl_devider	far.txt	/*g:far#repl_devider*
 g:far#result_preview	far.txt	/*g:far#result_preview*
+g:far#show_prompt_key	far.txt	/*g:far#show_prompt_key*
 g:far#source	far.txt	/*g:far#source*
 g:far#window_height	far.txt	/*g:far#window_height*
 g:far#window_layout	far.txt	/*g:far#window_layout*
 g:far#window_min_content_width	far.txt	/*g:far#window_min_content_width*
 g:far#window_width	far.txt	/*g:far#window_width*
-g:far#show_prompt_key	far.txt	/*g:far#show_prompt_key*
 refar-params	far.txt	/*refar-params*
