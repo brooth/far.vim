@@ -157,6 +157,8 @@ function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, .
     endif
     call far#tools#log('>replace_with: '.replace_with)
 
+    call add(cargs, '--source=vimgrep')
+
     call far#mode_prompt_close()
     exe current_winnr . "wincmd w"
 
