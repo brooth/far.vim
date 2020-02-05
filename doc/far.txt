@@ -237,9 +237,9 @@ Preview Window                                                   *far-preview*
     focus to the preview window). By default <c-k> scrolls up and <c-j> scrolls
     down.
 
-    When |g:far#auto_preview| = 1 , if |g:far#auto_preview-on-start| flag is
+    When |g:far#auto_preview| = 1 , if |g:far#auto_preview_on_start| flag is
     set to 1, the preview window will be opened on cursor movement, once starting
-    the result window; if  |g:far#auto_preview-on-start| flag is set to 0, the
+    the result window; if |g:far#auto_preview_on_start| flag is set to 0, the
     preview window will not be opened on cursor movement, until you press 'p',
     the key mapping to manually open the preview window. For the key mapping in
     result window see |default-far-mappings|.
