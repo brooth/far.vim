@@ -670,15 +670,18 @@ zS v_zS                                  *g:far#mapping['stoggle_expand_all']*
     Smartly toggle exclusion for all nodes: expand all nodes when all are
     collpased, otherwise collapse all nodes.
 
-s                                                *g:far#mapping['replace_do']*
+s v_s                                            *g:far#mapping['replace_do']*
     Execute |:Fardo|<CR>, to replace all included items.
 
-u                                              *g:far#mapping['replace_undo']*
+u v_s                                          *g:far#mapping['replace_undo']*
     Execute |:Farundo|<CR>, to undo the last replacement by |:Fardo|.
 
-U                                          *g:far#mapping['replace_undo_all']*
+U v_U                                      *g:far#mapping['replace_undo_all']*
     Execute |:Farundo| --all=1<CR>, to undo all replacements by |:Fardo|.
     For param '--all=' see |farundo-params|.
+
+q v_q                                                  *g:far#mapping['quit']*
+    Close searching result buffer and its preview buffer (if exists)
 
 ------------------------------------------------------------------------------
 Customer Mappings:
