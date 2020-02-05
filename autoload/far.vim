@@ -342,10 +342,14 @@ let s:act_func_ref = {
     \ "preview_scroll_up"   : { "nnoremap <silent>" : ":call far#scroll_preview_window(-g:far#preview_window_scroll_step)<CR>" },
     \ "preview_scroll_down" : { "nnoremap <silent>" : ":call far#scroll_preview_window(g:far#preview_window_scroll_step)<CR>" },
     \
-    \ "replace_do"          : { "nnoremap <silent>" : ":Fardo<CR>" },
-    \ "replace_undo"        : { "nnoremap <silent>" : ":Farundo<CR>" },
-    \ "replace_undo_all"    : { "nnoremap <silent>" : ":Farundo --all=1<CR>" },
-    \ "quit"                : { "nnoremap <silent>" : ":call far#close_far_buff()<CR>" },
+    \ "replace_do"          : { "nnoremap <silent>" : ":Fardo<CR>",
+    \                           "vnoremap <silent>" : ":Fardo<CR>" },
+    \ "replace_undo"        : { "nnoremap <silent>" : ":Farundo<CR>",
+    \                           "vnoremap <silent>" : ":Farundo<CR>" },
+    \ "replace_undo_all"    : { "nnoremap <silent>" : ":Farundo --all=1<CR>",
+    \                           "vnoremap <silent>" : ":Farundo --all=1<CR>" },
+    \ "quit"                : { "nnoremap <silent>" : ":call far#close_far_buff()<CR>",
+    \                           "vnoremap <silent>" : ":call far#close_far_buff()<CR>"  },
     \ }
 " }}}
 
@@ -1665,7 +1669,7 @@ function! s:update_far_buffer(far_ctx, bufnr) abort "{{{
     call setbufvar(a:bufnr, 'far_ctx', a:far_ctx)
 endfunction "}}}
 
-function! far#close_far_buff() abort "{{{
+function! far#close_far_buff() abort range "{{{
     call far#tools#log('far#close_far_buff() ' . bufnr('%') . ' ' . bufname('%'))
 
     if !empty(b:temp_files)

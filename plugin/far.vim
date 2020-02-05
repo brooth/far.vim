@@ -227,14 +227,15 @@ command! -complete=customlist,far#RefarComplete -nargs=* -range=-1 Refar
     \   call Refar(<count>,<line1>,<line2>,<f-args>)
 "}}}
 
-function! FarDo(...) abort "{{{
+function! FarDo(...) abort range "{{{
     call far#tools#log('============= FAR DO ================')
     call far#replace(a:000)
 endfunction
-command! -complete=customlist,far#FardoComplete -nargs=* Fardo call FarDo(<f-args>)
+command! -complete=customlist,far#FardoComplete -nargs=* -range=-1 Fardo
+    \ call FarDo(<count>,<line1>,<line2>,<f-args>)
 "}}}
 
-function! FarUndo(...) abort "{{{
+function! FarUndo(...) abort range "{{{
     if ! ( exists('g:far#enable_undo') && g:far#enable_undo )
         call far#tools#echo_err('`:Farundo` is not available now. Please `let g:far#enable_undo=1`')
         return
@@ -242,7 +243,8 @@ function! FarUndo(...) abort "{{{
     call far#tools#log('============= FAR UNDO ================')
     call far#undo(a:000)
 endfunction
-command! -complete=customlist,far#FarundoComplete -nargs=* Farundo call FarUndo(<f-args>)
+command! -complete=customlist,far#FarundoComplete -nargs=* -range=-1 Farundo
+    \ call FarUndo(<count>,<line1>,<line2>,<f-args>)
 "}}}
 
 " loaded {{{
