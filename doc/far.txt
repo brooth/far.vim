@@ -134,7 +134,7 @@ USAGE                                                              *far-usage*
 
 *:Farundo* [params]
     |Farundo| undos the last replacement tasktaken by |Fardo|. This command is
-    only available when you set `let |g:far#enable_undo|=1`.
+    only available when you set 'let |g:far#enable_undo|=1'.
     For [params] see |farundo-params|.
 
 *:Refar* [params]
@@ -664,7 +664,7 @@ u                                              *g:far#mapping['replace_undo']*
 
 U                                          *g:far#mapping['replace_undo_all']*
     Execute |:Farundo| --all=1<CR>, to undo all replacements by |:Fardo|.
-    For param `--all=` see |farundo-params|.
+    For param '--all=' see |farundo-params|.
 
 ------------------------------------------------------------------------------
 Customer Mappings:
@@ -775,7 +775,7 @@ COMMAND PARAMS
     current execution.
 
 --all
-    |Farundo| param. Set `--all=1` to undo all replacements taken by |:Fardo|,
+    |Farundo| param. Set '--all=1' to undo all replacements taken by |:Fardo|,
     otherwise to undo the last replacement.
 
 --pattern                                                       *refar-params*
