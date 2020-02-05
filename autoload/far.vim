@@ -706,14 +706,11 @@ endfunction "}}}
 function! far#change_exclude_under_selection(cmode) abort range "{{{
     call far#tools#log('far#change_exclude_under_selection('.a:cmode.')')
 
-
     let pos1 = getpos("'<")
     let pos2 = getpos("'>")
 
     let [lnum1, col1] = getpos("'<")[1:2]
     let [lnum2, col2] = getpos("'>")[1:2]
-
-    " echo lnum1 lnum2
 
     let bufnr = bufnr('%')
     let far_ctx = s:get_buf_far_ctx(bufnr)
@@ -726,11 +723,7 @@ function! far#change_exclude_under_selection(cmode) abort range "{{{
 
         for file_ctx in far_ctx.items
             let index += 1
-
-            " echo 'file' index
-
             if file_ctx.collapsed || index == lnum2
-                " echo 'toogle file' index
                 if lnum1 <= index && index <= lnum2
                     for item_ctx in file_ctx.items
                         if !item_ctx.replaced
@@ -738,7 +731,6 @@ function! far#change_exclude_under_selection(cmode) abort range "{{{
                                 if loop_num == 1
                                     let all_excluded = all_excluded && item_ctx.excluded
                                 else
-                                    " echo 'all_excluded = ' all_excluded
                                     let item_ctx.excluded = ! all_excluded
                                 endif
                             else
@@ -750,20 +742,16 @@ function! far#change_exclude_under_selection(cmode) abort range "{{{
             else
                 for item_ctx in file_ctx.items
                     let index += 1
-                    " echo 'item' index
                     if lnum1 <= index && index <= lnum2  && !item_ctx.replaced
-                        " echo 'toogle item' index
                         if a:cmode == -2
                             if loop_num == 1
                                 let all_excluded = all_excluded && item_ctx.excluded
                             else
-                                " echo 'all_excluded = ' all_excluded
                                 let item_ctx.excluded = ! all_excluded
                             endif
                         else
                             let item_ctx.excluded = a:cmode == -1? (item_ctx.excluded == 0? 1 : 0) : a:cmode
                         endif
-                        " exec 'norm! j'
                     endif
                     if index >= lnum2
                         break
@@ -772,7 +760,6 @@ function! far#change_exclude_under_selection(cmode) abort range "{{{
             endif
 
             if index >= lnum2
-                " echo 'return' index
                 break
             endif
         endfor
@@ -791,7 +778,6 @@ function! far#change_exclude_under_selection(cmode) abort range "{{{
     call setpos("'<", pos1)
     call setpos("'>", pos2)
     exe 'normal! gv'
-    " \\|exe'normal! gv'
 
 endfunction "}}}
 
@@ -808,7 +794,6 @@ function! far#change_collapse_under_selection(cmode) abort range "{{{
     let bufnr = bufnr('%')
     let far_ctx = s:get_buf_far_ctx(bufnr)
 
-    " let pos = getcurpos()[1]
 
     let all_collapsed = 1
     let loop_num = 0
@@ -856,7 +841,6 @@ function! far#change_collapse_under_selection(cmode) abort range "{{{
                 endif
             endif
 
-            " echo 'len(file_ctx.items)' file_ctx.fname 'this_buf' this_buf 'collapsed' file_ctx.collapsed 'new_index' new_index
 
             let new_lnum1 = is_start_buff ? new_index : new_lnum1
             let new_index += ( file_ctx.collapsed ? 0 : len(file_ctx.items) )
@@ -864,7 +848,6 @@ function! far#change_collapse_under_selection(cmode) abort range "{{{
 
 
             if index >= lnum2
-                " echo 'return' index
                 break
             endif
 
@@ -879,9 +862,6 @@ function! far#change_collapse_under_selection(cmode) abort range "{{{
         endif
 
     endwhile
-
-    " echo new_lnum1 new_lnum2
-    " sleep 2
 
     call s:update_far_buffer(far_ctx, bufnr)
 
@@ -1287,7 +1267,6 @@ function! far#undo(xargs) abort "{{{
 
     let undo_params = s:create_undo_params()
     for xarg in a:xargs
-        " echo xarg|sleep 1
         for k in keys(s:undo_params_meta)
             if match(xarg, k) == 0
                 let val = xarg[len(k)+1:]
@@ -1296,7 +1275,6 @@ function! far#undo(xargs) abort "{{{
             endif
         endfor
     endfor
-    " echo undo_params | sleep 10
 
     let bufnr = bufnr('%')
     let start_ts = reltimefloat(reltime())
@@ -1456,8 +1434,6 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
     if far#tools#isdebug()
         call far#tools#log('build_buffer_content(...,'.string(a:win_params).')')
     endif
-
-    " echo 'build_buffer_content() win_params = ' a:win_params
 
     let content = []
     let syntaxs = []

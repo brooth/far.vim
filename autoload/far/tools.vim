@@ -237,23 +237,16 @@ function! far#tools#visualtext(...) "{{{
   let [lnum2, col2] = getpos("'>")[1:2]
   let lines = getline(lnum1, lnum2)
   let endid = col2 - (&selection == 'inclusive' ? 1 : 2)
-"   let endid = (endid < 0) ? 0 : endid
-"   echo 'lines[-1]|' . lines[-1] . '|'
   if lnum1 == lnum2 && col1 == 0 && col2 == 0
     return ''
   endif
 
   let charnum = 1 + strchars(lines[-1][: endid == 0 ? endid : endid -1])
-"   echo charnum len(lines[-1]."\n")
   let lines[-1] = strcharpart(lines[-1],0,charnum)
   let lines[-1] = (strchars(lines[-1]) < charnum) ? lines[-1] . sep : lines[-1]
-"   let lines[-1] = lines[-1][: col2 - (&selection == 'inclusive' ? 1 : 2)]
   let lines[0] = lines[0][col1 - 1:]
   let text=join(lines, sep)
-"   echo '|'.text.'|'
-"   sleep 3
   return text
-" let [lnum1, col1] = getpos("'<")[1:2]| let [lnum2, col2] = getpos("'>")[1:2] | echo col2
 
 endfunction "}}}
 
