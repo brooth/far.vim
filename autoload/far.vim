@@ -43,14 +43,14 @@ call far#tools#setdefault('g:far#mode_open', { "regex" : 1, "case_sensitive"  : 
 if executable('ag')
     let cmd = ['ag', '--nogroup', '--column', '--nocolor', '--silent', '--vimgrep',
         \   '--max-count={limit}', '{pattern}', '--file-search-regex={file_mask}']
-    if &smartcase
-        call add(cmd, '--smart-case')
-    endif
-    if &ignorecase
-        call add(cmd, '--ignore-case')
-    else
-        call add(cmd, '--case-sensitive')
-    endif
+    " if &smartcase
+    "     call add(cmd, '--smart-case')
+    " endif
+    " if &ignorecase
+    "     call add(cmd, '--ignore-case')
+    " else
+    "     call add(cmd, '--case-sensitive')
+    " endif
 
     call far#tools#setdefault('g:far#sources.ag', {})
     call far#tools#setdefault('g:far#sources.ag.fn', 'far.sources.shell.search')
@@ -75,14 +75,14 @@ endif
 
 if executable('ack')
     let cmd = ['ack', '--nogroup', '--column', '--nocolor',
-            \   '--max-count={limit}', '--type-set=farft:match:{file_mask}', '{pattern}']
+            \   '--max-count={limit}', '--type-set=farft:match:{file_mask}', '--farft', '{pattern}']
             " '--farft',  '--output=$_'
-    if &smartcase
-        call add(cmd, '--smart-case')
-    endif
-    if &ignorecase
-        call add(cmd, '--ignore-case')
-    endif
+    " if &smartcase
+    "     call add(cmd, '--smart-case')
+    " endif
+    " if &ignorecase
+    "     call add(cmd, '--ignore-case')
+    " endif
 
     call far#tools#setdefault('g:far#sources.ack', {})
     call far#tools#setdefault('g:far#sources.ack.fn', 'far.sources.shell.search')
@@ -1458,11 +1458,12 @@ function! s:proc_pattern_args(far_params, cmdargs) abort "{{{
     let pattern = (a:far_params.regex          ? '\v'   : '\V') . pattern
     let a:far_params.pattern_proc = pattern
 
-    if a:far_params.source == 'rg' || a:far_params.source == 'rgnvim'
+    if a:far_params.source == 'rg' || a:far_params.source == 'rgnvim' ||
+     \ a:far_params.source == 'ag' ||  a:far_params.source == 'agnvim'
         " let pattern = a:far_params.pattern
         " if !a:far_params.regex
         "     " let pattern = escape(pattern, '\')
-        "     let pattern = substitute(pattern, '\\', '\\\\', 'g')
+        "     " let pattern = substitute(pattern, '\\', '\\\\', 'g')
         " endif
         " let a:far_params.pattern = pattern
 
@@ -1482,6 +1483,30 @@ function! s:proc_pattern_args(far_params, cmdargs) abort "{{{
                     call add(a:cmdargs, '--ignore-case')
                 else
                     call add(a:cmdargs, '--case-sensitive')
+                endif
+            endif
+        endif
+
+        if a:far_params.word_boundary
+            call add(a:cmdargs, '--word-regexp')
+        endif
+    elseif a:far_params.source == 'ack' ||  a:far_params.source == 'acknvim'
+        if !a:far_params.regex
+            call add(a:cmdargs, '--literal')
+        endif
+
+        if a:far_params.case_sensitive == 1
+            call add(a:cmdargs, '--no-ignore-case')
+        elseif a:far_params.case_sensitive == 0
+            call add(a:cmdargs, '--ignore-case')
+        else
+            if &smartcase
+                call add(a:cmdargs, '--smart-case')
+            else
+                if &ignorecase
+                    call add(a:cmdargs, '--ignore-case')
+                else
+                    call add(a:cmdargs, '--no-ignore-case')
                 endif
             endif
         endif

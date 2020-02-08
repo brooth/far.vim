@@ -85,15 +85,15 @@ function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, .
     " echo 'cargs' cargs
     " echo source_engine | sleep 3
 
-    for i in cargs
-        if i =~ '^--source='
-            let source_engine = i[len('--source='):]
-            if ! ( i == '--source=vimgrep' || i == '--source=rg' || i == '--source=rgnvim' )
-                call far#tools#echo_err('FarModePrompt is only available for `--source=vimgrep(dafault)|rg|rgnvim`.')
-                return
-            endif
-        endif
-    endfor
+    " for i in cargs
+    "     if i =~ '^--source='
+    "         let source_engine = i[len('--source='):]
+    "         if ! ( i == '--source=vimgrep' || i == '--source=rg' || i == '--source=rgnvim' )
+    "             call far#tools#echo_err('FarModePrompt is only available for `--source=vimgrep(dafault)|rg|rgnvim`.')
+    "             return
+    "         endif
+    "     endif
+    " endfor
 
 
     if a:rngmode != -1

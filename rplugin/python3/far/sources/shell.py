@@ -24,20 +24,19 @@ def search(ctx, args, cmdargs):
     with open('/Users/mac/far.vim.py.log', 'a') as f:
         pprint(args, f)
         pprint(cmdargs, f)
+        pprint(ctx,f)
 
 
     if not args.get('cmd'):
         return {'error': 'no cmd in args'}
 
     pattern = ctx['pattern']
+    regex = ctx['regex']
+    case_sensitive = ctx['case_sensitive']
     limit = int(ctx['limit'])
     file_mask = ctx['file_mask']
     fix_cnum = args.get('fix_cnum')
-    if fix_cnum:
-        try:
-            cpat = re.compile(pattern)
-        except Exception as e:
-            return {'error': 'invalid pattern: ' + str(e) }
+
 
     cmd = []
     for c in args['cmd']:
@@ -65,7 +64,7 @@ def search(ctx, args, cmdargs):
     #     print(range, file=f)
     source = cmd[0]
 
-    if source == 'rg' or source == 'rgnvim' or source == 'ag' or source == 'agnvim':
+    if source == 'rg' or source == 'rgnvim' :
         cmd_only_match = cmd + ['-o']
         try:
             proc_only_match = subprocess.Popen(cmd_only_match, cwd=ctx['cwd'],
@@ -181,6 +180,15 @@ def search(ctx, args, cmdargs):
             result[file_name]['items'].append(item_ctx)
 
     else:
+        if fix_cnum == 'first-in-line':
+            if regex != '0':
+                try:
+                    if case_sensitive == '0':
+                        cpat = re.compile(pattern, re.IGNORECASE)
+                    else:
+                        cpat = re.compile(pattern)
+                except Exception as e:
+                    return {'error': 'invalid pattern: ' + str(e) }
 
         split_amount = 2 if fix_cnum == 'all' else 3
         range = tuple(ctx['range'])
@@ -232,19 +240,40 @@ def search(ctx, args, cmdargs):
                 file_ctx['items'].append(item_ctx)
                 limit -= 1
                 if fix_cnum == 'first-in-line':
-                    fix_cnum_idx = item_ctx['cnum'] + 1
+                    byte_num = item_ctx['cnum']
+                    char_num = len( text.encode('utf-8')[:byte_num].decode('utf-8') )
+                    fix_cnum_idx = char_num
 
             if fix_cnum == 'first-in-line':
-                for cp in cpat.finditer(text, fix_cnum_idx):
-                    next_item_ctx = {}
-                    next_item_ctx['text'] = text
-                    next_item_ctx['lnum'] = int(lnum)
-                    prefix = text[:cp.span()[0]]
-                    next_item_ctx['cnum'] = len(prefix.encode('utf-8')) + 1
-                    file_ctx['items'].append(next_item_ctx)
-                    limit -= 1
-                    if limit == 0:
-                        break
+                if regex == '0':
+                    while True:
+                        next_item_ctx = {}
+                        next_item_ctx['text'] = text
+                        next_item_ctx['lnum'] = int(lnum)
+                        if case_sensitive == '0':
+                            next_char_num = text.lower().find(pattern.lower(), fix_cnum_idx)
+                        else:
+                            next_char_num = text.find(pattern, fix_cnum_idx)
+                        if next_char_num == -1:
+                            break
+                        fix_cnum_idx = next_char_num + 1
+                        prefix = text[:next_char_num]
+                        next_item_ctx['cnum'] = len(prefix.encode('utf-8')) + 1
+                        file_ctx['items'].append(next_item_ctx)
+                        limit -= 1
+                        if limit == 0:
+                            break
+                else:
+                    for cp in cpat.finditer(text, fix_cnum_idx):
+                        next_item_ctx = {}
+                        next_item_ctx['text'] = text
+                        next_item_ctx['lnum'] = int(lnum)
+                        prefix = text[:cp.span()[0]]
+                        next_item_ctx['cnum'] = len(prefix.encode('utf-8')) + 1
+                        file_ctx['items'].append(next_item_ctx)
+                        limit -= 1
+                        if limit == 0:
+                            break
 
         # with open('/Users/mac/far.vim.py.log','a') as f:
         #     print(cmd, line, items, text, file=f)
