@@ -1678,8 +1678,12 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
         let filestats = ' ('.len(file_ctx.items).' matches)'
         let maxfilewidth = win_width - strchars(filestats) - strchars(collapse_sign) + 1
         let fileidx = strridx(file_ctx.fname, file_sep)
-        let filepath = far#tools#cut_text_middle(file_ctx.fname[:fileidx-1], maxfilewidth/2 - (maxfilewidth % 2? 0 : 1) - 1).
-            \ file_sep.far#tools#cut_text_middle(file_ctx.fname[fileidx+1:], maxfilewidth/2)
+        if fileidx == -1
+            let filepath = far#tools#cut_text_middle(file_ctx.fname, maxfilewidth/2)
+        else
+            let filepath = far#tools#cut_text_middle(file_ctx.fname[:fileidx-1], maxfilewidth/2 - (maxfilewidth % 2? 0 : 1) - 1).
+                \ file_sep.far#tools#cut_text_middle(file_ctx.fname[fileidx+1:], maxfilewidth/2)
+        endif
         let out = collapse_sign.filepath.filestats
         call add(content, out)
 
