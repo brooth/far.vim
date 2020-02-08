@@ -457,13 +457,14 @@ endfunction "}}}
 
 function! far#show_preview_window_under_cursor() abort "{{{
     call far#tools#log('far#show_preview_window_under_cursor()')
+    let b:win_params.preview_on = b:win_params.auto_preview
+
 
     let ctxs = s:get_contexts_under_cursor()
     if len(ctxs) < 3
         return
     endif
 
-    let b:win_params.preview_on = b:win_params.auto_preview
 
     " let b:win_params.auto_preview = s:create_win_params().auto_preview
 
