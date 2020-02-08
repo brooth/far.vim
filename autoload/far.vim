@@ -19,6 +19,9 @@ call far#tools#setdefault('g:far#default_file_mask', '%')
 call far#tools#setdefault('g:far#status_line', 1)
 call far#tools#setdefault('g:far#source', 'vimgrep')
 call far#tools#setdefault('g:far#cwd', getcwd())
+call far#tools#setdefault('g:far#regex', 1)
+call far#tools#setdefault('g:far#case_sensitive', -1)
+call far#tools#setdefault('g:far#word_boundary', 0)
 call far#tools#setdefault('g:far#limit', 1000)
 
 call far#tools#setdefault('g:far#executors', {})
@@ -107,15 +110,6 @@ endif
 if executable('rg')
     let cmd = ['rg', '--no-heading', '--column', '--no-messages', '--vimgrep',
         \   '--max-count={limit}']
-    if &smartcase
-        call add(cmd, '--smart-case')
-    else
-        if &ignorecase
-            call add(cmd, '--ignore-case')
-        else
-            call add(cmd, '--case-sensitive')
-        endif
-    endif
 
     call add(cmd, '--glob={file_mask}')
     call add(cmd, '{pattern}')
@@ -147,6 +141,9 @@ function! s:create_far_params() abort
     \   'source': g:far#source,
     \   'cwd': g:far#cwd,
     \   'limit': g:far#limit,
+    \   'regex': g:far#regex,
+    \   'case_sensitive': g:far#case_sensitive,
+    \   'word_boundary': g:far#word_boundary,
     \   }
 endfunction
 
@@ -204,6 +201,9 @@ let s:far_params_meta = {
     \   '--source': {'param': 'source', 'values': s:suggest_sources},
     \   '--cwd': {'param': 'cwd', 'values': [getcwd()], 'fnvalues': 's:complete_dir'},
     \   '--limit': {'param': 'limit', 'values': [g:far#limit]},
+    \   '--regex' : {'param': 'regex', 'values': [1,0]},
+    \   '--case-sensitive' : {'param': 'case_sensitive', 'values': [1,0,-1]},
+    \   '--word-boundary' : {'param': 'word_boundary', 'values': [1,0]},
     \   }
 
 let s:far_params_meta_vimgrep = {
@@ -521,9 +521,17 @@ function! far#show_preview_window_under_cursor() abort "{{{
 
     exec 'norm! '.ctxs[2].lnum.'ggzz0'.ctxs[2].cnum.'l'
     if !ctxs[2].replaced
+        " let pmatch = 'match FarPreviewMatch "\%'.ctxs[2].lnum.'l\%'.ctxs[2].cnum.'c'.
+        "             \ '\V'.escape(escape(ctxs[0].pattern, '\'), '"').(&ignorecase? '\c"' : '"')
         let pmatch = 'match FarPreviewMatch "\%'.ctxs[2].lnum.'l\%'.ctxs[2].cnum.'c'.
-                    \ '\v' . escape(' ctxs[0].pattern, '"').(&ignorecase? '\c"' : '"')
-                " \  'asd'
+                    \ escape(ctxs[0].pattern_proc, '"') .(&ignorecase? '\c"' : '"')
+                    " .(&ignorecase? '\c"' : '"')
+
+
+                    " \ '\v'.escape(ctxs[0].pattern, '"').(&ignorecase? '\c"' : '"')
+                    " regex
+                    " case-sensitive
+                    " wordboundary
         call far#tools#log('preview match: '.pmatch)
         exec pmatch
     else
@@ -1063,7 +1071,7 @@ function! far#find(far_params, xargs) "{{{
     endif
 
 
-    let far_params['regexp'] = 1
+    " let far_params['regexp'] = 1
 
     let cmdargs = []
     let win_params = s:create_win_params()
@@ -1072,10 +1080,6 @@ function! far#find(far_params, xargs) "{{{
         if d != -1
             let param = xarg[:d-1]
             let val = xarg[d+1:]
-            if param == '--regexp'
-                let far_params['regexp'] = val
-                continue
-            endif
             let meta = get(s:far_params_meta, param, '')
             if !empty(meta)
                 let far_params[meta.param] = val
@@ -1091,9 +1095,9 @@ function! far#find(far_params, xargs) "{{{
     endfor
 
     let win_params['far_params'] = far_params
-    " echo 'win_params.far_params.regexp' win_params.far_params.regexp
-    " echo 'far_params' far_params
-    " sleep 2
+    echo 'win_params.far_params.regex' win_params.far_params.regex
+    echo 'far_params' far_params
+    sleep 2
 
     call s:assemble_context(far_params, win_params, cmdargs,
     \   function('s:open_far_buff'), [win_params])
@@ -1171,15 +1175,46 @@ function! far#replace(xargs) abort "{{{
 
         let cmds = []
         let items = []
+        let delta_cnums = {}
         for item_ctx in file_ctx.items
             if !item_ctx.excluded && !item_ctx.replaced
                 let cmd = item_ctx.lnum.'s/\%'.item_ctx.cnum.'c'.
-                    \   escape(far_ctx.pattern, '/').'/'.
+                    \   escape(far_ctx.pattern_proc, '/').'/'.
                     \   escape(far_ctx.replace_with, '/').'/e#'
+
                 call add(cmds, cmd)
                 call add(items, item_ctx)
+
+                if has_key(item_ctx, 'match')
+                    let match_val = get(item_ctx, 'match')
+                else
+                    let match_val = matchstr(item_ctx.text, far_ctx.pattern_proc, item_ctx.cnum-1)
+                    let multiline = match(far_ctx.pattern_proc, '\\n') >= 0
+                    if multiline
+                        let match_val = item_ctx.text[item_ctx.cnum:]
+                        let match_val = match_val.g:far#multiline_sign
+                    endif
+                    let match_val = get(item_ctx, 'match', match_val)
+                endif
+
+                if far_ctx.regex
+                    let repl_val = substitute(match_val, far_ctx.pattern_proc, far_ctx.replace_with, "")
+                else
+                    let repl_val = far_ctx.replace_with
+                endif
+
+                let delta_cnum = len(repl_val) - len(match_val)
+                if delta_cnum
+                    if !has_key(delta_cnums, item_ctx.lnum)
+                        let delta_cnums[item_ctx.lnum] = {}
+                    endif
+                    let delta_cnums[item_ctx.lnum][item_ctx.cnum] = delta_cnum
+                endif
             endif
         endfor
+
+        echo 'delta_cnums ' delta_cnums
+        echo 3
 
         let undonum = -1
         let undoitems = []
@@ -1213,6 +1248,23 @@ function! far#replace(xargs) abort "{{{
             silent! exec bufcmd
             exec 'redir END'
             call far#tools#log('bufdo_msgs: '.s:bufdo_msgs)
+
+            for item_ctx in file_ctx.items
+                let old_cnum = item_ctx.cnum
+                if has_key(delta_cnums, item_ctx.lnum)
+                    for [others_cnum, delta_cnum] in items(delta_cnums[item_ctx.lnum])
+                        if others_cnum < old_cnum
+                            if !has_key(item_ctx, 'cnum_undo')
+                                let item_ctx.cnum_undo = {}
+                            endif
+                            let item_ctx.cnum_undo[undonum] = old_cnum
+                            let item_ctx.cnum += delta_cnum
+                            " echo 'lnum=' item_ctx.lnum '  old_cnum[' undonum ']='
+                            "     \ item_ctx.cnum_undo[undonum] '  new_cnum='  item_ctx.cnum
+                        endif
+                    endfor
+                endif
+            endfor
 
             let repl_lines = []
             for bufdo_msg in reverse(split(s:bufdo_msgs, "\n"))
@@ -1318,6 +1370,7 @@ function! far#undo(xargs) abort "{{{
             call add(del_bufs, bufnr(file_ctx.fname))
         endif
 
+        let undo_num = -1
         let items = []
         if undo_params.all
 
@@ -1325,7 +1378,7 @@ function! far#undo(xargs) abort "{{{
                 let items += undo.items
             endfor
 
-            let undo_num = -1
+            " let undo_num = -1
             for undo in file_ctx.undos
                 if len(undo.items)
                     let undo_num = undo.num
@@ -1333,18 +1386,29 @@ function! far#undo(xargs) abort "{{{
                 endif
             endfor
 
-            if undo_num != -1
-                exec 'silent! undo '. undo_num
-            endif
+            " if undo_num != -1
+            "     exec 'silent! undo '. undo_num
+            " endif
             let file_ctx.undos = []
         else
             let undo = remove(file_ctx.undos, len(file_ctx.undos)-1)
             if len(undo.items)
-                exec 'silent! undo ' . undo.num
+                let undo_num = undo.num
+                " exec 'silent! undo ' . undo.num
             endif
             let items = undo.items
         endif
 
+        if undo_num != -1
+            exec 'silent! undo '. undo_num
+
+            for item_ctx in file_ctx.items
+                " echo 'item_ctx ='  item_ctx
+                if has_key(item_ctx, 'cnum_undo') && has_key(item_ctx.cnum_undo, undo_num)
+                    let item_ctx.cnum = item_ctx.cnum_undo[undo_num]
+                endif
+            endfor
+        endif
 
         if write_buf
             exec 'silent! write'
@@ -1369,10 +1433,79 @@ function! far#undo(xargs) abort "{{{
     call s:update_far_buffer(b:far_ctx, bufnr)
 endfunction "}}}
 
+function! s:proc_pattern_args(far_params, cmdargs) abort "{{{
+    let pattern = a:far_params.pattern
+
+    if a:far_params.regex
+        let pattern = escape(pattern, '<>')
+    else
+        " let pattern = escape(pattern, '\')
+        let pattern = substitute(pattern, '\\', '\\\\', 'g')
+    endif
+    " let pattern = a:far_params.regex ? pattern : substitute(pattern, '\\', '\\\\', 'g')
+    let pattern = substitute(pattern, '\n', '\\n', 'g')
+    if a:far_params.case_sensitive == 1
+        let pattern = '\C'. pattern
+    elseif a:far_params.case_sensitive == 0
+        let pattern = '\c'. pattern
+    endif
+    if !a:far_params.regex && a:far_params.word_boundary
+        let pattern = '\<'.pattern.'\>'
+    elseif a:far_params.regex && a:far_params.word_boundary
+        let pattern = '<'.pattern.'>'
+    endif
+    " let pattern = a:far_params.word_boundary ? ('\<'.pattern.'\>') : pattern
+    let pattern = (a:far_params.regex          ? '\v'   : '\V') . pattern
+    let a:far_params.pattern_proc = pattern
+
+    if a:far_params.source == 'rg' || a:far_params.source == 'rgnvim'
+        " let pattern = a:far_params.pattern
+        " if !a:far_params.regex
+        "     " let pattern = escape(pattern, '\')
+        "     let pattern = substitute(pattern, '\\', '\\\\', 'g')
+        " endif
+        " let a:far_params.pattern = pattern
+
+        if !a:far_params.regex
+            call add(a:cmdargs, '--fixed-strings')
+        endif
+
+        if a:far_params.case_sensitive == 1
+            call add(a:cmdargs, '--case-sensitive')
+        elseif a:far_params.case_sensitive == 0
+            call add(a:cmdargs, '--ignore-case')
+        else
+            if &smartcase
+                call add(a:cmdargs, '--smart-case')
+            else
+                if &ignorecase
+                    call add(a:cmdargs, '--ignore-case')
+                else
+                    call add(a:cmdargs, '--case-sensitive')
+                endif
+            endif
+        endif
+
+        if a:far_params.word_boundary
+            call add(a:cmdargs, '--word-regexp')
+        endif
+    elseif a:far_params.source == 'vimgrep'
+        " let pattern = a:far_params.word_boundary ? ('\<'.pattern.'\>') : pattern
+        " let pattern = (a:far_params.regex          ? '\v'   : '\V') . pattern
+        let a:far_params.pattern = pattern
+    endif
+endfunction
+" }}}
+
 function! s:assemble_context(far_params, win_params, cmdargs, callback, cbparams) abort "{{{
     if far#tools#isdebug()
         call far#tools#log('assemble_context('.string(a:far_params).','.string(a:win_params).')')
     endif
+
+    call s:proc_pattern_args(a:far_params, a:cmdargs)
+    echo a:far_params
+    echo a:cmdargs
+    echo 1
 
     if empty(a:far_params.pattern)
         call far#tools#echo_err('No pattern')
@@ -1547,9 +1680,10 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
 
 
                 " echo 'b:win_params.far_params.regexp' b:win_params.far_params.regexp
-                if b:win_params.far_params.source == 'vimgrep'
-                    let pattern = ( b:win_params.far_params.regexp ? '\v'.pattern : '\V'.pattern )
-                endif
+                " if b:win_params.far_params.source == 'vimgrep'
+                "     let pattern = ( b:win_params.far_params.regex ? '\v'.pattern : '\V'.pattern )
+                " endif
+                let pattern = b:win_params.far_params.pattern_proc
 
                 let match_val = matchstr(item_ctx.text, pattern, item_ctx.cnum-1)
                 let multiline = match(pattern, '\\n') >= 0
@@ -1560,18 +1694,19 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
 
                 let match_val = get(item_ctx, 'match', match_val)
                 " let match_val = substitute(match_val, '\\\\', '\\', 'g')
-                echo 'match_val' match_val | sleep 1
+                " echo 'match_val' match_val | sleep 1
 
                 if a:win_params.result_preview && !multiline && !item_ctx.replaced
                     " strdisplaywidth: actual displayed width, so as to deal with wide characters
                     let max_text_len = win_width / 2 - strdisplaywidth(line_num_col_text)
                     let max_repl_len = win_width / 2 - strdisplaywidth(g:far#repl_devider)
-                    if b:win_params.far_params.source == 'vimgrep' || b:win_params.far_params.regexp
-                        echo 1 | sleep 1
+                    if b:win_params.far_params.regex
+                        " b:win_params.far_params.source == 'vimgrep' ||
+                        " echo 1 | sleep 1
                         " item_ctx.cnum : byte id (begin with 1) the matched substring start from
                         let repl_val = substitute(match_val, pattern, a:far_ctx.replace_with, "")
                     else
-                        echo 2 | sleep 1
+                        " echo 2 | sleep 1
                         " let repl_val = substitute(match_val, pattern, a:far_ctx.replace_with, "")
                         let repl_val = a:far_ctx.replace_with
                     endif

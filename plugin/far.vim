@@ -168,18 +168,23 @@ function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, .
     call far#mode_prompt_close()
     exe current_winnr . "wincmd w"
 
-    if source_engine == 'vimgrep'
-        " disable escaped sequence
-        let pattern = g:far#mode_open['regex'] ? pattern : substitute(pattern, '\\', '\\\\', 'g')
-        let pattern = substitute(pattern, '\n', '\\n', 'g')
-        let pattern = (g:far#mode_open['case_sensitive'] ? '\C' : '\c') . pattern
-        let pattern = g:far#mode_open['word']            ? ('\<'.pattern.'\>') : pattern
-        let pattern = (g:far#mode_open['regex']          ? '\v'   : '\V') . pattern
-    elseif source_engine == 'rg' || source_engine =='rgnvim'
-        if !g:far#mode_open['regex']         | call add(cargs, '--fixed-strings')  | call add(cargs, '--regexp=0') | endif
-        if g:far#mode_open['case_sensitive'] | call add(cargs, '--case-sensitive') | else  | call add(cargs, '--ignore-case') | endif
-        if g:far#mode_open['word']           | call add(cargs, '--word-regexp')    | endif
-    endif
+
+    call add(cargs, '--regex='. (g:far#mode_open['regex']? '1' : '0') )
+    call add(cargs, '--case-sensitive='. (g:far#mode_open['case_sensitive']? '1' : '0') )
+    call add(cargs, '--word-boundary='. (g:far#mode_open['word']? '1' : '0') )
+
+    " if source_engine == 'vimgrep'
+    "     " disable escaped sequence
+    "     let pattern = g:far#mode_open['regex'] ? pattern : substitute(pattern, '\\', '\\\\', 'g')
+    "     let pattern = substitute(pattern, '\n', '\\n', 'g')
+    "     let pattern = (g:far#mode_open['case_sensitive'] ? '\C' : '\c') . pattern
+    "     let pattern = g:far#mode_open['word']            ? ('\<'.pattern.'\>') : pattern
+    "     let pattern = (g:far#mode_open['regex']          ? '\v'   : '\V') . pattern
+    " elseif source_engine == 'rg' || source_engine =='rgnvim'
+    "     call add(cargs, '--regex='. (g:far#mode_open['regex']? '1' : '0') )
+    "     call add(cargs, '--case-sensitive='. (g:far#mode_open['case_sensitive']? '1' : '0') )
+    "     call add(cargs, '--word-boundary='. (g:far#mode_open['word']? '1' : '0') )
+    " endif
 
     let far_params = {
         \   'pattern': pattern,
