@@ -38,7 +38,7 @@ call far#tools#setdefault('g:far#mode_open', { "regex" : 1, "case_sensitive"  : 
 
 
 if executable('ag')
-    let cmd = ['ag', '--nogroup', '--column', '--nocolor', '--silent',
+    let cmd = ['ag', '--nogroup', '--column', '--nocolor', '--silent', '--vimgrep',
         \   '--max-count={limit}', '{pattern}', '--file-search-regex={file_mask}']
     if &smartcase
         call add(cmd, '--smart-case')
@@ -72,7 +72,8 @@ endif
 
 if executable('ack')
     let cmd = ['ack', '--nogroup', '--column', '--nocolor',
-            \   '--max-count={limit}', '--type-set=farft:match:{file_mask}', '--farft', '{pattern}']
+            \   '--max-count={limit}', '--type-set=farft:match:{file_mask}', '{pattern}']
+            " '--farft',  '--output=$_'
     if &smartcase
         call add(cmd, '--smart-case')
     endif
@@ -86,7 +87,7 @@ if executable('ack')
     call far#tools#setdefault('g:far#sources.ack.param_proc', 's:ack_param_proc')
     call far#tools#setdefault('g:far#sources.ack.args', {})
     call far#tools#setdefault('g:far#sources.ack.args.cmd', cmd)
-    call far#tools#setdefault('g:far#sources.ack.args.fix_cnum', 'next')
+    call far#tools#setdefault('g:far#sources.ack.args.fix_cnum', 'first-in-line')
     call far#tools#setdefault('g:far#sources.ack.args.items_file_min', 30)
     call far#tools#setdefault('g:far#sources.ack.args.expand_cmdargs', 1)
 
@@ -97,14 +98,14 @@ if executable('ack')
         call far#tools#setdefault('g:far#sources.acknvim.param_proc', 's:ack_param_proc')
         call far#tools#setdefault('g:far#sources.acknvim.args', {})
         call far#tools#setdefault('g:far#sources.acknvim.args.cmd', cmd)
-        call far#tools#setdefault('g:far#sources.acknvim.args.fix_cnum', 'next')
+        call far#tools#setdefault('g:far#sources.acknvim.args.fix_cnum', 'first-in-line')
         call far#tools#setdefault('g:far#sources.acknvim.args.items_file_min', 30)
         call far#tools#setdefault('g:far#sources.acknvim.args.expand_cmdargs', 1)
     endif
 endif
 
 if executable('rg')
-    let cmd = ['rg', '--no-heading', '--column', '--no-messages',
+    let cmd = ['rg', '--no-heading', '--column', '--no-messages', '--vimgrep',
         \   '--max-count={limit}']
     if &smartcase
         call add(cmd, '--smart-case')
@@ -1060,6 +1061,9 @@ function! far#find(far_params, xargs) "{{{
         call add(g:far#file_mask_history, far_params.file_mask)
     endif
 
+
+    let far_params['regexp'] = 1
+
     let cmdargs = []
     let win_params = s:create_win_params()
     for xarg in a:xargs
@@ -1067,6 +1071,10 @@ function! far#find(far_params, xargs) "{{{
         if d != -1
             let param = xarg[:d-1]
             let val = xarg[d+1:]
+            if param == '--regexp'
+                let far_params['regexp'] = val
+                continue
+            endif
             let meta = get(s:far_params_meta, param, '')
             if !empty(meta)
                 let far_params[meta.param] = val
@@ -1080,6 +1088,11 @@ function! far#find(far_params, xargs) "{{{
         endif
         call add(cmdargs, xarg)
     endfor
+
+    let win_params['far_params'] = far_params
+    echo 'win_params.far_params.regexp' win_params.far_params.regexp
+    echo 'far_params' far_params
+    sleep 2
 
     call s:assemble_context(far_params, win_params, cmdargs,
     \   function('s:open_far_buff'), [win_params])
@@ -1530,6 +1543,12 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
                 let line_num_text = '  '.item_ctx.lnum
                 let line_num_col_text = line_num_text.repeat(' ', 8-strchars(line_num_text))
                 let pattern = a:far_ctx.pattern
+
+
+                " echo 'b:win_params.far_params.regexp' b:win_params.far_params.regexp
+                let pattern = (b:win_params.far_params.source != 'vimgrep') ?
+                    \ ( b:win_params.far_params.regexp ? '\v'.pattern : '\V'.pattern ) : pattern
+
                 let match_val = matchstr(item_ctx.text, pattern, item_ctx.cnum-1)
                 let multiline = match(pattern, '\\n') >= 0
                 if multiline

@@ -5,6 +5,9 @@ Author: Oleg Khalidov <brooth@gmail.com>
 License: MIT
 """
 
+from pprint import pprint
+
+
 import logging
 import subprocess
 import re
@@ -16,6 +19,12 @@ logger = logging.getLogger('far')
 
 def search(ctx, args, cmdargs):
     logger.debug('search(%s, %s, %s)', str(ctx), str(args), str(cmdargs))
+
+
+    with open('/Users/mac/far.vim.py.log', 'a') as f:
+        pprint(args, f)
+        pprint(cmdargs, f)
+
 
     if not args.get('cmd'):
         return {'error': 'no cmd in args'}
@@ -39,6 +48,9 @@ def search(ctx, args, cmdargs):
     if args.get('expand_cmdargs', '0') != '0':
         cmd += cmdargs
 
+    with open('/Users/mac/far.vim.py.log', 'a') as f:
+        pprint(cmd, f)
+
     logger.debug('cmd:' + str(cmd))
     try:
         proc = subprocess.Popen(cmd, cwd=ctx['cwd'],
@@ -48,6 +60,11 @@ def search(ctx, args, cmdargs):
 
     split_amount = 2 if fix_cnum == 'all' else 3
     range = tuple(ctx['range'])
+
+    # with open('/Users/mac/far.vim.py.log','a') as f:
+    #     print(range, file=f)
+
+
     result = {}
     while limit > 0:
         line = proc.stdout.readline()
@@ -93,24 +110,32 @@ def search(ctx, args, cmdargs):
             item_ctx['cnum'] = int(items[2])
             file_ctx['items'].append(item_ctx)
             limit -= 1
-            if fix_cnum:
+            if fix_cnum == 'first-in-line':
                 fix_cnum_idx = item_ctx['cnum'] + 1
 
-        if fix_cnum:
+        if fix_cnum == 'first-in-line':
             for cp in cpat.finditer(text, fix_cnum_idx):
                 next_item_ctx = {}
                 next_item_ctx['text'] = text
                 next_item_ctx['lnum'] = int(lnum)
-                next_item_ctx['cnum'] = cp.span()[0] + 1
+                prefix = text[:cp.span()[0]]
+                next_item_ctx['cnum'] = len(prefix.encode('utf-8')) + 1
                 file_ctx['items'].append(next_item_ctx)
                 limit -= 1
                 if limit == 0:
                     break
 
+        # with open('/Users/mac/far.vim.py.log','a') as f:
+        #     print(cmd, line, items, text, file=f)
+
     try:
         proc.terminate()
     except Exception as e:
         logger.error('failed to terminate proc: ' + str(e))
+
+    with open('/Users/mac/far.vim.py.log', 'a') as f:
+        pprint(result, f)
+
 
     if int(ctx['limit']) - limit >= args.get('items_file_min', 250):
         with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as fp:

@@ -80,10 +80,18 @@ function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, .
     call far#tools#log('=========== FAR MODE PROMPT ============')
 
     let cargs = far#tools#splitcmd(a:cmdline)
+    if len(cargs) == 1 && cargs[0] == '' | let cargs = [] | endif
+    let source_engine = g:far#source
+    " echo 'cargs' cargs
+    " echo source_engine | sleep 3
+
     for i in cargs
-        if i =~ '^--source=' && i != '--source=vimgrep'
-            call far#tools#echo_err('FarModePrompt is only available for `--source=vimgrep` (dafault).')
-            return
+        if i =~ '^--source='
+            let source_engine = i[len('--source='):]
+            if ! ( i == '--source=vimgrep' || i == '--source=rg' || i == '--source=rgnvim' )
+                call far#tools#echo_err('FarModePrompt is only available for `--source=vimgrep(dafault)|rg|rgnvim`.')
+                return
+            endif
         endif
     endfor
 
@@ -157,18 +165,21 @@ function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, .
     endif
     call far#tools#log('>replace_with: '.replace_with)
 
-    call add(cargs, '--source=vimgrep')
-
     call far#mode_prompt_close()
     exe current_winnr . "wincmd w"
 
-    " disable escaped sequence
-    let pattern = g:far#mode_open['regex'] ? pattern : substitute(pattern, '\\', '\\\\', 'g')
-    let pattern = substitute(pattern, '\n', '\\n', 'g')
-    let pattern = (g:far#mode_open['case_sensitive'] ? '\C' : '\c') . pattern
-    let pattern = g:far#mode_open['word']            ? ('\<'.pattern.'\>') : pattern
-    let pattern = (g:far#mode_open['regex']          ? ''   : '\V') . pattern
-
+    if source_engine == 'vimgrep'
+        " disable escaped sequence
+        let pattern = g:far#mode_open['regex'] ? pattern : substitute(pattern, '\\', '\\\\', 'g')
+        let pattern = substitute(pattern, '\n', '\\n', 'g')
+        let pattern = (g:far#mode_open['case_sensitive'] ? '\C' : '\c') . pattern
+        let pattern = g:far#mode_open['word']            ? ('\<'.pattern.'\>') : pattern
+        let pattern = (g:far#mode_open['regex']          ? ''   : '\V') . pattern
+    elseif source_engine == 'rg' || source_engine =='rgnvim'
+        if !g:far#mode_open['regex']         | call add(cargs, '--fixed-strings')  | call add(cargs, '--regexp=0') | endif
+        if g:far#mode_open['case_sensitive'] | call add(cargs, '--case-sensitive') | else  | call add(cargs, '--ignore-case') | endif
+        if g:far#mode_open['word']           | call add(cargs, '--word-regexp')    | endif
+    endif
 
     let far_params = {
         \   'pattern': pattern,
@@ -177,6 +188,9 @@ function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, .
         \   'range': [-1, -1]
         \  }
         " a:rngmode == -1? [-1,-1] : [a:rngline1, a:rngline2],
+
+    " echo far_params
+    " echo cargs | sleep 3
 
     call far#find(far_params, cargs)
 endfunction
