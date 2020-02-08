@@ -522,7 +522,8 @@ function! far#show_preview_window_under_cursor() abort "{{{
     exec 'norm! '.ctxs[2].lnum.'ggzz0'.ctxs[2].cnum.'l'
     if !ctxs[2].replaced
         let pmatch = 'match FarPreviewMatch "\%'.ctxs[2].lnum.'l\%'.ctxs[2].cnum.'c'.
-                    \   escape(ctxs[0].pattern, '"').(&ignorecase? '\c"' : '"')
+                    \ '\v' . escape(' ctxs[0].pattern, '"').(&ignorecase? '\c"' : '"')
+                " \  'asd'
         call far#tools#log('preview match: '.pmatch)
         exec pmatch
     else
@@ -1090,9 +1091,9 @@ function! far#find(far_params, xargs) "{{{
     endfor
 
     let win_params['far_params'] = far_params
-    echo 'win_params.far_params.regexp' win_params.far_params.regexp
-    echo 'far_params' far_params
-    sleep 2
+    " echo 'win_params.far_params.regexp' win_params.far_params.regexp
+    " echo 'far_params' far_params
+    " sleep 2
 
     call s:assemble_context(far_params, win_params, cmdargs,
     \   function('s:open_far_buff'), [win_params])
@@ -1546,8 +1547,9 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
 
 
                 " echo 'b:win_params.far_params.regexp' b:win_params.far_params.regexp
-                let pattern = (b:win_params.far_params.source != 'vimgrep') ?
-                    \ ( b:win_params.far_params.regexp ? '\v'.pattern : '\V'.pattern ) : pattern
+                if b:win_params.far_params.source == 'vimgrep'
+                    let pattern = ( b:win_params.far_params.regexp ? '\v'.pattern : '\V'.pattern )
+                endif
 
                 let match_val = matchstr(item_ctx.text, pattern, item_ctx.cnum-1)
                 let multiline = match(pattern, '\\n') >= 0
@@ -1556,14 +1558,27 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
                     let match_val = match_val.g:far#multiline_sign
                 endif
 
+                let match_val = get(item_ctx, 'match', match_val)
+                " let match_val = substitute(match_val, '\\\\', '\\', 'g')
+                echo 'match_val' match_val | sleep 1
+
                 if a:win_params.result_preview && !multiline && !item_ctx.replaced
                     " strdisplaywidth: actual displayed width, so as to deal with wide characters
                     let max_text_len = win_width / 2 - strdisplaywidth(line_num_col_text)
                     let max_repl_len = win_width / 2 - strdisplaywidth(g:far#repl_devider)
-                    " item_ctx.cnum : byte id (begin with 1) the matched substring start from
-                    let repl_val = substitute(match_val, pattern, a:far_ctx.replace_with, "")
+                    if b:win_params.far_params.source == 'vimgrep' || b:win_params.far_params.regexp
+                        echo 1 | sleep 1
+                        " item_ctx.cnum : byte id (begin with 1) the matched substring start from
+                        let repl_val = substitute(match_val, pattern, a:far_ctx.replace_with, "")
+                    else
+                        echo 2 | sleep 1
+                        " let repl_val = substitute(match_val, pattern, a:far_ctx.replace_with, "")
+                        let repl_val = a:far_ctx.replace_with
+                    endif
+
                     let repl_text = (item_ctx.cnum == 1? '' : item_ctx.text[0:item_ctx.cnum-2]).
-                        \   repl_val. item_ctx.text[item_ctx.cnum+len(match_val)-1:]  " change to len, to support replacing wide char
+                        \   repl_val. item_ctx.text[item_ctx.cnum+len(match_val)-1:] " change to len, to support replacing wide char
+
                     let match_text = far#tools#centrify_text(item_ctx.text, max_text_len, item_ctx.cnum)
                     let repl_text = far#tools#centrify_text(repl_text, max_repl_len, item_ctx.cnum)
                     let out = line_num_col_text.match_text.text.g:far#repl_devider.repl_text.text

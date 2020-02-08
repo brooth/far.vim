@@ -50,6 +50,7 @@ function! far#executors#nvim#callback(result, ctx_idx) abort
         for file_ctx in ctx.far_ctx['items']
             for item_ctx in file_ctx.items
                 let item_ctx.text = substitute(item_ctx.text, '\\\\', '\\', 'g')
+                let item_ctx.match = substitute(item_ctx.match, '\\\\', '\\', 'g')
             endfor
         endfor
     endif

@@ -58,72 +58,193 @@ def search(ctx, args, cmdargs):
     except Exception as e:
         return {'error': str(e)}
 
-    split_amount = 2 if fix_cnum == 'all' else 3
-    range = tuple(ctx['range'])
 
-    # with open('/Users/mac/far.vim.py.log','a') as f:
+
+
+    # with open('/Users/mac/far.vim.py.log','a'g) as f:
     #     print(range, file=f)
+    source = cmd[0]
+
+    if source == 'rg' or source == 'rgnvim' or source == 'ag' or source == 'agnvim':
+        cmd_only_match = cmd + ['-o']
+        try:
+            proc_only_match = subprocess.Popen(cmd_only_match, cwd=ctx['cwd'],
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except Exception as e:
+            return {'error': str(e)}
+
+        split_amount = 2 if fix_cnum == 'all' else 3
+        range = tuple(ctx['range'])
+        result_dict = {}
+
+        while limit > 0:
+            line = proc.stdout.readline()
+            with open('/Users/mac/far.vim.py.log', 'a') as f:
+                pprint(line.decode('utf-8'), f)
+                pprint(line.decode('utf-8').rstrip(), f)
+
+            line = line.decode('utf-8').rstrip()
 
 
-    result = {}
-    while limit > 0:
-        line = proc.stdout.readline()
-        line = line.decode('utf-8').rstrip()
+            if not line:
+                if len(result_dict) == 0:
+                    err = proc.stderr.readline()
+                    if err:
+                        err = err.decode('utf-8')
+                        logger.debug('error:' + err)
+                        return {'error': err}
 
-        if not line:
-            if len(result) == 0:
-                err = proc.stderr.readline()
-                if err:
-                    err = err.decode('utf-8')
-                    logger.debug('error:' + err)
-                    return {'error': err}
-
-            if proc.poll() is not None:
-                logger.debug('end of proc. break')
-                break
-            continue
-
-        items = re.split(':', line, split_amount)
-        if len(items) != split_amount + 1:
-            logger.error('broken line:' + line)
-            return {'error': 'broken output'}
-
-        lnum = int(items[1])
-        if (range[0] != -1 and range[0] > lnum) or (range[1] != -1 and range[1] < lnum):
-            continue
-
-        file_ctx = result.get(items[0])
-        if not file_ctx:
-            file_ctx = {
-                'fname': items[0],
-                'items': []
-            }
-            result[items[0]] = file_ctx
-
-        text = items[split_amount]
-
-        fix_cnum_idx = 0
-        if split_amount == 3:
-            item_ctx = {}
-            item_ctx['text'] = text
-            item_ctx['lnum'] = lnum
-            item_ctx['cnum'] = int(items[2])
-            file_ctx['items'].append(item_ctx)
-            limit -= 1
-            if fix_cnum == 'first-in-line':
-                fix_cnum_idx = item_ctx['cnum'] + 1
-
-        if fix_cnum == 'first-in-line':
-            for cp in cpat.finditer(text, fix_cnum_idx):
-                next_item_ctx = {}
-                next_item_ctx['text'] = text
-                next_item_ctx['lnum'] = int(lnum)
-                prefix = text[:cp.span()[0]]
-                next_item_ctx['cnum'] = len(prefix.encode('utf-8')) + 1
-                file_ctx['items'].append(next_item_ctx)
-                limit -= 1
-                if limit == 0:
+                if proc.poll() is not None:
+                    logger.debug('end of proc. break')
                     break
+                continue
+
+            items = re.split(':', line, split_amount)
+            if len(items) != split_amount + 1:
+                logger.error('broken line:' + line)
+                return {'error': 'broken output'}
+
+            file_name = items[0]
+            lnum = int(items[1])
+            text = items[split_amount]
+            cnum = int(items[2])
+            item = (file_name,lnum,cnum)
+
+            if (range[0] != -1 and range[0] > lnum) or (range[1] != -1 and range[1] < lnum):
+                continue
+
+            if not item in result_dict:
+                result_dict[item] = {}
+            result_dict[item]['text'] = text
+            limit -= 1
+
+        result = {}
+        while limit > 0:
+            line = proc_only_match.stdout.readline()
+            line = line.decode('utf-8').rstrip()
+
+            if not line:
+                if len(result) == 0:
+                    err = proc.stderr.readline()
+                    if err:
+                        err = err.decode('utf-8')
+                        logger.debug('error:' + err)
+                        return {'error': err}
+
+                if proc.poll() is not None:
+                    logger.debug('end of proc. break')
+                    break
+                continue
+
+            items = re.split(':', line, split_amount)
+            if len(items) != split_amount + 1:
+                logger.error('broken line:' + line)
+                return {'error': 'broken output'}
+
+            file_name = items[0]
+            lnum = int(items[1])
+            match = items[split_amount]
+            cnum = int(items[2])
+            item = (file_name,lnum,cnum)
+
+
+            if (range[0] != -1 and range[0] > lnum) or (range[1] != -1 and range[1] < lnum):
+                continue
+
+            if not item in result_dict:
+                result_dict[item] = {}
+            result_dict[item]['match'] = match
+            limit -= 1
+
+        result = {}
+        for key, value in result_dict.items():
+            file_name, lnum, cnum = key
+            if not ('match' in value and 'text' in value):
+                continue
+            match = value['match']
+            text = value['text']
+
+            if not file_name in result:
+                result[file_name] = {
+                    'fname': file_name,
+                    'items': []
+                }
+
+            file_ctx = result.get(items[0])
+
+            item_ctx = {
+                'lnum': lnum,
+                'cnum': cnum,
+                'text': text,
+                'match': match
+                }
+            result[file_name]['items'].append(item_ctx)
+
+    else:
+
+        split_amount = 2 if fix_cnum == 'all' else 3
+        range = tuple(ctx['range'])
+
+
+        result = {}
+        while limit > 0:
+            line = proc.stdout.readline()
+            line = line.decode('utf-8').rstrip()
+
+            if not line:
+                if len(result) == 0:
+                    err = proc.stderr.readline()
+                    if err:
+                        err = err.decode('utf-8')
+                        logger.debug('error:' + err)
+                        return {'error': err}
+
+                if proc.poll() is not None:
+                    logger.debug('end of proc. break')
+                    break
+                continue
+
+            items = re.split(':', line, split_amount)
+            if len(items) != split_amount + 1:
+                logger.error('broken line:' + line)
+                return {'error': 'broken output'}
+
+            lnum = int(items[1])
+            if (range[0] != -1 and range[0] > lnum) or (range[1] != -1 and range[1] < lnum):
+                continue
+
+            file_ctx = result.get(items[0])
+            if not file_ctx:
+                file_ctx = {
+                    'fname': items[0],
+                    'items': []
+                }
+                result[items[0]] = file_ctx
+
+            text = items[split_amount]
+
+            fix_cnum_idx = 0
+            if split_amount == 3:
+                item_ctx = {}
+                item_ctx['text'] = text
+                item_ctx['lnum'] = lnum
+                item_ctx['cnum'] = int(items[2])
+                file_ctx['items'].append(item_ctx)
+                limit -= 1
+                if fix_cnum == 'first-in-line':
+                    fix_cnum_idx = item_ctx['cnum'] + 1
+
+            if fix_cnum == 'first-in-line':
+                for cp in cpat.finditer(text, fix_cnum_idx):
+                    next_item_ctx = {}
+                    next_item_ctx['text'] = text
+                    next_item_ctx['lnum'] = int(lnum)
+                    prefix = text[:cp.span()[0]]
+                    next_item_ctx['cnum'] = len(prefix.encode('utf-8')) + 1
+                    file_ctx['items'].append(next_item_ctx)
+                    limit -= 1
+                    if limit == 0:
+                        break
 
         # with open('/Users/mac/far.vim.py.log','a') as f:
         #     print(cmd, line, items, text, file=f)

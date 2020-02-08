@@ -174,7 +174,7 @@ function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, .
         let pattern = substitute(pattern, '\n', '\\n', 'g')
         let pattern = (g:far#mode_open['case_sensitive'] ? '\C' : '\c') . pattern
         let pattern = g:far#mode_open['word']            ? ('\<'.pattern.'\>') : pattern
-        let pattern = (g:far#mode_open['regex']          ? ''   : '\V') . pattern
+        let pattern = (g:far#mode_open['regex']          ? '\v'   : '\V') . pattern
     elseif source_engine == 'rg' || source_engine =='rgnvim'
         if !g:far#mode_open['regex']         | call add(cargs, '--fixed-strings')  | call add(cargs, '--regexp=0') | endif
         if g:far#mode_open['case_sensitive'] | call add(cargs, '--case-sensitive') | else  | call add(cargs, '--ignore-case') | endif
@@ -194,9 +194,9 @@ function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, .
 
     call far#find(far_params, cargs)
 endfunction
-command! -complete=customlist,far#ModePromptComplete -nargs=* -range=-1 Farr
+command! -complete=customlist,far#FarArgsComplete -nargs=* -range=-1 Farr
     \  call FarModePrompt(<count>,<line1>,<line2>,1,<q-args>)
-command! -complete=customlist,far#ModePromptComplete -nargs=* -range=-1 Farf
+command! -complete=customlist,far#FarArgsComplete -nargs=* -range=-1 Farf
     \  call FarModePrompt(<count>,<line1>,<line2>,0,<q-args>)
 "}}}
 
