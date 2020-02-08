@@ -55,6 +55,7 @@ if executable('ag')
     call far#tools#setdefault('g:far#sources.ag', {})
     call far#tools#setdefault('g:far#sources.ag.fn', 'far.sources.shell.search')
     call far#tools#setdefault('g:far#sources.ag.executor', 'py3')
+    call far#tools#setdefault('g:far#sources.ag.param_proc', 's:ag_param_proc')
     call far#tools#setdefault('g:far#sources.ag.args', {})
     call far#tools#setdefault('g:far#sources.ag.args.cmd', cmd)
     call far#tools#setdefault('g:far#sources.ag.args.fix_cnum', 'next')
@@ -65,6 +66,7 @@ if executable('ag')
         call far#tools#setdefault('g:far#sources.agnvim', {})
         call far#tools#setdefault('g:far#sources.agnvim.fn', 'far.sources.shell.search')
         call far#tools#setdefault('g:far#sources.agnvim.executor', 'nvim')
+        call far#tools#setdefault('g:far#sources.agnvim.param_proc', 's:ag_param_proc')
         call far#tools#setdefault('g:far#sources.agnvim.args', {})
         call far#tools#setdefault('g:far#sources.agnvim.args.cmd', cmd)
         call far#tools#setdefault('g:far#sources.agnvim.args.fix_cnum', 'next')
@@ -2016,9 +2018,40 @@ endfunction "}}}
 function! s:ack_param_proc(far_params, win_params, cmdargs) "{{{
     call far#tools#log('ack_expand_curfile()')
     if a:far_params.file_mask == '%'
-        let a:far_params.file_mask = '--wtf'
+        " let a:far_params.file_mask = '--wtf'
+        " call add(a:cmdargs, '--type-add=wtf:is:'.expand('%:t'))
+
+        let a:far_params.file_mask = expand('%:t')
+
         let a:far_params.cwd = expand('%:p:h')
-        call add(a:cmdargs, '--type-add=wtf:is:'.expand('%:t'))
+        call add(a:cmdargs, '--no-recurse')
+    " elseif a:far_params.file_mask[0] == '/'
+    " " /xxxx  /xxx/xxx
+    "     let a:far_params.file_mask = '.' . a:far_params.file_mask
+    "     call add(a:cmdargs, '--no-recurse')
+    " elseif a:far_params.file_mask[0:2] == '**/' && a:far_params.file_mask[3] == '*'
+    " " **/xxx  **/*.*
+    "     let a:far_params.file_mask = './' . a:far_params.file_mask[3:]
+    " elseif strridx(a:far_params.file_mask, '/') == -1
+    " " xxx
+    "     echo 5 | sleep 1
+    "     " let a:far_params.file_mask = './' . a:far_params.file_mask
+    "     call add(a:cmdargs, '--no-recurse')
+    endif
+
+    call s:param_proc(a:far_params, a:win_params, a:cmdargs)
+endfunction "}}}
+
+
+function! s:ag_param_proc(far_params, win_params, cmdargs) "{{{
+    call far#tools#log('ack_expand_curfile()')
+    if a:far_params.file_mask == '%'
+        " let a:far_params.file_mask = '--wtf'
+        " call add(a:cmdargs, '--type-add=wtf:is:'.expand('%:t'))
+
+        let a:far_params.file_mask = expand('%:t')
+
+        let a:far_params.cwd = expand('%:p:h')
         call add(a:cmdargs, '--no-recurse')
     endif
 
