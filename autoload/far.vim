@@ -1376,8 +1376,11 @@ function! far#undo(xargs) abort "{{{
             call far#tools#log('undo '.file_ctx.fname.', undos:'.string(file_ctx.undos))
         endif
 
-        exe 'buffer! '. string(bufnr)
+        exec 'buffer! '. string(bufnr)
         let file_bufnr = bufnr(file_ctx.fname)
+        if file_bufnr == -1
+            continue
+        endif
         exec 'buffer! ' . string(file_bufnr)
 
         let write_buf = undo_params.auto_write && !(&mod)
@@ -1685,11 +1688,16 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
         let collapse_sign = file_ctx.collapsed? g:far#expand_sign : g:far#collapse_sign
         let line_num += 1
         let num_matches = 0
+        let num_excluded = 0
         for item_ctx in file_ctx.items
             if !item_ctx.excluded && !item_ctx.replaced
                 let num_matches += 1
             endif
+            if item_ctx.excluded
+                let num_excluded +=1
+            endif
         endfor
+
 
         let file_sep = has('unix')? '/' : '\'
         let filestats = ' ('.len(file_ctx.items).' matches)'
@@ -1712,9 +1720,16 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
                 let bstats_syn = 'syn region FarFileStats start="\%'.line_num.'l^.\{'.
                     \   (strchars(filepath)+strchars(collapse_sign)+2).'\}"hs=e end="$" contains=FarFilePath keepend'
                 call add(syntaxs, bstats_syn)
-            else
+            elseif num_excluded > 0
                 let excl_syn = 'syn region FarExcludedItem start="\%'.line_num.'l^" end="$"'
                 call add(syntaxs, excl_syn)
+            else
+                let bname_syn = 'syn region FarReplacedFilePath start="\%'.line_num.
+                    \   'l^.."hs=s+'.strchars(collapse_sign).' end=".\{'.strchars(filepath).'\}"'
+                call add(syntaxs, bname_syn)
+                let bstats_syn = 'syn region FarFileStats start="\%'.line_num.'l^.\{'.
+                    \   (strchars(filepath)+strchars(collapse_sign)+2).'\}"hs=e end="$" contains=FarReplacedFilePath keepend'
+                call add(syntaxs, bstats_syn)
             endif
         endif
 
