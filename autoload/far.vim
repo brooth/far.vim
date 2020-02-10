@@ -335,7 +335,7 @@ let s:act_func_ref = {
     \                           "vnoremap <silent>" : ":call far#change_exclude_under_selection(0)<CR>" },
     \ "toggle_exclude"      : { "nnoremap <silent>" : ":call far#change_exclude_under_cursor(-1)<CR>",
     \                           "vnoremap <silent>" : ":call far#change_exclude_under_selection(-1)<CR>" },
-    \ "stoggle_exclude"     : { "nnoremap <silent>" : ":call far#change_exclude_under_cursor(-1)<CR>",
+    \ "stoggle_exclude"     : { "nnoremap <silent>" : ":call far#change_exclude_under_cursor(-2)<CR>",
     \                           "vnoremap <silent>" : ":call far#change_exclude_under_selection(-2)<CR>" },
     \
     \ "exclude_all"         : { "nnoremap <silent>" : ":call far#change_exclude_all(1)<CR>" },
@@ -704,11 +704,25 @@ function! far#change_exclude_under_cursor(cmode) abort "{{{
     for file_ctx in far_ctx.items
         let index += 1
         if pos == index
-            for item_ctx in file_ctx.items
-                if !item_ctx.replaced
-                    let item_ctx.excluded = a:cmode == -1? (item_ctx.excluded == 0? 1 : 0) : a:cmode
-                endif
-            endfor
+            if a:cmode == -2
+                let all_excluded = 1
+                for item_ctx in file_ctx.items
+                    if !item_ctx.replaced
+                        let all_excluded = all_excluded && item_ctx.excluded
+                    endif
+                endfor
+                for item_ctx in file_ctx.items
+                    if !item_ctx.replaced
+                        let item_ctx.excluded = !all_excluded
+                    endif
+                endfor
+            else
+                for item_ctx in file_ctx.items
+                    if !item_ctx.replaced
+                        let item_ctx.excluded = a:cmode == -1? (item_ctx.excluded == 0? 1 : 0) : a:cmode
+                    endif
+                endfor
+            endif
             call s:update_far_buffer(far_ctx, bufnr)
             return
         endif
@@ -717,7 +731,7 @@ function! far#change_exclude_under_cursor(cmode) abort "{{{
             for item_ctx in file_ctx.items
                 let index += 1
                 if pos == index && !item_ctx.replaced
-                    let item_ctx.excluded = a:cmode == -1? (item_ctx.excluded == 0? 1 : 0) : a:cmode
+                    let item_ctx.excluded = (a:cmode == -1 || a:cmode==-2) ? (item_ctx.excluded == 0? 1 : 0) : a:cmode
                     call s:update_far_buffer(far_ctx, bufnr)
                     exec 'norm! j'
                     return
