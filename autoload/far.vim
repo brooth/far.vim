@@ -1183,14 +1183,8 @@ function! far#replace(xargs) abort "{{{
     let temp_files = []
 
     for file_ctx in far_ctx.items
-
         call far#tools#log('replacing buffer '.file_ctx.fname)
         exe 'buffer! '. bufnr
-
-        " echo '--------------------------'
-        " echo 'file name = ' . file_ctx.fname
-        " ls!
-        " echo 1
 
         let cmds = []
         let items = []
@@ -1232,30 +1226,15 @@ function! far#replace(xargs) abort "{{{
             endif
         endfor
 
-        " echo 2
-
-        " echo 'cmds = ' . string(cmds)
-
         let undonum = -1
         let undoitems = []
 
-
-
         if !empty(cmds)
-            " echo 3
-
             let buf_repls = 0
             let cmds = reverse(cmds)
-            " ls!
-            " echo 4
-
 
             if !bufloaded(file_ctx.fname)
-                " echo 'after if !bufloaded(file_ctx.fname)'
-                " ls!
                 exec 'e! '.substitute(file_ctx.fname, ' ', '\\ ', 'g')
-                " echo 'after substitute'
-                " ls!
                 if repl_params.auto_delete
                     call add(del_bufs, bufnr(file_ctx.fname))
                 endif
@@ -1263,20 +1242,8 @@ function! far#replace(xargs) abort "{{{
             endif
             exe 'buffer! '. bufnr
 
-            " echo 'after endif bufloaded'
-            " ls!
-            " echo 'old bufnr = ' . bufnr('%')
-            " echo 'old bufnr(file_ctx.fname) = ' . bufnr(file_ctx.fname)
-
-            " echo 5
-
             let file_bufnr = bufnr(file_ctx.fname)
             exe 'buffer! '. string(file_bufnr)
-
-            " echo 'new bufnr = ' . bufnr('%')
-            " echo 'fname = ' . bufname('%')
-            " ls!
-            " echo 6
 
             let undonum = far#tools#undo_nextnr()
 
@@ -1295,7 +1262,6 @@ function! far#replace(xargs) abort "{{{
             exe 'redir END'
             call far#tools#log('bufdo_msgs: '.s:bufdo_msgs)
 
-            " echo 7
             for item_ctx in file_ctx.items
                 let old_cnum = item_ctx.cnum
                 if has_key(delta_cnums, item_ctx.lnum)
@@ -1306,14 +1272,11 @@ function! far#replace(xargs) abort "{{{
                             endif
                             let item_ctx.cnum_undo[undonum] = old_cnum
                             let item_ctx.cnum += delta_cnum
-                            " echo 'lnum=' item_ctx.lnum '  old_cnum[' undonum ']='
-                            "     \ item_ctx.cnum_undo[undonum] '  new_cnum='  item_ctx.cnum
                         endif
                     endfor
                 endif
             endfor
 
-            " echo 8
             let repl_lines = []
             for bufdo_msg in reverse(split(s:bufdo_msgs, "\n"))
                 let sp = matchend(bufdo_msg, '^\s*\d*')
@@ -1326,7 +1289,6 @@ function! far#replace(xargs) abort "{{{
                 endif
             endfor
 
-            " echo 9
             for item_ctx in items
                 for idx in range(len(repl_lines))
                     if (item_ctx.lnum + replines) == repl_lines[idx][0]
@@ -1342,58 +1304,40 @@ function! far#replace(xargs) abort "{{{
                     let item_ctx.broken = 1
                 endif
             endfor
-            " echo 10
-            " echo 'new bufnr = ' . bufnr('%')
-            " echo 'bufcmd = ' . bufcmd
-            " echo 'repl_lines = ' . string(repl_lines)
         endif
-
-
-        " sleep 1
-
-        " echo 11
         call add(undonum_list, undonum)
         call add(undoitems_list, undoitems)
-        " echo 12
     endfor
-    " echo 13
-
     let sum_undoitem_num = 0
     for undoitems in undoitems_list
         let sum_undoitem_num += len(undoitems)
     endfor
-    " echo 14
 
     if sum_undoitem_num
         for i in range(0, len(undonum_list)-1)
             call add(far_ctx.items[i].undos, {'num': undonum_list[i], 'items': undoitems_list[i]})
         endfor
     endif
-    " echo 15
 
     exec 'b! '.bufnr
     if !empty(del_bufs)
         call far#tools#log('delete buffers: '.join(del_bufs, ' '))
         exec 'silent bd! '.join(del_bufs, ' ')
     endif
-    " echo 16
 
     if !exists('b:temp_files')
         let b:temp_files = []
     endif
     let b:temp_files += temp_files
     let b:temp_files = uniq(sort(b:temp_files))
-    " echo 17
 
     let b:far_ctx.repl_time = printf('%.3fms', reltimefloat(reltime()) - start_ts)
-    " echo 18
 
     if exists('old_gitgutter_enabled') && exists('g:gitgutter_enabled')
         let g:gitgutter_enabled = old_gitgutter_enabled
     endif
 
     call s:update_far_buffer(b:far_ctx, bufnr)
-    " echo 19
 endfunction "}}}
 
 function! far#undo(xargs) abort "{{{
