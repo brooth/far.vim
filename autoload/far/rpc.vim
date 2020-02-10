@@ -35,7 +35,7 @@ function! far#rpc#invoke(imports, evalstr) abort "{{{
     call add(cmd, ' return '.a:evalstr)
     call far#tools#log('invoke cmd:'.string(cmd))
 
-    exec 'py3 '.join(cmd, '')
+    exec 'py3 '.join(cmd, "\<C-M>")
     let result = py3eval('far_rpc_invoker()')
     call far#tools#log('invoke res:'.string(result))
     exec 'py3 del far_rpc_invoker'

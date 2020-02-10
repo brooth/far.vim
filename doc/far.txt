@@ -86,10 +86,56 @@ USAGE                                                              *far-usage*
     Note: |Farp| allows empty [replace-with] if you need to remove matched text.
     For {pattern}, {replace-with}, {file-mask} and [params] see |Far| command.
 
+*:Farr* [params]
+*:Farf* [params]
+    |Farr| command allows to enter {pattern}, {replace-with} and {file-mask}
+    one after the other; |Farf| is similar to |Farr| without {replace-with}.
+    |Farr| and |Farf| provides a searching mode status bar fo regex, case
+    sensitive, word boundary and replacement.
+>
+     :Farr [<params>]
+     .*(^X) Aa(^C) ""(^W) ⬇ (^S)
+     >Find: {pattern}
+     >Replace with: [replace-with]
+     >File mask: {file-mask}
+<
+>
+     :Farf [<params>]
+     .*(^X) Aa(^C) ""(^W) ⬇ (^S)
+     >Find: {pattern}
+     >File mask: {file-mask}
+<
+    Below are the icon of each mode and the key mapping to toggle it. A mode
+    is on when its icon in the mode status bar is highlighted.
+
+                ------------------------------------------
+                icon    mode                        toggle
+                ------------------------------------------
+                [.*]    regex                       CTRL-X
+                [Aa]    case-sentive,               CTRL-A
+                [""]    word boundary               CTRL-W
+                [⬇ ]    replacement (substitution)  CTRL-S
+                        quit |Farr| or |Farf|       <Esc>
+                ------------------------------------------
+
+    For {pattern}, {replace-with}, {file-mask} and [params] see |Far| command.
+    Note: You don't have to escape space character.
+    Note: |Farr| allows empty [replace-with] if you need to remove matched text.
+
+    Customer settings:
+    To change the key mappings, see |g:far#prompt_mapping|.
+    To set initial mode status on starting vim, see |g:far#mode_open|.
+    To enable/disable mapping prompt like (^X), see |g:far#show_prompt_key|.
+
 *:Fardo* [params]
     |Fardo| starts the replacement task. This command must be executed in a FAR
     buffer (buffer with |Far| or |Farp| result).
     For [params] see |fardo-params|.
+
+*:Farundo* [params]
+    |Farundo| undos the last replacement tasktaken by |Fardo|. This command is
+    only available when you set 'let |g:far#enable_undo|=1'.
+    For [params] see |farundo-params|.
 
 *:Refar* [params]
     |Refar| reruns |Far| or |Farp| with the same arguments or you can change
@@ -110,8 +156,8 @@ EXTRAS                                                            *far-extras*
 
 Multiline Replacement                                          *far-multiline*
 
-    It's allowed to use multiline text as {pattern} or/and {replace-with}
-    expressions for |Far|, |Farp| and |F| commands.
+    It's allowed to use oneline or multiline text as {pattern} or/and
+    {replace-with} expressions for |Far|, |Farp| and |F| commands.
 
     a) The first approach is to use visual selection. Go to Visual mode,
     highlight the text you want to replace and hit ':'. Use '*' as {pattern}:
@@ -125,6 +171,18 @@ Multiline Replacement                                          *far-multiline*
      >Replace with: [replace-with]
      >File mask: {file-mask}
 <
+    For |Farr| and |Farf|, '*' is unnecessary. They will automatically use the
+    visual selection as searching pattern:
+>
+     :'<,'>Farr [<params>]
+     >Replace with: [replace-with]
+     >File mask: {file-mask}
+<
+>
+     :'<,'>Farf [<params>]
+     >File mask: {file-mask}
+<
+
     b) The second approach - simply paste yanked text.
 >
     :Far <^ra> <^rb> {file-mask} [params]
@@ -176,17 +234,24 @@ Preview Window                                                   *far-preview*
     the preview window on cursor movement. If |g:far#auto_preview| is set to 0,
     you can control preview window manually (see |far-mappings|). You can also
     scroll preview window up and down from a FAR buffer (no need to switch
-    focus to the preview window).
+    focus to the preview window). By default <c-k> scrolls up and <c-j> scrolls
+    down.
 
-    By default <c-k> scrolls up and <c-j> scrolls down.
+    When |g:far#auto_preview| = 1 , if |g:far#auto_preview_on_start| flag is
+    set to 1, the preview window will be opened on cursor movement, once starting
+    the result window; if |g:far#auto_preview_on_start| flag is set to 0, the
+    preview window will not be opened on cursor movement, until you press 'p',
+    the key mapping to manually open the preview window. For the key mapping in
+    result window see |default-far-mappings|.
 
     See |far-mappings|, |g:far#preview_window_scroll_step|,
-        |g:far#auto_preview|, |g:far#preview_window_layout|,
-        |g:far#preview_window_width|, |g:far#preview_window_height|.
+        |g:far#auto_preview|, |g:far#auto_preview_on_start|,
+        |g:far#preview_window_layout|,|g:far#preview_window_width|,
+        |g:far#preview_window_height|.
 
 
 Jump to source                                                      *far-jump*
-    
+
     If there is an open buffer for a matched item, you can jump to it from a
     FAR window by hitting <CR> (by default) button. If there is no such buffer,
     far.vim opens it in current (FAR) window.
@@ -195,7 +260,7 @@ Jump to source                                                      *far-jump*
 
 
 Consistency Check                                            *far-consistency*
-    
+
     Since the search (|Far| or |Farp| command) to the replacement (|Fardo|),
     the file's content can be modified. During the replacement far.vim is
     checking that respective item's been replaced successfully. If not, this
@@ -233,6 +298,7 @@ CONFIGURATION                                                     *far-config*
             Synchronous source. Uses |:vimgrep| to find candidates.
             Doesn't need external dependencies.
             Supports multiline search.
+            Only 'vimgrep' supports |:Farr| and |:Farf|.
 
         'ag'
             Synchronous source. Uses "Ag" (The Silver Searcher) to find
@@ -287,6 +353,13 @@ CONFIGURATION                                                     *far-config*
 *g:far#auto_preview*
     Automatically open/scroll preview window on cursor movement.
     See |far-preview|, |--auto-preview|
+
+    Options: 0, 1
+    Default: 1
+
+*g:far#auto_preview_on_start*
+    Automatically open/scroll preview window on starting result windows.
+    See |far-preview|, |--auto-preview-on-start|
 
     Options: 0, 1
     Default: 1
@@ -352,6 +425,8 @@ CONFIGURATION                                                     *far-config*
 *g:far#default_file_mask*
     This value is used as the file-mask if it wasn't specified through the command.
 
+    Default: '%'
+
 *g:far#collapse_result*
     Auto collapse result tree.
     See |--collapse|
@@ -375,6 +450,15 @@ CONFIGURATION                                                     *far-config*
 *g:far#auto_delete_replaced_buffers*
     Automatically delete replaced buffer (if it hasn't been loaded)
     See |--auto-delete-bufs|
+
+    Options: 0, 1
+    Default: 0
+
+*g:far#enable_undo*
+    To enable |:Farundo| set this variable to 1. This setting will override
+    |g:far#auto_write_replaced_buffers| and |g:far#auto_delete_replaced_buffers,
+    so that |:Fardo| and |:Farundo| automatically write replaced/undone buffers
+    (if it hasn't been loaded), and do not delete those buffers.
 
     Options: 0, 1
     Default: 0
@@ -415,6 +499,20 @@ CONFIGURATION                                                     *far-config*
     This variable controls collapsed node icon.
 
     Default: '+'
+
+*g:far#mode_open*
+    This variable controls the initial (when vim starts) saeching mode status
+    in |Farr| and |Farf|.
+    It is a dictionary, where the keys are saeching modes and the values are
+    0/1 for off/on.
+
+    Default: { "regex": 1, "case_sensitive": 0, "word": 0, "substitute": 0 }
+
+*g:far#show_prompt_key*
+    This variable controls whether to display prompt for the key mappings in
+    |Farr| and |Farf|.
+
+    Default: 1
 
 ------------------------------------------------------------------------------
 Highlighting Groups:                                    *far-highlight-config*
@@ -492,125 +590,131 @@ MAPPINGS                                                        *far-mappings*
     Note: If you want to define custom mapping, you need to set to 0
     |g:far#default_mappings| variable and explicitly configure all the bindings.
 
-x
-v_x
+------------------------------------------------------------------------------
+Default Mappings:                                       *default-far-mappings*
+
+    Below are the default mappings and corresponding variable names in
+    |g:far#mapping| to set customer mappings.
+
+x v_x                                               *g:far#mapping['exclude']*
     Exclude item under the cursor.
 
-    For custom mapping:
->
-    nnoremap <buffer><silent> <KEY> :call g:far#change_exclude_under_cursor(1)<cr>
-    vnoremap <buffer><silent> <KEY> :call g:far#change_exclude_under_cursor(1)<cr>
-<
-i
-v_i
+i v_i                                               *g:far#mapping['include']*
     Include item under the cursor.
 
-    For custom mapping:
->
-    nnoremap <buffer><silent> <KEY> :call g:far#change_exclude_under_cursor(0)<cr>
-    vnoremap <buffer><silent> <KEY> :call g:far#change_exclude_under_cursor(0)<cr>
-<
-t
-v_t
+t v_t                                        *g:far#mapping['toggle_exclude']*
     Toggle item exclusion under the cursor.
 
-    For custom mapping:
->
-    nnoremap <buffer><silent> <KEY> :call g:far#change_exclude_under_cursor(-1)<cr>
-    vnoremap <buffer><silent> <KEY> :call g:far#change_exclude_under_cursor(-1)<cr>
-<
-X
+f v_f                                       *g:far#mapping['stoggle_exclude']*
+    Smartly toggle item exclusion under the cursor: exclude all items when all
+    are excluded, otherwise exclude all items.
+
+X                                               *g:far#mapping['exclude_all']*
     Exclude all items.
 
-    For custom mapping:
->
-    nnoremap <buffer><silent> <KEY> :call g:far#change_exclude_all(1)<cr>
-<
-I
+I                                               *g:far#mapping['include_all']*
     Include all items.
 
-    For custom mapping:
->
-    nnoremap <buffer><silent> <KEY> :call g:far#change_exclude_all(0)<cr>
-<
-T
+T                                        *g:far#mapping['toggle_exclude_all']*
     Toggle exclusion for all items.
 
-    For custom mapping:
->
-    nnoremap <buffer><silent> <KEY> :call g:far#change_exclude_all(-1)<cr>
-<
-<CR>
+F                                       *g:far#mapping['stoggle_exclude_all']*
+    Smartly toggle exclusion for all items: include all items when all are
+    excluded, otherwise exclude all items.
+
+<CR>                                         *g:far#mapping['jump_to_source']*
     Jump to the source code of the item under the cursor.
     See |far-jump|
 
-    For custom mapping:
->
-    nnoremap <buffer><silent> <KEY> :call g:far#jump_buffer_under_cursor()<cr>
-<
-p
-    Open preview window (if not) and scroll to the item under the cursor.
+p                                              *g:far#mapping['open_preview']*
+    Open preview window (if not) and scroll to the item under
+    the cursor.
     See |far-preview|
 
-    For custom mapping:
->
-    nnoremap <buffer><silent> <KEY> :call g:far#show_preview_window_under_cursor()<cr>
-<
-P
+P                                             *g:far#mapping['close_preview']*
     Close preview window.
     See |far-preview|
 
-    For custom mapping:
->
-    nnoremap <buffer><silent> <KEY> :call g:far#close_preview_window()<cr>
-<
-CTRL-K
+CTRL-K                                    *g:far#mapping['preview_scroll_up']*
     Scroll preview window up (if open).
     See |far-preview|, |g:far#preview_window_scroll_step|
 
-    For custom mapping:
->
-    nnoremap <buffer><silent> <KEY>
-        \   :call g:far#scroll_preview_window(-g:far#preview_window_scroll_step)<cr>
-<
-CTRL-J
+
+CTRL-J                                  *g:far#mapping['preview_scroll_down']*
     Scroll preview window down (if open).
     See |far-preview|, |g:far#preview_window_scroll_step|
 
-    For custom mapping:
->
-    nnoremap <buffer><silent> <KEY>
-        \   :call g:far#scroll_preview_window(g:far#preview_window_scroll_step)<cr>
-<
-zo
+zo                                                   *g:far#mapping['expand']*
     Expand node under the cursor.
->
-    nnoremap <buffer><silent> <KEY> :call g:far#change_collapse_under_cursor(0)<cr>
-<
-zc
+
+zc                                                 *g:far#mapping['collapse']*
     Collapse node under the cursor.
->
-    nnoremap <buffer><silent> <KEY> :call g:far#change_collapse_under_cursor(1)<cr>
-<
-za
+
+za                                            *g:far#mapping['toggle_expand']*
     Toggle node expanding under the cursor.
->
-    nnoremap <buffer><silent> <KEY> :call g:far#change_collapse_under_cursor(-1)<cr>
-<
-zr
+
+zs                                       *g:far#mapping['stoggle_expand_all']*
+    Smartly toggle exclusion for all nodes: expand all nodes when all are
+    collpased, otherwise collapse all nodes.
+
+zr v_zr                                          *g:far#mapping['expand_all']*
     Expand all nodes.
->
-    nnoremap <buffer><silent> <KEY> :call g:far#change_collapse_all(0)<cr>
-<
-zm
+
+zm v_zm                                        *g:far#mapping['collapse_all']*
     Collapse all nodes.
->
-    nnoremap <buffer><silent> <KEY> :call g:far#change_collapse_all(1)<cr>
-<
-zA
+
+zA v_zA                                   *g:far#mapping['toggle_expand_all']*
     Toggle exclusion for all nodes.
+
+zS v_zS                                  *g:far#mapping['stoggle_expand_all']*
+    Smartly toggle exclusion for all nodes: expand all nodes when all are
+    collpased, otherwise collapse all nodes.
+
+s v_s                                            *g:far#mapping['replace_do']*
+    Execute |:Fardo|<CR>, to replace all included items.
+
+u v_s                                          *g:far#mapping['replace_undo']*
+    Execute |:Farundo|<CR>, to undo the last replacement by |:Fardo|.
+
+U v_U                                      *g:far#mapping['replace_undo_all']*
+    Execute |:Farundo| --all=1<CR>, to undo all replacements by |:Fardo|.
+    For param '--all=' see |farundo-params|.
+
+q v_q                                                  *g:far#mapping['quit']*
+    Close searching result buffer and its preview buffer (if exists)
+
+------------------------------------------------------------------------------
+Customer Mappings:
+
+*g:far#mapping*
+    By setting |g:far#mapping| as below, you can override the corresponding
+    variables in |default-far-mappings| with customer mappings.
+
 >
-    nnoremap <buffer><silent> <KEY> :call g:far#change_collapse_all(-1)<cr>
+    let g:far#mapping = {
+        \ "stoggle_exclude_all" : ["s", "S"],
+        \ "jump_to_source" : ["<cr>", "<2-LeftMouse>"],
+        \ "close_preview" : ["P", "q"],
+        \ "preview_scroll_up" : "<PageUp>",
+        \ "preview_scroll_down" : "<PageDown>",
+        \ }
+<
+
+*g:far#prompt_mapping*
+    Set customer key mappings for |Farr| and |Farf| as blow.
+    This variable is a dictionary which has keys as below, and each value is a
+    sub-dictionary.
+    The sub-dictionary has two keys: 'key' is used to set key mappings and
+    'prompt' is displayed in the mode status bar of |Farr| and |Farf|.
+
+>
+    let g:far#prompt_mapping = {
+        \ 'quit'           : { 'key' : '<esc>', 'prompt' : 'Esc' },
+        \ 'regex'          : { 'key' : '<c-x>', 'prompt' : '^X'  },
+        \ 'case_sensitive' : { 'key' : '<c-a>', 'prompt' : '^A'  },
+        \ 'word'           : { 'key' : '<c-w>', 'prompt' : "^W"  },
+        \ 'substitute'     : { 'key' : '<c-f>', 'prompt' : '^F'  },
+        \ }
 <
 
 ==============================================================================
@@ -659,6 +763,10 @@ COMMAND PARAMS
     |Far|, |Farp| and |F| param. Changes |g:far#auto_preview| value for
     current execution.
 
+---auto-preview-on-start
+    |Far|, |Farp| and |F| param. Changes |g:far#auto_preview_on_start| value for
+    current execution.
+
 --hl-match
     |Far|, |Farp| and |F| param. Changes |g:far#highlight_match| value for
     current execution.
@@ -678,6 +786,18 @@ COMMAND PARAMS
 --auto-delete-bufs
     |Fardo| param. Changes |g:far#auto_delete_replaced_buffers| value for
     current execution.
+
+--auto-write-bufs                                            *farundo-params*
+    |Farundo| param. Changes |g:far#auto_write_replaced_buffers| value for
+    current execution.
+
+--auto-delete-bufs
+    |Farundo| param. Changes |g:far#auto_delete_replaced_buffers| value for
+    current execution.
+
+--all
+    |Farundo| param. Set '--all=1' to undo all replacements taken by |:Fardo|,
+    otherwise to undo the last replacement.
 
 --pattern                                                       *refar-params*
     |Refar| param. Changes {pattern} value for current execution.
