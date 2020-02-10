@@ -77,7 +77,9 @@ endif
 
 if executable('ack')
     let cmd = ['ack', '--nogroup', '--column', '--nocolor',
-            \   '--max-count={limit}', '--type-set=farft:match:{file_mask}', '--farft', '{pattern}']
+            \   '--max-count={limit}', '{pattern}', '{file_mask}']
+
+            " \   '--max-count={limit}', '--type-set=farft:match:{file_mask}', '--farft', '{pattern}']
             " '--farft',  '--output=$_'
     " if &smartcase
     "     call add(cmd, '--smart-case')
@@ -119,6 +121,7 @@ if executable('rg')
     call far#tools#setdefault('g:far#sources.rg', {})
     call far#tools#setdefault('g:far#sources.rg.fn', 'far.sources.shell.search')
     call far#tools#setdefault('g:far#sources.rg.executor', 'py3')
+    call far#tools#setdefault('g:far#sources.rg.param_proc', 's:rg_param_proc')
     call far#tools#setdefault('g:far#sources.rg.args', {})
     call far#tools#setdefault('g:far#sources.rg.args.cmd', cmd)
     call far#tools#setdefault('g:far#sources.rg.args.fix_cnum', 'next')
@@ -129,6 +132,7 @@ if executable('rg')
         call far#tools#setdefault('g:far#sources.rgnvim', {})
         call far#tools#setdefault('g:far#sources.rgnvim.fn', 'far.sources.shell.search')
         call far#tools#setdefault('g:far#sources.rgnvim.executor', 'nvim')
+        call far#tools#setdefault('g:far#sources.rgnvim.param_proc', 's:rg_param_proc')
         call far#tools#setdefault('g:far#sources.rgnvim.args', {})
         call far#tools#setdefault('g:far#sources.rgnvim.args.cmd', cmd)
         call far#tools#setdefault('g:far#sources.rgnvim.args.fix_cnum', 'next')
@@ -1098,9 +1102,9 @@ function! far#find(far_params, xargs) "{{{
     endfor
 
     let win_params['far_params'] = far_params
-    echo 'win_params.far_params.regex' win_params.far_params.regex
-    echo 'far_params' far_params
-    sleep 2
+    " echo 'win_params.far_params.regex' win_params.far_params.regex
+    " echo 'far_params' far_params
+    " sleep 2
 
     call s:assemble_context(far_params, win_params, cmdargs,
     \   function('s:open_far_buff'), [win_params])
@@ -1174,7 +1178,13 @@ function! far#replace(xargs) abort "{{{
     let temp_files = []
 
     for file_ctx in far_ctx.items
+
         call far#tools#log('replacing buffer '.file_ctx.fname)
+        exe 'buffer! '. bufnr
+
+        echo '--------------------------'
+        echo 'file name = ' . file_ctx.fname
+        ls!
 
         let cmds = []
         let items = []
@@ -1216,25 +1226,45 @@ function! far#replace(xargs) abort "{{{
             endif
         endfor
 
-        echo 'delta_cnums ' delta_cnums
-        echo 3
+        " echo 'cmds = ' . string(cmds)
 
         let undonum = -1
         let undoitems = []
 
+
+
         if !empty(cmds)
             let buf_repls = 0
             let cmds = reverse(cmds)
+            " ls!
 
             if !bufloaded(file_ctx.fname)
+                " echo 'after if !bufloaded(file_ctx.fname)'
+                " ls!
                 exec 'e! '.substitute(file_ctx.fname, ' ', '\\ ', 'g')
+                " echo 'after substitute'
+                " ls!
                 if repl_params.auto_delete
                     call add(del_bufs, bufnr(file_ctx.fname))
                 endif
                 call add(temp_files, file_ctx.fname)
             endif
+            exe 'buffer! '. bufnr
 
-            exec 'buffer! '.file_ctx.fname
+            echo 'after endif bufloaded'
+            ls!
+            echo 'old bufnr = ' . bufnr('%')
+            echo 'old bufnr(file_ctx.fname) = ' . bufnr(file_ctx.fname)
+
+
+            let file_bufnr = bufnr(file_ctx.fname)
+            exe 'buffer! '. string(file_bufnr)
+
+            echo 'new bufnr = ' . bufnr('%')
+            echo 'fname = ' . bufname('%')
+            ls!
+
+
             let undonum = far#tools#undo_nextnr()
 
             if !repl_params.auto_delete && !buflisted(file_ctx.fname)
@@ -1247,9 +1277,9 @@ function! far#replace(xargs) abort "{{{
             let bufcmd = join(cmds, '|')
             call far#tools#log('bufdo: '.bufcmd)
 
-            exec 'redir => s:bufdo_msgs'
+            exe 'redir => s:bufdo_msgs'
             silent! exec bufcmd
-            exec 'redir END'
+            exe 'redir END'
             call far#tools#log('bufdo_msgs: '.s:bufdo_msgs)
 
             for item_ctx in file_ctx.items
@@ -1296,7 +1326,15 @@ function! far#replace(xargs) abort "{{{
                     let item_ctx.broken = 1
                 endif
             endfor
+
+            " echo 'new bufnr = ' . bufnr('%')
+            " echo 'bufcmd = ' . bufcmd
+            " echo 'repl_lines = ' . string(repl_lines)
         endif
+
+
+        " sleep 1
+
 
         call add(undonum_list, undonum)
         call add(undoitems_list, undoitems)
@@ -1365,12 +1403,15 @@ function! far#undo(xargs) abort "{{{
             call far#tools#log('undo '.file_ctx.fname.', undos:'.string(file_ctx.undos))
         endif
 
-        exec 'buffer! '.file_ctx.fname
+        exe 'buffer! '. string(bufnr)
+        let file_bufnr = bufnr(file_ctx.fname)
+        exec 'buffer! ' . string(file_bufnr)
 
         let write_buf = undo_params.auto_write && !(&mod)
 
-        if undo_params.auto_delete && !bufexists(file_ctx.fname)
-            call add(del_bufs, bufnr(file_ctx.fname))
+        " if undo_params.auto_delete && !bufexists(file_ctx.fname)
+        if undo_params.auto_delete && !bufexists(file_bufnr)
+            call add(del_bufs, file_bufnr)
         endif
 
         let undo_num = -1
@@ -1531,9 +1572,9 @@ function! s:assemble_context(far_params, win_params, cmdargs, callback, cbparams
     endif
 
     call s:proc_pattern_args(a:far_params, a:cmdargs)
-    echo a:far_params
-    echo a:cmdargs
-    echo 1
+    " echo a:far_params
+    " echo a:cmdargs
+    " echo 1
 
     if empty(a:far_params.pattern)
         call far#tools#echo_err('No pattern')
@@ -2015,44 +2056,60 @@ function! s:param_proc(far_params, win_params, cmdargs) "{{{
     endif
 endfunction "}}}
 
+function! s:rg_param_proc(far_params, win_params, cmdargs) "{{{
+    call far#tools#log('rg_expand_curfile()')
+    if a:far_params.file_mask == '%'
+        let file_sep = has('unix')? '/' : '\'
+        let a:far_params.file_mask = file_sep . expand('%:t')
+        let a:far_params.cwd = expand('%:p:h')
+    endif
+    call s:param_proc(a:far_params, a:win_params, a:cmdargs)
+endfunction "}}}
+
+" for regex
+" function! s:ack_param_proc(far_params, win_params, cmdargs) "{{{
+"     call far#tools#log('ack_expand_curfile()')
+"     if a:far_params.file_mask == '%'
+"         " let a:far_params.file_mask = '--wtf'
+"         " call add(a:cmdargs, '--type-add=wtf:is:'.expand('%:t'))
+"         let file_mask = expand('%:t')
+"         let file_mask = substitute(file_mask, '\.', '\\.', 'g')
+"         let file_mask = '^' . file_mask . '$'
+"         let a:far_params.file_mask = file_mask
+"         let a:far_params.cwd = expand('%:p:h')
+"         call add(a:cmdargs, '--no-recurse')
+"     endif
+"     call s:param_proc(a:far_params, a:win_params, a:cmdargs)
+" endfunction "}}}
+
+" for glob
 function! s:ack_param_proc(far_params, win_params, cmdargs) "{{{
     call far#tools#log('ack_expand_curfile()')
     if a:far_params.file_mask == '%'
         " let a:far_params.file_mask = '--wtf'
         " call add(a:cmdargs, '--type-add=wtf:is:'.expand('%:t'))
-
-        let a:far_params.file_mask = expand('%:t')
-
+        let file_mask = expand('%:t')
+        let a:far_params.file_mask = file_mask
         let a:far_params.cwd = expand('%:p:h')
-        call add(a:cmdargs, '--no-recurse')
-    " elseif a:far_params.file_mask[0] == '/'
-    " " /xxxx  /xxx/xxx
-    "     let a:far_params.file_mask = '.' . a:far_params.file_mask
-    "     call add(a:cmdargs, '--no-recurse')
-    " elseif a:far_params.file_mask[0:2] == '**/' && a:far_params.file_mask[3] == '*'
-    " " **/xxx  **/*.*
-    "     let a:far_params.file_mask = './' . a:far_params.file_mask[3:]
-    " elseif strridx(a:far_params.file_mask, '/') == -1
-    " " xxx
-    "     echo 5 | sleep 1
-    "     " let a:far_params.file_mask = './' . a:far_params.file_mask
-    "     call add(a:cmdargs, '--no-recurse')
+        " call add(a:cmdargs, '--no-recurse')
     endif
-
     call s:param_proc(a:far_params, a:win_params, a:cmdargs)
 endfunction "}}}
 
 
 function! s:ag_param_proc(far_params, win_params, cmdargs) "{{{
-    call far#tools#log('ack_expand_curfile()')
+    call far#tools#log('ag_expand_curfile()')
     if a:far_params.file_mask == '%'
         " let a:far_params.file_mask = '--wtf'
         " call add(a:cmdargs, '--type-add=wtf:is:'.expand('%:t'))
 
-        let a:far_params.file_mask = expand('%:t')
-
+        let file_mask = expand('%:t')
+        let file_mask = substitute(file_mask, '\.', '\\.', 'g')
+        let file_mask = '^\./' . file_mask . '$'
+        let a:far_params.file_mask = file_mask
         let a:far_params.cwd = expand('%:p:h')
         call add(a:cmdargs, '--no-recurse')
+        call add(a:cmdargs, '--hidden')
     endif
 
     call s:param_proc(a:far_params, a:win_params, a:cmdargs)

@@ -12,6 +12,7 @@ import logging
 import subprocess
 import re
 import tempfile
+import pathlib
 import json
 
 logger = logging.getLogger('far')
@@ -30,25 +31,42 @@ def search(ctx, args, cmdargs):
     if not args.get('cmd'):
         return {'error': 'no cmd in args'}
 
+    source = args['cmd'][0]
     pattern = ctx['pattern']
     regex = ctx['regex']
     case_sensitive = ctx['case_sensitive']
     limit = int(ctx['limit'])
     file_mask = ctx['file_mask']
     fix_cnum = args.get('fix_cnum')
+    root = ctx['cwd']
 
+    if source == 'ack' or source == 'acknvim':
+        files = [str(f.relative_to(root)) for f in pathlib.Path(root).glob(file_mask) if pathlib.Path.is_file(f)]
+        if len(files):
+            files += ["\n"]
+        with open('/Users/mac/far.vim.py.log', 'a') as f:
+            print('files', file=f)
+            pprint(files, f)
+        cmd = []
+        for c in args['cmd']:
+            if c == '{file_mask}':
+                cmd += files
+            else:
+                cmd.append(c.format(limit=limit,
+                                pattern=pattern))
 
-    cmd = []
-    for c in args['cmd']:
-        cmd.append(c.format(limit=limit,
-                        pattern=pattern,
-                        file_mask=file_mask))
+    else:
+        cmd = []
+        for c in args['cmd']:
+            cmd.append(c.format(limit=limit,
+                            pattern=pattern,
+                            file_mask=file_mask))
 
     if args.get('expand_cmdargs', '0') != '0':
         cmd += cmdargs
 
     with open('/Users/mac/far.vim.py.log', 'a') as f:
-        pprint(cmd, f)
+        pprint(' '.join(cmd), f)
 
     logger.debug('cmd:' + str(cmd))
     try:
@@ -58,11 +76,9 @@ def search(ctx, args, cmdargs):
         return {'error': str(e)}
 
 
+    # source = cmd[0]
 
 
-    # with open('/Users/mac/far.vim.py.log','a'g) as f:
-    #     print(range, file=f)
-    source = cmd[0]
 
     if source == 'rg' or source == 'rgnvim' :
         cmd_only_match = cmd + ['-o']
@@ -72,18 +88,19 @@ def search(ctx, args, cmdargs):
         except Exception as e:
             return {'error': str(e)}
 
+
+        with open('/Users/mac/far.vim.py.log','a') as f:
+            pprint(cmd, f)
+        with open('/Users/mac/far.vim.py.log','a') as f:
+            pprint(cmd_only_match, f)
+
         split_amount = 2 if fix_cnum == 'all' else 3
         range = tuple(ctx['range'])
         result_dict = {}
 
         while limit > 0:
             line = proc.stdout.readline()
-            with open('/Users/mac/far.vim.py.log', 'a') as f:
-                pprint(line.decode('utf-8'), f)
-                pprint(line.decode('utf-8').rstrip(), f)
-
             line = line.decode('utf-8').rstrip()
-
 
             if not line:
                 if len(result_dict) == 0:
@@ -98,7 +115,12 @@ def search(ctx, args, cmdargs):
                     break
                 continue
 
+            # with open('/Users/mac/far.vim.py.log','a') as f:
+            #     pprint(line, f)
             items = re.split(':', line, split_amount)
+            # with open('/Users/mac/far.vim.py.log','a') as f:
+            #     pprint(items, f)
+
             if len(items) != split_amount + 1:
                 logger.error('broken line:' + line)
                 return {'error': 'broken output'}
@@ -117,13 +139,21 @@ def search(ctx, args, cmdargs):
             result_dict[item]['text'] = text
             limit -= 1
 
-        result = {}
+        with open('/Users/mac/far.vim.py.log', 'a') as f:
+            print('result_dict1', file=f)
+            pprint(result_dict, f)
+
+        limit = int(ctx['limit'])
         while limit > 0:
             line = proc_only_match.stdout.readline()
             line = line.decode('utf-8').rstrip()
 
+            with open('/Users/mac/far.vim.py.log', 'a') as f:
+                print('proc_only_match line', line, file=f)
+                pprint(line, f)
+
             if not line:
-                if len(result) == 0:
+                if len(result_dict) == 0:
                     err = proc.stderr.readline()
                     if err:
                         err = err.decode('utf-8')
@@ -154,6 +184,10 @@ def search(ctx, args, cmdargs):
                 result_dict[item] = {}
             result_dict[item]['match'] = match
             limit -= 1
+
+        # with open('/Users/mac/far.vim.py.log', 'a') as f:
+        #     print('result_dict2', file=f)
+        #     pprint(result_dict, f)
 
         result = {}
         for key, value in result_dict.items():
