@@ -136,6 +136,7 @@ def search(ctx, args, cmdargs):
                         "File '{file_name}' line {lnum} is too long, longer than max_column {max_columns}."
                         .format(file_name=file_name, lnum=lnum, max_columns=max_columns))
                     continue
+                text = text.split('\n')[0]
                 text = text.rstrip()
 
 

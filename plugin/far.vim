@@ -82,19 +82,6 @@ function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, .
     let cargs = far#tools#splitcmd(a:cmdline)
     if len(cargs) == 1 && cargs[0] == '' | let cargs = [] | endif
     let source_engine = g:far#source
-    " echo 'cargs' cargs
-    " echo source_engine | sleep 3
-
-    " for i in cargs
-    "     if i =~ '^--source='
-    "         let source_engine = i[len('--source='):]
-    "         if ! ( i == '--source=vimgrep' || i == '--source=rg' || i == '--source=rgnvim' )
-    "             call far#tools#echo_err('FarModePrompt is only available for `--source=vimgrep(dafault)|rg|rgnvim`.')
-    "             return
-    "         endif
-    "     endif
-    " endfor
-
 
     if a:rngmode != -1
         let selected = far#tools#visualtext("\n")
@@ -173,18 +160,6 @@ function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, .
     call add(cargs, '--case-sensitive='. (g:far#mode_open['case_sensitive']? '1' : '0') )
     call add(cargs, '--word-boundary='. (g:far#mode_open['word']? '1' : '0') )
 
-    " if source_engine == 'vimgrep'
-    "     " disable escaped sequence
-    "     let pattern = g:far#mode_open['regex'] ? pattern : substitute(pattern, '\\', '\\\\', 'g')
-    "     let pattern = substitute(pattern, '\n', '\\n', 'g')
-    "     let pattern = (g:far#mode_open['case_sensitive'] ? '\C' : '\c') . pattern
-    "     let pattern = g:far#mode_open['word']            ? ('\<'.pattern.'\>') : pattern
-    "     let pattern = (g:far#mode_open['regex']          ? '\v'   : '\V') . pattern
-    " elseif source_engine == 'rg' || source_engine =='rgnvim'
-    "     call add(cargs, '--regex='. (g:far#mode_open['regex']? '1' : '0') )
-    "     call add(cargs, '--case-sensitive='. (g:far#mode_open['case_sensitive']? '1' : '0') )
-    "     call add(cargs, '--word-boundary='. (g:far#mode_open['word']? '1' : '0') )
-    " endif
 
     let far_params = {
         \   'pattern': pattern,
@@ -192,10 +167,7 @@ function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, .
         \   'file_mask': file_mask,
         \   'range': [-1, -1]
         \  }
-        " a:rngmode == -1? [-1,-1] : [a:rngline1, a:rngline2],
 
-    " echo far_params
-    " echo cargs | sleep 3
 
     call far#find(far_params, cargs)
 endfunction
