@@ -14,7 +14,10 @@ call far#tools#setdefault('g:far#expand_sign', '+ ')
 call far#tools#setdefault('g:far#window_min_content_width', 60)
 call far#tools#setdefault('g:far#preview_window_scroll_step', 1)
 call far#tools#setdefault('g:far#check_window_resize_period', 2000)
-call far#tools#setdefault('g:far#file_mask_favorites', ['%', '**/*.*', '**/*.html', '**/*.js', '**/*.css'])
+call far#tools#setdefault('g:far#file_mask_favorites',
+        \ [ '%', '*'      , '*.*'     , '*.py'     , 'file.*'     ,
+        \        '**/*'   , '**/*.*'  , '**/*.py'  , '**/file.*'  ,
+        \        'dir/*'  , 'dir/*.*' , 'dir/*.py' , 'dir/file.*' ])
 call far#tools#setdefault('g:far#default_file_mask', '%')
 call far#tools#setdefault('g:far#status_line', 1)
 call far#tools#setdefault('g:far#source', 'vimgrep')
@@ -115,13 +118,16 @@ if executable('rg')
     let cmd = ['rg', '--no-heading', '--column', '--no-messages', '--vimgrep',
         \   '--max-count={limit}']
 
-    call add(cmd, '--glob={file_mask}')
+    " call add(cmd, '--glob={file_mask}')
     call add(cmd, '{pattern}')
+    " call add(cmd, '--hidden')
+    call add(cmd, '{file_mask}')
+
 
     call far#tools#setdefault('g:far#sources.rg', {})
     call far#tools#setdefault('g:far#sources.rg.fn', 'far.sources.shell.search')
     call far#tools#setdefault('g:far#sources.rg.executor', 'py3')
-    call far#tools#setdefault('g:far#sources.rg.param_proc', 's:rg_param_proc')
+    " call far#tools#setdefault('g:far#sources.rg.param_proc', 's:rg_param_proc')
     call far#tools#setdefault('g:far#sources.rg.args', {})
     call far#tools#setdefault('g:far#sources.rg.args.cmd', cmd)
     call far#tools#setdefault('g:far#sources.rg.args.fix_cnum', 'next')
@@ -132,7 +138,7 @@ if executable('rg')
         call far#tools#setdefault('g:far#sources.rgnvim', {})
         call far#tools#setdefault('g:far#sources.rgnvim.fn', 'far.sources.shell.search')
         call far#tools#setdefault('g:far#sources.rgnvim.executor', 'nvim')
-        call far#tools#setdefault('g:far#sources.rgnvim.param_proc', 's:rg_param_proc')
+        " call far#tools#setdefault('g:far#sources.rgnvim.param_proc', 's:rg_param_proc')
         call far#tools#setdefault('g:far#sources.rgnvim.args', {})
         call far#tools#setdefault('g:far#sources.rgnvim.args.cmd', cmd)
         call far#tools#setdefault('g:far#sources.rgnvim.args.fix_cnum', 'next')

@@ -7,7 +7,7 @@ License: MIT
 
 from pprint import pprint
 
-
+from .far_glob import load_ignore_rules,far_glob
 import logging
 import subprocess
 import re
@@ -40,10 +40,14 @@ def search(ctx, args, cmdargs):
     fix_cnum = args.get('fix_cnum')
     root = ctx['cwd']
 
-    if source == 'ack' or source == 'acknvim':
-        files = [str(f.relative_to(root)) for f in pathlib.Path(root).glob(file_mask) if pathlib.Path.is_file(f)]
+    if source == 'rg' or source == 'rgnvim' or source == 'ack' or source == 'acknvim':
+        rules = file_mask.split(',')
+        ignore_rules = load_ignore_rules('/Users/mac/farignore')
+        files = far_glob(root, rules, ignore_rules)
+        # files = [str(f.relative_to(root)) for f in pathlib.Path(root).glob(file_mask) if pathlib.Path.is_file(f)]
+
         if len(files):
-            files += ["\n"]
+            files = [" "] + files
         with open('/Users/mac/far.vim.py.log', 'a') as f:
             print('files', file=f)
             pprint(files, f)
@@ -74,10 +78,6 @@ def search(ctx, args, cmdargs):
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     except Exception as e:
         return {'error': str(e)}
-
-
-    # source = cmd[0]
-
 
 
     if source == 'rg' or source == 'rgnvim' :
@@ -123,7 +123,8 @@ def search(ctx, args, cmdargs):
 
             if len(items) != split_amount + 1:
                 logger.error('broken line:' + line)
-                return {'error': 'broken output'}
+                continue
+                # return {'error': 'broken output: '+line }
 
             file_name = items[0]
             lnum = int(items[1])
@@ -168,7 +169,8 @@ def search(ctx, args, cmdargs):
             items = re.split(':', line, split_amount)
             if len(items) != split_amount + 1:
                 logger.error('broken line:' + line)
-                return {'error': 'broken output'}
+                continue
+                # return {'error': 'broken output'}
 
             file_name = items[0]
             lnum = int(items[1])
@@ -249,7 +251,8 @@ def search(ctx, args, cmdargs):
             items = re.split(':', line, split_amount)
             if len(items) != split_amount + 1:
                 logger.error('broken line:' + line)
-                return {'error': 'broken output'}
+                # return {'error': 'broken output'}
+                continue
 
             lnum = int(items[1])
             if (range[0] != -1 and range[0] > lnum) or (range[1] != -1 and range[1] < lnum):
