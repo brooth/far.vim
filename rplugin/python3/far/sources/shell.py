@@ -40,7 +40,8 @@ def search(ctx, args, cmdargs):
     fix_cnum = args.get('fix_cnum')
     root = ctx['cwd']
 
-    if source == 'rg' or source == 'rgnvim' or source == 'ack' or source == 'acknvim':
+    if source != 'vimgrep':
+    # if source == 'rg' or source == 'rgnvim' or source == 'ack' or source == 'acknvim':
         rules = file_mask.split(',')
         ignore_rules = load_ignore_rules('/Users/mac/farignore')
         files = far_glob(root, rules, ignore_rules)

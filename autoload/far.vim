@@ -45,7 +45,9 @@ call far#tools#setdefault('g:far#mode_open', { "regex" : 1, "case_sensitive"  : 
 
 if executable('ag')
     let cmd = ['ag', '--nogroup', '--column', '--nocolor', '--silent', '--vimgrep',
-        \   '--max-count={limit}', '{pattern}', '--file-search-regex={file_mask}']
+        \   '--max-count={limit}', '{pattern}', '{file_mask}']
+        " \   '--max-count={limit}', '{pattern}', '--file-search-regex={file_mask}']
+
     " if &smartcase
     "     call add(cmd, '--smart-case')
     " endif
@@ -58,7 +60,7 @@ if executable('ag')
     call far#tools#setdefault('g:far#sources.ag', {})
     call far#tools#setdefault('g:far#sources.ag.fn', 'far.sources.shell.search')
     call far#tools#setdefault('g:far#sources.ag.executor', 'py3')
-    call far#tools#setdefault('g:far#sources.ag.param_proc', 's:ag_param_proc')
+    " call far#tools#setdefault('g:far#sources.ag.param_proc', 's:ag_param_proc')
     call far#tools#setdefault('g:far#sources.ag.args', {})
     call far#tools#setdefault('g:far#sources.ag.args.cmd', cmd)
     call far#tools#setdefault('g:far#sources.ag.args.fix_cnum', 'next')
@@ -69,7 +71,7 @@ if executable('ag')
         call far#tools#setdefault('g:far#sources.agnvim', {})
         call far#tools#setdefault('g:far#sources.agnvim.fn', 'far.sources.shell.search')
         call far#tools#setdefault('g:far#sources.agnvim.executor', 'nvim')
-        call far#tools#setdefault('g:far#sources.agnvim.param_proc', 's:ag_param_proc')
+        " call far#tools#setdefault('g:far#sources.agnvim.param_proc', 's:ag_param_proc')
         call far#tools#setdefault('g:far#sources.agnvim.args', {})
         call far#tools#setdefault('g:far#sources.agnvim.args.cmd', cmd)
         call far#tools#setdefault('g:far#sources.agnvim.args.fix_cnum', 'next')
