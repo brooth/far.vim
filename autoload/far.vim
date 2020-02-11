@@ -485,17 +485,22 @@ function! far#show_preview_window_under_cursor() abort "{{{
 
 
     " let b:win_params.auto_preview = s:create_win_params().auto_preview
-
+    let far_cwd = b:win_params.far_params.cwd
     let far_bufnr = bufnr('%')
     let far_winid = win_getid(winnr())
     let win_params = b:win_params
     let win_pos = winsaveview()
-    let fname = escape(ctxs[1].fname, ' ')
+    let fname = ctxs[1].fname
+    let file_sep = has('unix')? '/' : '\'
+    let fname = far_cwd . file_sep . fname
+    let fname = escape(fname, ' ')
     let bufnr = bufnr(fname)
     let transbuf = bufnr == -1
     let refrbuf = 0
     let synbuf = bufnr == -1 || !bufloaded(bufnr)
     let bufcmd = !transbuf? 'buffer! '.bufnr : 'edit! '.fname
+    " echo 'far_bufnr ='. far_bufnr . ' | fname ='. fname . ' | bufnr ='. bufnr . '|transbuf='.transbuf.'|synbuf='.synbuf.'|bufcmd='.bufcmd
+
 
     if exists('b:far_preview_winid')
         let preview_winnr = win_id2win(b:far_preview_winid)
@@ -538,19 +543,12 @@ function! far#show_preview_window_under_cursor() abort "{{{
         exec syncmd
     endif
 
-    exec 'norm! '.ctxs[2].lnum.'ggzz0'.ctxs[2].cnum.'l'
+    call setpos('.', [bufnr('%'), ctxs[2].lnum, ctxs[2].cnum, 0])
+
     if !ctxs[2].replaced
-        " let pmatch = 'match FarPreviewMatch "\%'.ctxs[2].lnum.'l\%'.ctxs[2].cnum.'c'.
-        "             \ '\V'.escape(escape(ctxs[0].pattern, '\'), '"').(&ignorecase? '\c"' : '"')
         let pmatch = 'match FarPreviewMatch "\%'.ctxs[2].lnum.'l\%'.ctxs[2].cnum.'c'.
                     \ escape(ctxs[0].pattern_proc, '"') .(&ignorecase? '\c"' : '"')
-                    " .(&ignorecase? '\c"' : '"')
 
-
-                    " \ '\v'.escape(ctxs[0].pattern, '"').(&ignorecase? '\c"' : '"')
-                    " regex
-                    " case-sensitive
-                    " wordboundary
         call far#tools#log('preview match: '.pmatch)
         exec pmatch
     else
