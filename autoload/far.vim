@@ -117,8 +117,8 @@ if executable('ack')
 endif
 
 if executable('rg')
-    let cmd = ['rg', '--no-heading', '--column', '--no-messages', '--vimgrep',
-        \   '--max-count={limit}']
+    let cmd = ['rg','--json', '--no-heading', '--vimgrep',  '--max-count={limit}' ]
+    " let cmd = ['rg', '--no-heading', '--column', '--no-messages', '--vimgrep', '--max-count={limit}']
 
     " call add(cmd, '--glob={file_mask}')
     call add(cmd, '{pattern}')

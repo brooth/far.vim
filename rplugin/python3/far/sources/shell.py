@@ -82,80 +82,28 @@ def search(ctx, args, cmdargs):
 
 
     if source == 'rg' or source == 'rgnvim' :
-        cmd_only_match = cmd + ['-o']
-        try:
-            proc_only_match = subprocess.Popen(cmd_only_match, cwd=ctx['cwd'],
-                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        except Exception as e:
-            return {'error': str(e)}
-
 
         with open('/Users/mac/far.vim.py.log','a') as f:
             pprint(cmd, f)
-        with open('/Users/mac/far.vim.py.log','a') as f:
-            pprint(cmd_only_match, f)
 
         split_amount = 2 if fix_cnum == 'all' else 3
         range = tuple(ctx['range'])
-        result_dict = {}
 
+
+        result = {}
         while limit > 0:
             line = proc.stdout.readline()
-            line = line.decode('utf-8').rstrip()
-
-            if not line:
-                if len(result_dict) == 0:
-                    err = proc.stderr.readline()
-                    if err:
-                        err = err.decode('utf-8')
-                        logger.debug('error:' + err)
-                        return {'error': err}
-
-                if proc.poll() is not None:
-                    logger.debug('end of proc. break')
-                    break
+            try:
+                line = line.decode('utf-8').rstrip()
+            except UnicodeDecodeError:
+                logger.debug("UnicodeDecodeError: line = line.decode('utf-8').rstrip() failed, line:")
                 continue
-
-            # with open('/Users/mac/far.vim.py.log','a') as f:
-            #     pprint(line, f)
-            items = re.split(':', line, split_amount)
-            # with open('/Users/mac/far.vim.py.log','a') as f:
-            #     pprint(items, f)
-
-            if len(items) != split_amount + 1:
-                logger.error('broken line:' + line)
-                continue
-                # return {'error': 'broken output: '+line }
-
-            file_name = items[0]
-            lnum = int(items[1])
-            text = items[split_amount]
-            cnum = int(items[2])
-            item = (file_name,lnum,cnum)
-
-            if (range[0] != -1 and range[0] > lnum) or (range[1] != -1 and range[1] < lnum):
-                continue
-
-            if not item in result_dict:
-                result_dict[item] = {}
-            result_dict[item]['text'] = text
-            limit -= 1
-
-        with open('/Users/mac/far.vim.py.log', 'a') as f:
-            print('result_dict1', file=f)
-            pprint(result_dict, f)
-
-        limit = int(ctx['limit'])
-        while limit > 0:
-            line = proc_only_match.stdout.readline()
-            line = line.decode('utf-8').rstrip()
 
             with open('/Users/mac/far.vim.py.log', 'a') as f:
-                print('proc_only_match line', line, file=f)
                 pprint(line, f)
 
             if not line:
-                if len(result_dict) == 0:
+                if len(result) == 0:
                     err = proc.stderr.readline()
                     if err:
                         err = err.decode('utf-8')
@@ -167,54 +115,50 @@ def search(ctx, args, cmdargs):
                     break
                 continue
 
-            items = re.split(':', line, split_amount)
-            if len(items) != split_amount + 1:
-                logger.error('broken line:' + line)
-                continue
-                # return {'error': 'broken output'}
-
-            file_name = items[0]
-            lnum = int(items[1])
-            match = items[split_amount]
-            cnum = int(items[2])
-            item = (file_name,lnum,cnum)
-
-
-            if (range[0] != -1 and range[0] > lnum) or (range[1] != -1 and range[1] < lnum):
+            try:
+                item = json.loads(line)
+            except:
+                with open('/Users/mac/far.vim.py.log', 'a') as f:
+                    print('json error')
                 continue
 
-            if not item in result_dict:
-                result_dict[item] = {}
-            result_dict[item]['match'] = match
-            limit -= 1
-
-        # with open('/Users/mac/far.vim.py.log', 'a') as f:
-        #     print('result_dict2', file=f)
-        #     pprint(result_dict, f)
-
-        result = {}
-        for key, value in result_dict.items():
-            file_name, lnum, cnum = key
-            if not ('match' in value and 'text' in value):
+            if type(item) != dict or 'type' not in item:
+                with open('/Users/mac/far.vim.py.log', 'a') as f:
+                    print('json error')
                 continue
-            match = value['match']
-            text = value['text']
 
-            if not file_name in result:
-                result[file_name] = {
-                    'fname': file_name,
-                    'items': []
-                }
+            if item['type'] == 'match':
+                data = item['data']
+                file_name = data['path']['text']
+                try:
+                    text = data['lines']['text']
+                except KeyError:
+                    text = data['lines']['bytes']
+                except:
+                    with open('/Users/mac/far.vim.py.log', 'a') as f:
+                        print('json error')
+                    continue
+                lnum = data['line_number']
+                cnum = data['absolute_offset']
+                for submatch in data['submatches']:
+                    match = submatch['match']['text']
+                    cnum = submatch['start']
+                    # cnum_end = submatch['end']
+                    limit -= 1
 
-            file_ctx = result.get(items[0])
+                    if not file_name in result:
+                        result[file_name] = {
+                            'fname': file_name,
+                            'items': []
+                        }
 
-            item_ctx = {
-                'lnum': lnum,
-                'cnum': cnum,
-                'text': text,
-                'match': match
-                }
-            result[file_name]['items'].append(item_ctx)
+                    item_ctx = {
+                        'lnum': lnum,
+                        'cnum': cnum,
+                        'text': text,
+                        'match': match
+                        }
+                    result[file_name]['items'].append(item_ctx)
 
     else:
         if fix_cnum == 'first-in-line':
@@ -234,7 +178,11 @@ def search(ctx, args, cmdargs):
         result = {}
         while limit > 0:
             line = proc.stdout.readline()
-            line = line.decode('utf-8').rstrip()
+            try:
+                line = line.decode('utf-8').rstrip()
+            except UnicodeDecodeError:
+                logger.debug("UnicodeDecodeError: line = line.decode('utf-8').rstrip() failed, line:")
+                continue
 
             if not line:
                 if len(result) == 0:
