@@ -47,8 +47,16 @@ def exception_ignore(ignore_rules_origin):
             ignore_rules.append(rule)
     return ignore_rules, exception_ignore_rules
 
+class GlobError(ValueError):
+    pass
+
 def glob_rules(root, rules):
-    files = {f for rule in rules for f in pathlib.Path(root).glob(rule) if pathlib.Path.is_file(f)}
+    try:
+        files = {f for rule in rules for f in pathlib.Path(root).glob(rule) if pathlib.Path.is_file(f)}
+    except ValueError as error:
+        raise GlobError(error)
+        # print('ValueError', error)
+        # return []
     return files
 
 def load_ignore_rules(file_path):

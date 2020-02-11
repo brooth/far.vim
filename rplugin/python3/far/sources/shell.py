@@ -7,7 +7,7 @@ License: MIT
 
 from pprint import pprint
 
-from .far_glob import load_ignore_rules,far_glob
+from .far_glob import load_ignore_rules,far_glob,GlobError
 import logging
 import subprocess
 import re
@@ -45,7 +45,10 @@ def search(ctx, args, cmdargs):
 
     rules = file_mask.split(',')
     ignore_rules = load_ignore_rules('/Users/mac/farignore')
-    files = far_glob(root, rules, ignore_rules)
+    try:
+        files = far_glob(root, rules, ignore_rules)
+    except GlobError as e:
+        return {'error': 'Invalid glob expression. '+str(e)}
 
     # search in one file, cmd do not output the file name
     if len(files) == 1:
