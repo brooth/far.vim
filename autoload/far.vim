@@ -1463,6 +1463,13 @@ function! s:proc_pattern_args(far_params, cmdargs) abort "{{{
     let pattern = a:far_params.pattern
 
     let multiline = match(pattern, '\n') != -1
+    if ! (a:far_params.source == 'rg' || a:far_params.source == 'rgnvim' || a:far_params.source == 'vimgrep' )
+        let source_subst = executable('rg') ? ( has('nvim') ? 'rgnvim' : 'rg') : 'vimgrep'
+        call far#tools#echo_warn(a:far_params.source.' does not support multiline' .
+            \ 'searching in far.vim. Use "' . source_subst . '" instead.')
+        let a:far_params.source  = source_subst
+    endif
+
 
     if a:far_params.regex
         let pattern = escape(pattern, '<>')
