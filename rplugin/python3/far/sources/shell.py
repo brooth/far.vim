@@ -14,6 +14,7 @@ import re
 import tempfile
 import pathlib
 import json
+from json import JSONDecodeError
 
 logger = logging.getLogger('far')
 
@@ -22,11 +23,6 @@ def search(ctx, args, cmdargs):
     logger.debug('search(%s, %s, %s)', str(ctx), str(args), str(cmdargs))
 
     final_result = {'warning': ''}
-
-    with open('/Users/mac/far.vim.py.log', 'a') as f:
-        pprint(args, f)
-        pprint(cmdargs, f)
-        pprint(ctx,f)
 
     if not args.get('cmd'):
         return {'error': 'no cmd in args'}
@@ -58,14 +54,14 @@ def search(ctx, args, cmdargs):
     except GlobError as e:
         return {'error': 'Invalid glob expression. '+str(e)}
 
-    # search in one file, cmd do not output the file name
-    if len(files) == 1:
+    if len(files) == 0:
+        return {'error': 'No files matching the glob expression'}
+
+    elif len(files) == 1:
+        # search in one file, cmd do not output the file name
         files = files + files
         one_file_result = []
 
-    with open('/Users/mac/far.vim.py.log', 'a') as f:
-        print('files', file=f)
-        pprint(files, f)
     cmd = []
     for c in args['cmd']:
         if c == '{file_mask}':
@@ -92,9 +88,6 @@ def search(ctx, args, cmdargs):
 
     if source == 'rg' or source == 'rgnvim' :
 
-        with open('/Users/mac/far.vim.py.log','a') as f:
-            pprint(cmd, f)
-
         while limit > 0:
             line = proc.stdout.readline()
             try:
@@ -102,9 +95,6 @@ def search(ctx, args, cmdargs):
             except UnicodeDecodeError:
                 logger.debug("UnicodeDecodeError: line = line.decode('utf-8').rstrip() failed, line:")
                 continue
-
-            with open('/Users/mac/far.vim.py.log', 'a') as f:
-                pprint(line, f)
 
             if not line:
                 if len(result) == 0:
@@ -121,33 +111,33 @@ def search(ctx, args, cmdargs):
 
             try:
                 item = json.loads(line)
-            except:
-                with open('/Users/mac/far.vim.py.log', 'a') as f:
-                    print('json error', file=f)
+            except JSONDecodeError as err:
+                logger.debug('json error: ' + err)
                 continue
 
             if type(item) != dict or 'type' not in item:
-                with open('/Users/mac/far.vim.py.log', 'a') as f:
-                    print('json error', file=f)
+                logger.debug('json error: item is not dict or item has no key "type". item =' + str(item))
                 continue
 
             if item['type'] == 'match':
                 data = item['data']
                 file_name = data['path']['text']
+                lnum = data['line_number']
+
                 try:
                     text = data['lines']['text']
                 except KeyError:
                     text = data['lines']['bytes']
                 except:
-                    with open('/Users/mac/far.vim.py.log', 'a') as f:
-                        print('json error', file=f)
+                    logger.debug("item['data']['lines'] has neigher key 'test' nor key 'bytes'. item =" + str(item))
                     continue
                 if len(text) > max_columns:
-                    with open('/Users/mac/far.vim.py.log', 'a') as f:
-                        print('too long line, may be bytes', file=f)
-                        continue
+                    logger.debug(
+                        "File '{file_name}' line {lnum} is too long, longer than max_column {max_columns}."
+                        .format(file_name=file_name, lnum=lnum, max_columns=max_columns))
+                    continue
                 text = text.rstrip()
-                lnum = data['line_number']
+
 
                 for submatch in data['submatches']:
                     match = submatch['match']['text']
@@ -196,17 +186,11 @@ def search(ctx, args, cmdargs):
         while limit > 0:
             line = proc.stdout.readline()
 
-            with open('/Users/mac/far.vim.py.log', 'a') as f:
-                print('byte line : ',line, file=f)
-
             try:
                 line = line.decode('utf-8').rstrip()
             except UnicodeDecodeError:
                 logger.debug("UnicodeDecodeError: line = line.decode('utf-8').rstrip() failed, line:")
                 continue
-
-            with open('/Users/mac/far.vim.py.log', 'a') as f:
-                print('line : ',line, file=f)
 
             if not line:
                 if len(result) == 0:
@@ -225,11 +209,7 @@ def search(ctx, args, cmdargs):
             items = re.split(':', line, 3)
             if len(items) != 4:
                 logger.error('broken line:' + line)
-                # return {'error': 'broken output'}
                 continue
-
-            with open('/Users/mac/far.vim.py.log', 'a') as f:
-                print('limit =', limit, 'items : ',items, file=f)
 
             file_name = items[0]
             lnum = int(items[1])
@@ -241,8 +221,9 @@ def search(ctx, args, cmdargs):
                 continue
 
             if len(text) > max_columns:
-                with open('/Users/mac/far.vim.py.log', 'a') as f:
-                    print('too long line, may be bytes', file=f)
+                logger.debug(
+                    "File '{file_name}' line {lnum} is too long, longer than max_column {max_columns}."
+                    .format(file_name=file_name, lnum=lnum, max_columns=max_columns))
                 continue
 
             item_idx = (file_name, lnum, cnum)
@@ -268,8 +249,6 @@ def search(ctx, args, cmdargs):
             file_ctx['items'].append(item_ctx)
             limit -= 1
 
-            with open('/Users/mac/far.vim.py.log', 'a') as f:
-                print('first',item_ctx, file=f)
 
             if submatch_type == 'first':
                 byte_num = item_ctx['cnum']
@@ -310,9 +289,6 @@ def search(ctx, args, cmdargs):
         proc.terminate()
     except Exception as e:
         logger.error('failed to terminate proc: ' + str(e))
-
-    with open('/Users/mac/far.vim.py.log', 'a') as f:
-        pprint(result, f)
 
 
     if int(ctx['limit']) - limit >= args.get('items_file_min', 250):

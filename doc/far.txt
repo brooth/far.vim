@@ -379,13 +379,18 @@ FILE MASK                                                      *far-file-mask*
 'rg' 'rgnvim' 'ag' 'agnvim' 'ack' ''acknvim'                       *far-glob*
 
     Those searhing engines use far.vim's own glob expression supported by
-    python 'pathlib.glob'. The rule is different from the that for 'vimgrep'.
-    It searchs all visiable and hidden dirs and files excepted ignored.
-    Ignoring rule are
+    python 'pathlib.glob'. It searchs all visiable and hidden dirs and files
+    excepted ignored files. Rules to ignore files are loaded from files in list
+    |g:far#ignore_files|. You can create one or more such files and append them
+    to |g:far#ignore_files|.
 
-    NOTE: 'xx': a glob expression, can contain '/', doesn't end with '/'.
-    NOTE: 'yy': a glob expression, can contain '/', doesn't start with '/'.
-    NOTE: 'zz': a glob expression, can contain/start with/end with '/'.
+    Both {file-mask} and ignore-rules are in the following format, which is a
+    bit different from the format of 'vimgrep' {file-mask} and .gitignore.
+
+    NOTE:
+        'xx': a glob expression, can contain '/', doesn't end with '/'.
+        'yy': a glob expression, can contain '/', doesn't start with '/'.
+        'zz': a glob expression, can contain/start with/end with '/'.
 
     heading
 
@@ -443,9 +448,10 @@ FILE MASK                                                      *far-file-mask*
 
     only for ignore_rules:
         'zz'
-            ignore-rule, to ignores xx
-        'zz'
-            exception-rule, to never ignore xx, overrides all ignore-rules
+            Ignoring rule, to ignores xx.
+
+        '!zz'
+            Exception rule, to never ignore xx, overrides all ignoring-rules.
 
 
 ==============================================================================
@@ -499,6 +505,16 @@ CONFIGURATION                                                     *far-config*
     Limit the maximum amount of candidates.
 
     Default: 1000
+
+*g:far#max_columns*
+    Limit the maximum length of a matched line to avoid matching binary files.
+
+    Default: 400
+
+*g:far#ignore_files*
+    A list. Files of rules to ignore file during matching. See |far-glob|
+
+    Default: [ '<path-to-far.vim-repo>/farignore' ]
 
 *g:far#cwd*
     Specify the current working directory. In this directory where Far.vim

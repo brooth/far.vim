@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import pathlib
 import re
+from os.path import expanduser
 
 def proc(rules_origin):
     '''
@@ -51,6 +52,7 @@ class GlobError(ValueError):
     pass
 
 def glob_rules(root, rules):
+    root = expanduser(root)
     try:
         files = {f for rule in rules for f in pathlib.Path(root).glob(rule) if pathlib.Path.is_file(f)}
     except ValueError as e:
@@ -63,7 +65,7 @@ class IgnoreFileError(ValueError):
 def load_ignore_rules(file_path):
     ignore_rules = []
     try:
-        with open(file_path, 'r') as f:
+        with open(expanduser(file_path), 'r') as f:
             for line in f:
                 line = line.strip()
                 if line == '' or re.search(r'^\s*#', line):
@@ -80,7 +82,7 @@ def far_glob(root, rules, ignore_rules):
     root: string
     rules, ignore_rules: list
 
-    root contains on '~', can contain '.'
+    root can contain '~'
     rules and ignore_rules:
         xx, yy, is path expression, can contain '/'
         head:

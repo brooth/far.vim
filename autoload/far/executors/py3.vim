@@ -13,6 +13,11 @@ function! far#executors#py3#execute(exec_ctx, callback) abort
     let evalstr = source."(".sourcectx.",".sourceargs.",".sourcecmdargs.")"
     let result = far#rpc#invoke([source[:idx-1]], evalstr)
     let error = get(result, 'error', '')
+    let warning = get(result, 'warning', '')
+    if !empty(warning)
+        let ctx['warning'] = 'source warning: '. warning
+    endif
+
     if !empty(error)
         let ctx['error'] = 'source error: '.error
     elseif get(result, 'items_file', '') != ''
