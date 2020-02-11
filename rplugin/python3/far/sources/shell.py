@@ -135,6 +135,7 @@ def search(ctx, args, cmdargs):
                     with open('/Users/mac/far.vim.py.log', 'a') as f:
                         print('too long line, may be bytes', file=f)
                         continue
+                text = text.rstrip()
                 lnum = data['line_number']
 
                 for submatch in data['submatches']:
