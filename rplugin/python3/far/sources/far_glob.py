@@ -53,20 +53,25 @@ class GlobError(ValueError):
 def glob_rules(root, rules):
     try:
         files = {f for rule in rules for f in pathlib.Path(root).glob(rule) if pathlib.Path.is_file(f)}
-    except ValueError as error:
-        raise GlobError(error)
-        # print('ValueError', error)
-        # return []
+    except ValueError as e:
+        raise GlobError(e)
     return files
+
+class IgnoreFileError(ValueError):
+    pass
 
 def load_ignore_rules(file_path):
     ignore_rules = []
-    with open(file_path, 'r') as f:
-        for line in f:
-            line = line.strip()
-            if line == '' or re.search(r'^\s*#', line):
-                continue
-            ignore_rules.append(line)
+    try:
+        with open(file_path, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line == '' or re.search(r'^\s*#', line):
+                    continue
+                ignore_rules.append(line)
+    except FileNotFoundError as e:
+        raise IgnoreFileError(e)
+
     return ignore_rules
 
 

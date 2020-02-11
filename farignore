@@ -1,0 +1,11 @@
+# ignore-rules for far.vim
+    # comment must be a new line, instead of after a path pattern
+    # xxxxx : ignore-rule, to ignore the pattern
+    # !xxxx : exception-rule, not to ignore the patten, this overrides ignore-rules
+
+
+.git/
+
+*.pyc
+
+__pycache__/

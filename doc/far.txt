@@ -291,10 +291,9 @@ FILE MASK                                                      *far-file-mask*
     The format of {filemask} is different for different source searchers.
 
     {filemask} for all source searchers:
-        'vimgrep'       : see |far-vimgrep-file-mask|
-        'rg' 'rgnvim'   : see |far-rg-file-mask|
-        'ack' 'acknvim' : see |far-ack-file-mask|
-        'ag' 'agnvim'   : see |far-ag-file-mask|
+        'vimgrep' : see |far-vimgrep-file-mask|
+        'rg' 'rgnvim' 'ack' 'acknvim' 'ag' 'agnvim' : see |far-glob|
+
 
     NOTE: To set glob source in '.vimrc', see |g:far#source|.
     NOTE: To set source in command, see '--source' in |far-params|.
@@ -377,140 +376,76 @@ FILE MASK                                                      *far-file-mask*
 
 
 ------------------------------------------------------------------------------
-'rg' 'rgnvim'                                               *far-rg-file-mask*
+'rg' 'rgnvim' 'ag' 'agnvim' 'ack' ''acknvim'                       *far-glob*
 
-    Uses the glob syntax for the file-mask
+    Those searhing engines use far.vim's own glob expression supported by
+    python 'pathlib.glob'. The rule is different from the that for 'vimgrep'.
+    It searchs all visiable and hidden dirs and files excepted ignored.
+    Ignoring rule are
 
-    '%'        : the current file
+    NOTE: 'xx': a glob expression, can contain '/', doesn't end with '/'.
+    NOTE: 'yy': a glob expression, can contain '/', doesn't start with '/'.
+    NOTE: 'zz': a glob expression, can contain/start with/end with '/'.
 
-    '* :
-        any zero or more chars, its regex is ".*"
-        can not contain dir seperator.
-        can contain '.', can be hidden
+    heading
 
-    '**':
-        any zero or more chars,
-        can contain dir seperator
-        can contain '.', can be hidden
-
-    '**/':
-        any zero or more chars,
-        can contain dir seperator
-        can contain '.', can not be hidden
-
-    '**/'  with '--hidden'
-        any zero or more chars,
-        can contain dir seperator
-        can contain '.', can be hidden
-
-    -------------------------------------------------------------------------
-                       args      root  subdir   subdir   file     file
-    filemask           -         dir   #layer   visible  visible  regex
-    -------------------------------------------------------------------------
-    '[xx/]' =
-        ''                       cwd    >=0
-        '/'                      cwd    0
-        '<path>/'                <path> 0
-    -------------------------------------------------------------------------
-    '[xx/]*'           -         [xx/]  0       -        Y/N      '^.*$'
-    '[xx/]*/yy'        -         [xx/]  1       Y        -        -
-    '[xx/]*/yy'        --hidden  [xx/]  1       Y/N      -        -
-    -------------------------------------------------------------------------
-    '[xx/]**'          -         [xx/]  >=0     Y/N      Y/N      '^.*$'
-    '[xx/]**/yy'       -         [xx/]  >=0     Y        -        -
-    '[xx/]**/yy'       --hidden  [xx/]  >=0     Y/N      -        -
-    -------------------------------------------------------------------------
-    '[xx]/*'           -         [xx/]  0       -        Y/N      '^.*$'
-    '[xx]/*.*'         -         [xx/]  0       -        Y/N      '^.*\..*$'
-    '[xx]/*.sh'        -         [xx/]  0       -        Y/N      '^.*\.sh$'
-    '[xx]/*yy*'        -         [xx/]  0       -        Y/N      '^.*yy.*$'
-    '[xx]/*yy*zz'      -         [xx/]  0       -        Y/N      '^.*yy.*zz$'
-    -------------------------------------------------------------------------
-    e.g.
-    '/*'               -         cwd    0       -        Y/N      '^.*$'
-    '/*.*'             -         cwd    0       -        Y/N      '^.*\..*$'
-    '/*.sh'            -         cwd    0       -        Y/N      '^.*\.sh$'
-    '*''**/*''**''/**' -         cwd    >=0     Y/N      Y/N      '^.*$'
-    '*.*' '**/*.*'     -         cwd    >=0     Y/N      Y/N      '^.*\..*$'
-    '*.sh' '**/*.sh'   -         cwd    >=0     Y        Y/N      '^.*\.sh$'
-    '*.sh' '**/*.sh'   --hidden  cwd    >=0     Y/N      Y/N      '^.*\.sh$'
-    -------------------------------------------------------------------------
-
-------------------------------------------------------------------------------
-'ack' 'acknvim'                                            *far-ack-file-mask*
-
-    Uses the glob syntax for the file-mask
-
-   '%'        : the current file
-
-    '* :
-        any zero or more chars, its regex is ".*"
-        can not contain dir seperator.
-        can contain '.', can be hidden
-
-    '**' '**/':
-        any zero or more chars,
-        can contain dir seperator
-        can contain '.', can be hidden
-
-    -------------------------------------------------------------------------
-                       args      root  subdir   subdir   file     file
-    filemask           -         dir   #layer   visible  visible  regex
-    -------------------------------------------------------------------------
-    '[xx/]' =
-        ''                       cwd    0
-        '<path>/'                <path> 0
-    -------------------------------------------------------------------------
-    '[xx/]*'           -         [xx/]  0       -        Y/N      '^.*$'
-    '[xx/]*/yy'        -         [xx/]  1       Y/N      -        -
-    -------------------------------------------------------------------------
-    '[xx/]**'          -         [xx/]  >=0     Y/N      Y/N      '^.*$'
-    '[xx/]**/yy'       -         [xx/]  >=0     Y/N      -        -
-    -------------------------------------------------------------------------
-    '[xx]/*'           -         [xx/]  0       -        Y/N      '^.*$'
-    '[xx]/*.*'         -         [xx/]  0       -        Y/N      '^.*\..*$'
-    '[xx]/*.sh'        -         [xx/]  0       -        Y/N      '^.*\.sh$'
-    '[xx]/*yy*'        -         [xx/]  0       -        Y/N      '^.*yy.*$'
-    '[xx]/*yy*zz'      -         [xx/]  0       -        Y/N      '^.*yy.*zz$'
-    -------------------------------------------------------------------------
-    e.g.
-    '*'                -         cwd    0       -        Y/N      '^.*$'
-    '*.*'              -         cwd    0       -        Y/N      '^.*\..*$'
-    '*.sh'             -         cwd    0       -        Y/N      '^.*\.sh$'
-    '**'  '**/*'       -         cwd    >=0     Y/N      Y/N      '^.*$'
-    '**/*.*'           -         cwd    >=0     Y/N      Y/N      '^.*\..*$'
-    '**/*.sh'          -         cwd    >=0     Y/N      Y/N      '^.*\.sh$'
-    -------------------------------------------------------------------------
-
-------------------------------------------------------------------------------
-'ag' 'agnvim'                                               *far-ag-file-mask*
-
-    Uses regex patterns
-
-    Options:
-
-        `--hidden`
-            Search hidden files and search under hidden dirs.
-            Default: without this option
-    Regex:
-
-        '^\./xx'
-            root = cwd
+        '/xx'
+            'xx' is directly udner the 'root' dir
 
         'xx'
-            xx recursively under cwd
+            'xx' is recursively udner the 'root' dir
 
-        'xx$'
-            file end with 'xx'
+    tailing
 
-        '.'
-            any char that is not newline char
+        'xx'
+            File.
 
-        '\.'
-            char '.'
+        'xx/'
+            Dir. Far.vim returns all files recursively under the dir.
 
-        '[^/]+\.yy$'
-            file end with '.yy'
+    special chars
+
+        '%'
+            The current file.
+
+        '*'
+            Any >=0 chars except the path separator '/'.
+
+        '?'
+            Any one char except the path separator '/'.
+
+        'xx/**'
+            All dirs recursively under 'xx' dir include 'xx' dir itself.
+            Far.vim returns the same result as 'xx/'.
+
+        'xx/**/yy'
+            'yy' glob experession recursively under 'xx' dir.
+
+    examples
+
+        '/' '*' '**' '**/*'
+            All files under the 'root' dir.
+
+        '*.sh'
+            All files with '.sh' extenstion, recursively under cwd.
+            Including 'xx.sh' '.sh' '.xx.sh'
+
+        '*.*'
+            All files with '.' in name, recursively under cwd.
+            Including '.xx','xx.','xx.xx'
+
+        '/*.sh'
+            All '*.sh' files directly under cwd.
+
+        '/xx/*test*/'
+            All dirs with 'test' in name, directly under '<cwd>/xx/' dir.
+            Including '/xx/test/' '/xx/test2/' '/xx/1test2/' '/xx/test/'
+
+    only for ignore_rules:
+        'zz'
+            ignore-rule, to ignores xx
+        'zz'
+            exception-rule, to never ignore xx, overrides all ignore-rules
 
 
 ==============================================================================

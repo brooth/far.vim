@@ -7,7 +7,7 @@ License: MIT
 
 from pprint import pprint
 
-from .far_glob import load_ignore_rules,far_glob,GlobError
+from .far_glob import load_ignore_rules,far_glob,GlobError,IgnoreFileError
 import logging
 import subprocess
 import re
@@ -21,6 +21,7 @@ logger = logging.getLogger('far')
 def search(ctx, args, cmdargs):
     logger.debug('search(%s, %s, %s)', str(ctx), str(args), str(cmdargs))
 
+    final_result = {'warning': ''}
 
     with open('/Users/mac/far.vim.py.log', 'a') as f:
         pprint(args, f)
@@ -40,11 +41,18 @@ def search(ctx, args, cmdargs):
     root = ctx['cwd']
 
     limit = int(ctx['limit'])
-    max_columns = int(ctx['max_columns'])
-
+    max_columns = args.get('max_columns')
+    ignore_files = args.get('ignore_files')
 
     rules = file_mask.split(',')
-    ignore_rules = load_ignore_rules('/Users/mac/farignore')
+
+    ignore_rules = []
+    for ignore_file in ignore_files:
+        try:
+            ignore_rules += load_ignore_rules(ignore_file)
+        except IgnoreFileError as e:
+            final_result['warning'] += ' | Invalid ignore-rule files. '+str(e)
+
     try:
         files = far_glob(root, rules, ignore_rules)
     except GlobError as e:
@@ -260,10 +268,13 @@ def search(ctx, args, cmdargs):
             file_ctx['items'].append(item_ctx)
             limit -= 1
 
+            with open('/Users/mac/far.vim.py.log', 'a') as f:
+                print('first',item_ctx, file=f)
+
             if submatch_type == 'first':
                 byte_num = item_ctx['cnum']
-                char_num = len( text.encode('utf-8')[:byte_num].decode('utf-8') )
-                move_cnum = char_num
+                char_num = len( text.encode('utf-8')[:byte_num-1].decode('utf-8') )
+                move_cnum = char_num + 1
 
                 if regex == '0':
                     while True:
@@ -311,6 +322,8 @@ def search(ctx, args, cmdargs):
                 fp.write('\n')
 
         logger.debug('items_file:' + fp.name)
-        return {'items_file': fp.name}
+        final_result['items_file'] = fp.name
     else:
-        return {'items': list(result.values())}
+        final_result['items'] = list(result.values())
+
+    return final_result

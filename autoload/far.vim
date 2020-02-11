@@ -44,6 +44,9 @@ call far#tools#setdefault('g:far#sources.vimgrep.args.escape_pattern', '/')
 
 call far#tools#setdefault('g:far#mode_open', { "regex" : 1, "case_sensitive"  : 0, "word" : 0, "substitute": 0 } )
 
+let s:farvim_dir = resolve(expand('<sfile>:p:h:h'))
+call far#tools#setdefault('g:far#ignore_files', [s:farvim_dir.  (has('unix')? '/' : '\') . 'farignore'])
+
 
 if executable('ag')
     let cmd = ['ag', '--nogroup', '--column', '--nocolor', '--silent', '--vimgrep',
@@ -68,6 +71,8 @@ if executable('ag')
     call far#tools#setdefault('g:far#sources.ag.args.submatch', 'all')
     call far#tools#setdefault('g:far#sources.ag.args.items_file_min', 30)
     call far#tools#setdefault('g:far#sources.ag.args.expand_cmdargs', 1)
+    call far#tools#setdefault('g:far#sources.ag.args.ignore_files', g:far#ignore_files)
+    call far#tools#setdefault('g:far#sources.ag.args.max_columns', g:far#max_columns)
 
     if has('nvim')
         call far#tools#setdefault('g:far#sources.agnvim', {})
@@ -79,6 +84,8 @@ if executable('ag')
         call far#tools#setdefault('g:far#sources.agnvim.args.submatch', 'all')
         call far#tools#setdefault('g:far#sources.agnvim.args.items_file_min', 30)
         call far#tools#setdefault('g:far#sources.agnvim.args.expand_cmdargs', 1)
+        call far#tools#setdefault('g:far#sources.agnvim.args.ignore_files', g:far#ignore_files)
+        call far#tools#setdefault('g:far#sources.agnvim.args.max_columns', g:far#max_columns)
     endif
 endif
 
@@ -104,6 +111,8 @@ if executable('ack')
     call far#tools#setdefault('g:far#sources.ack.args.submatch', 'first')
     call far#tools#setdefault('g:far#sources.ack.args.items_file_min', 30)
     call far#tools#setdefault('g:far#sources.ack.args.expand_cmdargs', 1)
+    call far#tools#setdefault('g:far#sources.ack.args.ignore_files', g:far#ignore_files)
+    call far#tools#setdefault('g:far#sources.ack.args.max_columns', g:far#max_columns)
 
     if has('nvim')
         call far#tools#setdefault('g:far#sources.acknvim', {})
@@ -115,6 +124,8 @@ if executable('ack')
         call far#tools#setdefault('g:far#sources.acknvim.args.submatch', 'first')
         call far#tools#setdefault('g:far#sources.acknvim.args.items_file_min', 30)
         call far#tools#setdefault('g:far#sources.acknvim.args.expand_cmdargs', 1)
+        call far#tools#setdefault('g:far#sources.acknvim.args.ignore_files', g:far#ignore_files)
+        call far#tools#setdefault('g:far#sources.acknvim.args.max_columns', g:far#max_columns)
     endif
 endif
 
@@ -137,6 +148,8 @@ if executable('rg')
     call far#tools#setdefault('g:far#sources.rg.args.submatch', 'all')
     call far#tools#setdefault('g:far#sources.rg.args.items_file_min', 30)
     call far#tools#setdefault('g:far#sources.rg.args.expand_cmdargs', 1)
+    call far#tools#setdefault('g:far#sources.rg.args.ignore_files', g:far#ignore_files)
+    call far#tools#setdefault('g:far#sources.rg.args.max_columns', g:far#max_columns)
 
     if has('nvim')
         call far#tools#setdefault('g:far#sources.rgnvim', {})
@@ -148,6 +161,8 @@ if executable('rg')
         call far#tools#setdefault('g:far#sources.rgnvim.args.submatch', 'all')
         call far#tools#setdefault('g:far#sources.rgnvim.args.items_file_min', 30)
         call far#tools#setdefault('g:far#sources.rgnvim.args.expand_cmdargs', 1)
+        call far#tools#setdefault('g:far#sources.rgnvim.args.ignore_files', g:far#ignore_files)
+        call far#tools#setdefault('g:far#sources.rgnvim.args.max_columns', g:far#max_columns)
     endif
 endif
 
@@ -160,7 +175,6 @@ function! s:create_far_params() abort
     \   'regex': g:far#regex,
     \   'case_sensitive': g:far#case_sensitive,
     \   'word_boundary': g:far#word_boundary,
-    \   'max_columns': g:far#max_columns,
     \   }
 endfunction
 
@@ -1633,6 +1647,11 @@ function! s:assemble_context_callback(exec_ctx) abort "{{{
     if !empty(get(a:exec_ctx, 'error', ''))
         call far#tools#echo_err(a:exec_ctx.error)
         return
+    endif
+
+    if !empty(get(a:exec_ctx, 'warning', ''))
+        call far#tools#echo_warn(a:exec_ctx.warning)
+        " sleep 1
     endif
 
     let far_ctx = a:exec_ctx.far_ctx

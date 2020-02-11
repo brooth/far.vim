@@ -30,6 +30,11 @@ endfunction
 function! far#executors#nvim#callback(result, ctx_idx) abort
     let ctx = remove(g:far#executors#nvim#contexts, a:ctx_idx)
     let error = get(a:result, 'error', '')
+    let warning = get(a:result, 'warning', '')
+    if !empty(warning)
+        let ctx['warning'] = 'source warning: '. warning
+    endif
+
     if !empty(error)
         let ctx['error'] = 'source error: '.error
     elseif get(a:result, 'items_file', '') != ''
@@ -56,6 +61,7 @@ function! far#executors#nvim#callback(result, ctx_idx) abort
             endfor
         endfor
     endif
+
     call call(ctx.async_callback, [ctx])
 endfunction
 
