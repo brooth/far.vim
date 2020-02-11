@@ -391,6 +391,8 @@ FILE MASK                                                      *far-file-mask*
         'xx': a glob expression, can contain '/', doesn't end with '/'.
         'yy': a glob expression, can contain '/', doesn't start with '/'.
         'zz': a glob expression, can contain/start with/end with '/'.
+    NOTE:
+        {file-mask} can be glob expressions joint by ',' without whitespace.
 
     heading
 
