@@ -26,6 +26,8 @@ call far#tools#setdefault('g:far#regex', 1)
 call far#tools#setdefault('g:far#case_sensitive', -1)
 call far#tools#setdefault('g:far#word_boundary', 0)
 call far#tools#setdefault('g:far#limit', 1000)
+call far#tools#setdefault('g:far#max_columns', 400)
+
 
 call far#tools#setdefault('g:far#executors', {})
 call far#tools#setdefault('g:far#executors.vim', 'far#executors#basic#execute')
@@ -158,6 +160,7 @@ function! s:create_far_params() abort
     \   'regex': g:far#regex,
     \   'case_sensitive': g:far#case_sensitive,
     \   'word_boundary': g:far#word_boundary,
+    \   'max_columns': g:far#max_columns,
     \   }
 endfunction
 
@@ -218,6 +221,7 @@ let s:far_params_meta = {
     \   '--regex' : {'param': 'regex', 'values': [1,0]},
     \   '--case-sensitive' : {'param': 'case_sensitive', 'values': [1,0,-1]},
     \   '--word-boundary' : {'param': 'word_boundary', 'values': [1,0]},
+    \   '--max-columns' : { 'param': 'max_columns', 'values': [300,400,'..']},
     \   }
 
 let s:far_params_meta_vimgrep = {

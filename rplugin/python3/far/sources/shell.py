@@ -36,6 +36,7 @@ def search(ctx, args, cmdargs):
     regex = ctx['regex']
     case_sensitive = ctx['case_sensitive']
     limit = int(ctx['limit'])
+    max_columns = int(ctx['max_columns'])
     file_mask = ctx['file_mask']
     fix_cnum = args.get('fix_cnum')
     root = ctx['cwd']
@@ -47,8 +48,8 @@ def search(ctx, args, cmdargs):
         files = far_glob(root, rules, ignore_rules)
         # files = [str(f.relative_to(root)) for f in pathlib.Path(root).glob(file_mask) if pathlib.Path.is_file(f)]
 
-        if len(files):
-            files = [" "] + files
+        # if len(files):
+        #     files = [" "] + files
         with open('/Users/mac/far.vim.py.log', 'a') as f:
             print('files', file=f)
             pprint(files, f)
@@ -70,10 +71,11 @@ def search(ctx, args, cmdargs):
     if args.get('expand_cmdargs', '0') != '0':
         cmd += cmdargs
 
-    with open('/Users/mac/far.vim.py.log', 'a') as f:
-        pprint(' '.join(cmd), f)
+    # with open('/Users/mac/far.vim.py.log', 'a') as f:
+    #     print(' '.join(cmd), file=f)
 
     logger.debug('cmd:' + str(cmd))
+
     try:
         proc = subprocess.Popen(cmd, cwd=ctx['cwd'],
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -119,12 +121,12 @@ def search(ctx, args, cmdargs):
                 item = json.loads(line)
             except:
                 with open('/Users/mac/far.vim.py.log', 'a') as f:
-                    print('json error')
+                    print('json error', file=f)
                 continue
 
             if type(item) != dict or 'type' not in item:
                 with open('/Users/mac/far.vim.py.log', 'a') as f:
-                    print('json error')
+                    print('json error', file=f)
                 continue
 
             if item['type'] == 'match':
@@ -136,8 +138,12 @@ def search(ctx, args, cmdargs):
                     text = data['lines']['bytes']
                 except:
                     with open('/Users/mac/far.vim.py.log', 'a') as f:
-                        print('json error')
+                        print('json error', file=f)
                     continue
+                if len(text) > max_columns:
+                    with open('/Users/mac/far.vim.py.log', 'a') as f:
+                        print('too long line, may be bytes', file=f)
+                        continue
                 lnum = data['line_number']
                 cnum = data['absolute_offset']
                 for submatch in data['submatches']:
@@ -178,11 +184,31 @@ def search(ctx, args, cmdargs):
         result = {}
         while limit > 0:
             line = proc.stdout.readline()
+
+            with open('/Users/mac/far.vim.py.log', 'a') as f:
+                print('byte line : ',line, file=f)
+
+            # if line == b'':
+            #     if len(result) == 0:
+            #         err = proc.stderr.readline()
+            #         if err:
+            #             err = err.decode('utf-8')
+            #             logger.debug('error:' + err)
+            #             return {'error': err}
+
+            #     if proc.poll() is not None:
+            #         logger.debug('end of proc. break')
+            #         break
+            #     continue
+
             try:
                 line = line.decode('utf-8').rstrip()
             except UnicodeDecodeError:
                 logger.debug("UnicodeDecodeError: line = line.decode('utf-8').rstrip() failed, line:")
                 continue
+
+            with open('/Users/mac/far.vim.py.log', 'a') as f:
+                print('line : ',line, file=f)
 
             if not line:
                 if len(result) == 0:
@@ -197,15 +223,26 @@ def search(ctx, args, cmdargs):
                     break
                 continue
 
+
             items = re.split(':', line, split_amount)
             if len(items) != split_amount + 1:
                 logger.error('broken line:' + line)
                 # return {'error': 'broken output'}
                 continue
 
+            with open('/Users/mac/far.vim.py.log', 'a') as f:
+                print('limit =', limit, 'items : ',items, file=f)
+
             lnum = int(items[1])
             if (range[0] != -1 and range[0] > lnum) or (range[1] != -1 and range[1] < lnum):
                 continue
+
+            text = items[split_amount]
+            if len(text) > max_columns:
+                with open('/Users/mac/far.vim.py.log', 'a') as f:
+                    print('too long line, may be bytes', file=f)
+                continue
+
 
             file_ctx = result.get(items[0])
             if not file_ctx:
@@ -215,7 +252,6 @@ def search(ctx, args, cmdargs):
                 }
                 result[items[0]] = file_ctx
 
-            text = items[split_amount]
 
             fix_cnum_idx = 0
             if split_amount == 3:
@@ -225,6 +261,10 @@ def search(ctx, args, cmdargs):
                 item_ctx['cnum'] = int(items[2])
                 file_ctx['items'].append(item_ctx)
                 limit -= 1
+
+                # with open('/Users/mac/far.vim.py.log', 'a') as f:
+                #     print('file_ctx : ', file_ctx, file=f)
+
                 if fix_cnum == 'first-in-line':
                     byte_num = item_ctx['cnum']
                     char_num = len( text.encode('utf-8')[:byte_num].decode('utf-8') )
@@ -247,7 +287,7 @@ def search(ctx, args, cmdargs):
                         next_item_ctx['cnum'] = len(prefix.encode('utf-8')) + 1
                         file_ctx['items'].append(next_item_ctx)
                         limit -= 1
-                        if limit == 0:
+                        if limit <= 0:
                             break
                 else:
                     for cp in cpat.finditer(text, fix_cnum_idx):
@@ -258,7 +298,7 @@ def search(ctx, args, cmdargs):
                         next_item_ctx['cnum'] = len(prefix.encode('utf-8')) + 1
                         file_ctx['items'].append(next_item_ctx)
                         limit -= 1
-                        if limit == 0:
+                        if limit <= 0:
                             break
 
         # with open('/Users/mac/far.vim.py.log','a') as f:
