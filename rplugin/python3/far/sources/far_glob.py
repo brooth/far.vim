@@ -79,8 +79,8 @@ def far_glob(root, rules, ignore_rules):
     rules and ignore_rules:
         xx, yy, is path expression, can contain '/'
         head:
-            /xx              rooted on the 'root' dir
-            xx               anywher
+            /xx              directly udner the 'root' dir
+            xx               recursively udner the 'root' dir
         tail
             xx               file
             xx/              dir, this function returns all files recursively under the dir

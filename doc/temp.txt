@@ -1,0 +1,70 @@
+
+------------------------------------------------------------------------------
+'rg' 'rgnvim' 'ag' 'agnvim' 'ack' ''acknvim'                       *far-glob*
+
+    Those searhing engines use far.vim's own glob expression which is
+    different from the glob of 'vimgrep'.
+
+    NOTE: 'xx': a glob expression, can contain '/', doesn't end with '/'.
+    NOTE: 'yy': a glob expression, can contain '/', doesn't start with '/'.
+    NOTE: 'zz': a glob expression, can contain/start with/end with '/'.
+
+    heading
+
+        '/xx'
+            'xx' is directly udner the 'root' dir
+
+        'xx'
+            'xx' is recursively udner the 'root' dir
+
+    tailing
+
+        'xx'
+            File.
+
+        'xx/'
+            Dir. Far.vim returns all files recursively under the dir.
+
+    special chars
+
+        '%'
+            The current file.
+
+        '*'
+            Any >=0 chars except the path separator '/'.
+
+        '?'
+            Any one char except the path separator '/'.
+
+        'xx/**'
+            All dirs recursively under 'xx' dir include 'xx' dir itself.
+            Far.vim returns the same result as 'xx/'.
+
+        'xx/**/yy'
+            'yy' glob experession recursively under 'xx' dir.
+
+    examples
+
+        '/' '*' '**' '**/*'
+            All files under the 'root' dir.
+
+        '*.sh'
+            All files with '.sh' extenstion, recursively under cwd.
+            Including 'xx.sh' '.sh' '.xx.sh'
+
+        '*.*'
+            All files with '.' in name, recursively under cwd.
+            Including '.xx','xx.','xx.xx'
+
+        '/*.sh'
+            All '*.sh' files directly under cwd.
+
+        '/xx/*test*/'
+            All dirs with 'test' in name, directly under '<cwd>/xx/' dir.
+            Including '/xx/test/' '/xx/test2/' '/xx/1test2/' '/xx/test/'
+
+    only for ignore_rules:
+        'zz'
+            ignore-rule, to ignores xx
+        'zz'
+            exception-rule, to never ignore xx, overrides all ignore-rules

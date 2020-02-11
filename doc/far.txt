@@ -437,7 +437,7 @@ FILE MASK                                                      *far-file-mask*
     -------------------------------------------------------------------------
 
 ------------------------------------------------------------------------------
-'ack' 'ack'                                                *far-ack-file-mask*
+'ack' 'acknvim'                                            *far-ack-file-mask*
 
     Uses the glob syntax for the file-mask
 
