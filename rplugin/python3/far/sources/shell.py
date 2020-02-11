@@ -27,7 +27,6 @@ def search(ctx, args, cmdargs):
         pprint(cmdargs, f)
         pprint(ctx,f)
 
-
     if not args.get('cmd'):
         return {'error': 'no cmd in args'}
 
@@ -35,44 +34,38 @@ def search(ctx, args, cmdargs):
     pattern = ctx['pattern']
     regex = ctx['regex']
     case_sensitive = ctx['case_sensitive']
-    limit = int(ctx['limit'])
-    max_columns = int(ctx['max_columns'])
+
     file_mask = ctx['file_mask']
-    fix_cnum = args.get('fix_cnum')
+    submatch_type = args.get('submatch')
     root = ctx['cwd']
 
-    if source != 'vimgrep':
-    # if source == 'rg' or source == 'rgnvim' or source == 'ack' or source == 'acknvim':
-        rules = file_mask.split(',')
-        ignore_rules = load_ignore_rules('/Users/mac/farignore')
-        files = far_glob(root, rules, ignore_rules)
-        # files = [str(f.relative_to(root)) for f in pathlib.Path(root).glob(file_mask) if pathlib.Path.is_file(f)]
+    limit = int(ctx['limit'])
+    max_columns = int(ctx['max_columns'])
 
-        # if len(files):
-        #     files = [" "] + files
-        with open('/Users/mac/far.vim.py.log', 'a') as f:
-            print('files', file=f)
-            pprint(files, f)
-        cmd = []
-        for c in args['cmd']:
-            if c == '{file_mask}':
-                cmd += files
-            else:
-                cmd.append(c.format(limit=limit,
-                                pattern=pattern))
 
-    else:
-        cmd = []
-        for c in args['cmd']:
+    rules = file_mask.split(',')
+    ignore_rules = load_ignore_rules('/Users/mac/farignore')
+    files = far_glob(root, rules, ignore_rules)
+
+    # search in one file, cmd do not output the file name
+    if len(files) == 1:
+        files = files + files
+        one_file_result = []
+
+    with open('/Users/mac/far.vim.py.log', 'a') as f:
+        print('files', file=f)
+        pprint(files, f)
+    cmd = []
+    for c in args['cmd']:
+        if c == '{file_mask}':
+            cmd += files
+        else:
             cmd.append(c.format(limit=limit,
-                            pattern=pattern,
-                            file_mask=file_mask))
+                            pattern=pattern))
+
 
     if args.get('expand_cmdargs', '0') != '0':
         cmd += cmdargs
-
-    # with open('/Users/mac/far.vim.py.log', 'a') as f:
-    #     print(' '.join(cmd), file=f)
 
     logger.debug('cmd:' + str(cmd))
 
@@ -82,17 +75,15 @@ def search(ctx, args, cmdargs):
     except Exception as e:
         return {'error': str(e)}
 
+    range = tuple(ctx['range'])
+    result = {}
+
 
     if source == 'rg' or source == 'rgnvim' :
 
         with open('/Users/mac/far.vim.py.log','a') as f:
             pprint(cmd, f)
 
-        split_amount = 2 if fix_cnum == 'all' else 3
-        range = tuple(ctx['range'])
-
-
-        result = {}
         while limit > 0:
             line = proc.stdout.readline()
             try:
@@ -145,12 +136,23 @@ def search(ctx, args, cmdargs):
                         print('too long line, may be bytes', file=f)
                         continue
                 lnum = data['line_number']
-                cnum = data['absolute_offset']
+
                 for submatch in data['submatches']:
                     match = submatch['match']['text']
-                    cnum = submatch['start']
-                    # cnum_end = submatch['end']
-                    limit -= 1
+                    cnum = submatch['start'] + 1
+
+                    item_idx = (file_name, lnum, cnum)
+
+                    if 'one_file_result' in locals() or 'one_file_result' in globals():
+                        if item_idx in one_file_result:
+                            continue
+                        else:
+                            one_file_result.append(item_idx)
+
+
+                    if (range[0] != -1 and range[0] > lnum) or \
+                       (range[1] != -1 and range[1] < lnum):
+                        continue
 
                     if not file_name in result:
                         result[file_name] = {
@@ -166,8 +168,10 @@ def search(ctx, args, cmdargs):
                         }
                     result[file_name]['items'].append(item_ctx)
 
+                    limit -= 1
+
     else:
-        if fix_cnum == 'first-in-line':
+        if submatch_type == 'first':
             if regex != '0':
                 try:
                     if case_sensitive == '0':
@@ -177,29 +181,11 @@ def search(ctx, args, cmdargs):
                 except Exception as e:
                     return {'error': 'invalid pattern: ' + str(e) }
 
-        split_amount = 2 if fix_cnum == 'all' else 3
-        range = tuple(ctx['range'])
-
-
-        result = {}
         while limit > 0:
             line = proc.stdout.readline()
 
             with open('/Users/mac/far.vim.py.log', 'a') as f:
                 print('byte line : ',line, file=f)
-
-            # if line == b'':
-            #     if len(result) == 0:
-            #         err = proc.stderr.readline()
-            #         if err:
-            #             err = err.decode('utf-8')
-            #             logger.debug('error:' + err)
-            #             return {'error': err}
-
-            #     if proc.poll() is not None:
-            #         logger.debug('end of proc. break')
-            #         break
-            #     continue
 
             try:
                 line = line.decode('utf-8').rstrip()
@@ -224,8 +210,8 @@ def search(ctx, args, cmdargs):
                 continue
 
 
-            items = re.split(':', line, split_amount)
-            if len(items) != split_amount + 1:
+            items = re.split(':', line, 3)
+            if len(items) != 4:
                 logger.error('broken line:' + line)
                 # return {'error': 'broken output'}
                 continue
@@ -233,56 +219,60 @@ def search(ctx, args, cmdargs):
             with open('/Users/mac/far.vim.py.log', 'a') as f:
                 print('limit =', limit, 'items : ',items, file=f)
 
+            file_name = items[0]
             lnum = int(items[1])
-            if (range[0] != -1 and range[0] > lnum) or (range[1] != -1 and range[1] < lnum):
+            cnum = int(items[2])
+            text = items[3]
+
+            if (range[0] != -1 and range[0] > lnum) or \
+               (range[1] != -1 and range[1] < lnum):
                 continue
 
-            text = items[split_amount]
             if len(text) > max_columns:
                 with open('/Users/mac/far.vim.py.log', 'a') as f:
                     print('too long line, may be bytes', file=f)
                 continue
 
+            item_idx = (file_name, lnum, cnum)
+            if 'one_file_result' in locals() or 'one_file_result' in globals():
+                if item_idx in one_file_result:
+                    continue
+                else:
+                    one_file_result.append(item_idx)
 
-            file_ctx = result.get(items[0])
-            if not file_ctx:
+            if not file_name in result:
                 file_ctx = {
-                    'fname': items[0],
+                    'fname': file_name,
                     'items': []
                 }
-                result[items[0]] = file_ctx
+                result[file_name] = file_ctx
+            file_ctx = result[file_name]
 
 
-            fix_cnum_idx = 0
-            if split_amount == 3:
-                item_ctx = {}
-                item_ctx['text'] = text
-                item_ctx['lnum'] = lnum
-                item_ctx['cnum'] = int(items[2])
-                file_ctx['items'].append(item_ctx)
-                limit -= 1
+            item_ctx = {}
+            item_ctx['text'] = text
+            item_ctx['lnum'] = lnum
+            item_ctx['cnum'] = cnum
+            file_ctx['items'].append(item_ctx)
+            limit -= 1
 
-                # with open('/Users/mac/far.vim.py.log', 'a') as f:
-                #     print('file_ctx : ', file_ctx, file=f)
+            if submatch_type == 'first':
+                byte_num = item_ctx['cnum']
+                char_num = len( text.encode('utf-8')[:byte_num].decode('utf-8') )
+                move_cnum = char_num
 
-                if fix_cnum == 'first-in-line':
-                    byte_num = item_ctx['cnum']
-                    char_num = len( text.encode('utf-8')[:byte_num].decode('utf-8') )
-                    fix_cnum_idx = char_num
-
-            if fix_cnum == 'first-in-line':
                 if regex == '0':
                     while True:
                         next_item_ctx = {}
                         next_item_ctx['text'] = text
                         next_item_ctx['lnum'] = int(lnum)
                         if case_sensitive == '0':
-                            next_char_num = text.lower().find(pattern.lower(), fix_cnum_idx)
+                            next_char_num = text.lower().find(pattern.lower(), move_cnum)
                         else:
-                            next_char_num = text.find(pattern, fix_cnum_idx)
+                            next_char_num = text.find(pattern, move_cnum)
                         if next_char_num == -1:
                             break
-                        fix_cnum_idx = next_char_num + 1
+                        move_cnum = next_char_num + 1
                         prefix = text[:next_char_num]
                         next_item_ctx['cnum'] = len(prefix.encode('utf-8')) + 1
                         file_ctx['items'].append(next_item_ctx)
@@ -290,7 +280,7 @@ def search(ctx, args, cmdargs):
                         if limit <= 0:
                             break
                 else:
-                    for cp in cpat.finditer(text, fix_cnum_idx):
+                    for cp in cpat.finditer(text, move_cnum):
                         next_item_ctx = {}
                         next_item_ctx['text'] = text
                         next_item_ctx['lnum'] = int(lnum)
@@ -300,9 +290,6 @@ def search(ctx, args, cmdargs):
                         limit -= 1
                         if limit <= 0:
                             break
-
-        # with open('/Users/mac/far.vim.py.log','a') as f:
-        #     print(cmd, line, items, text, file=f)
 
     try:
         proc.terminate()
