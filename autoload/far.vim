@@ -2044,15 +2044,27 @@ function! s:param_proc(far_params, win_params, cmdargs) "{{{
 
     if a:far_params.file_mask == '%'
         let a:far_params.cwd = expand('%:p:h')
-        let a:far_params.file_mask = bufname('%')
+        let filename = bufname('%')
+        let a:far_params.file_mask = filename
+        if !filereadable(filename)
+            call far#tools#echo_err('File in current buffer is not readable.')
+            let a:far_params.file_mask = ''
+            return
+        endif
     endif
 endfunction "}}}
 
 function! s:pyglob_param_proc(far_params, win_params, cmdargs) "{{{
     call far#tools#log('pyglob_param_proc()')
     if a:far_params.file_mask == '%'
-        let a:far_params.file_mask = '/' . expand('%:t')
+        let filename = expand('%:t')
+        let a:far_params.file_mask = '/' . filename
         let a:far_params.cwd = expand('%:p:h')
+        if !filereadable(filename)
+            call far#tools#echo_err('File in current buffer is not readable.')
+            let a:far_params.file_mask = ''
+            return
+        endif
     endif
     call s:param_proc(a:far_params, a:win_params, a:cmdargs)
 endfunction "}}}
