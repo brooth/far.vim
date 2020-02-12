@@ -17,6 +17,8 @@ FarReplaceVal	far.txt	/*FarReplaceVal*
 FarReplacedItem	far.txt	/*FarReplacedItem*
 FarSearchVal	far.txt	/*FarSearchVal*
 default-far-mappings	far.txt	/*default-far-mappings*
+far-ack-file-mask	far.txt	/*far-ack-file-mask*
+far-ag-file-mask	far.txt	/*far-ag-file-mask*
 far-bugs	far.txt	/*far-bugs*
 far-changelog	far.txt	/*far-changelog*
 far-complete	far.txt	/*far-complete*
@@ -24,6 +26,8 @@ far-config	far.txt	/*far-config*
 far-consistency	far.txt	/*far-consistency*
 far-contents	far.txt	/*far-contents*
 far-extras	far.txt	/*far-extras*
+far-file-mask	far.txt	/*far-file-mask*
+far-glob	temp.txt	/*far-glob*
 far-highlight	far.txt	/*far-highlight*
 far-highlight-config	far.txt	/*far-highlight-config*
 far-intro	far.txt	/*far-intro*
@@ -35,7 +39,9 @@ far-params	far.txt	/*far-params*
 far-preview	far.txt	/*far-preview*
 far-quick-example	far.txt	/*far-quick-example*
 far-range	far.txt	/*far-range*
+far-rg-file-mask	far.txt	/*far-rg-file-mask*
 far-usage	far.txt	/*far-usage*
+far-vimgrep-file-mask	far.txt	/*far-vimgrep-file-mask*
 far.vim	far.txt	/*far.vim*
 fardo-params	far.txt	/*fardo-params*
 farundo-params	far.txt	/*farundo-params*
@@ -69,6 +75,7 @@ g:far#mapping['jump_to_source']	far.txt	/*g:far#mapping['jump_to_source']*
 g:far#mapping['open_preview']	far.txt	/*g:far#mapping['open_preview']*
 g:far#mapping['preview_scroll_down']	far.txt	/*g:far#mapping['preview_scroll_down']*
 g:far#mapping['preview_scroll_up']	far.txt	/*g:far#mapping['preview_scroll_up']*
+g:far#mapping['quit']	far.txt	/*g:far#mapping['quit']*
 g:far#mapping['replace_do']	far.txt	/*g:far#mapping['replace_do']*
 g:far#mapping['replace_undo']	far.txt	/*g:far#mapping['replace_undo']*
 g:far#mapping['replace_undo_all']	far.txt	/*g:far#mapping['replace_undo_all']*

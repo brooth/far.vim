@@ -14,12 +14,20 @@ call far#tools#setdefault('g:far#expand_sign', '+ ')
 call far#tools#setdefault('g:far#window_min_content_width', 60)
 call far#tools#setdefault('g:far#preview_window_scroll_step', 1)
 call far#tools#setdefault('g:far#check_window_resize_period', 2000)
-call far#tools#setdefault('g:far#file_mask_favorites', ['%', '**/*.*', '**/*.html', '**/*.js', '**/*.css'])
+call far#tools#setdefault('g:far#file_mask_favorites',
+    \ [ '%', '/', '* (any char)', '*.extenton', '/root-file','/root-dir/',
+    \ 'anywhere-file','anywhere-dir/','dir/directly-under' ,'dir/**/recursively-under'])
+
 call far#tools#setdefault('g:far#default_file_mask', '%')
 call far#tools#setdefault('g:far#status_line', 1)
 call far#tools#setdefault('g:far#source', 'vimgrep')
 call far#tools#setdefault('g:far#cwd', getcwd())
+call far#tools#setdefault('g:far#regex', 1)
+call far#tools#setdefault('g:far#case_sensitive', -1)
+call far#tools#setdefault('g:far#word_boundary', 0)
 call far#tools#setdefault('g:far#limit', 1000)
+call far#tools#setdefault('g:far#max_columns', 400)
+
 
 call far#tools#setdefault('g:far#executors', {})
 call far#tools#setdefault('g:far#executors.vim', 'far#executors#basic#execute')
@@ -36,107 +44,100 @@ call far#tools#setdefault('g:far#sources.vimgrep.args.escape_pattern', '/')
 
 call far#tools#setdefault('g:far#mode_open', { "regex" : 1, "case_sensitive"  : 0, "word" : 0, "substitute": 0 } )
 
+let s:farvim_dir = resolve(expand('<sfile>:p:h:h'))
+call far#tools#setdefault('g:far#ignore_files', [s:farvim_dir.  (has('unix')? '/' : '\') . 'farignore'])
+
 
 if executable('ag')
-    let cmd = ['ag', '--nogroup', '--column', '--nocolor', '--silent',
-        \   '--max-count={limit}', '{pattern}', '--file-search-regex={file_mask}']
-    if &smartcase
-        call add(cmd, '--smart-case')
-    endif
-    if &ignorecase
-        call add(cmd, '--ignore-case')
-    else
-        call add(cmd, '--case-sensitive')
-    endif
+    let cmd = ['ag', '--nogroup', '--column', '--nocolor', '--silent', '--vimgrep',
+        \   '--max-count={limit}', '{pattern}', '{file_mask}']
 
     call far#tools#setdefault('g:far#sources.ag', {})
     call far#tools#setdefault('g:far#sources.ag.fn', 'far.sources.shell.search')
     call far#tools#setdefault('g:far#sources.ag.executor', 'py3')
+    call far#tools#setdefault('g:far#sources.ag.param_proc', 's:pyglob_param_proc')
     call far#tools#setdefault('g:far#sources.ag.args', {})
     call far#tools#setdefault('g:far#sources.ag.args.cmd', cmd)
-    call far#tools#setdefault('g:far#sources.ag.args.fix_cnum', 'next')
+    call far#tools#setdefault('g:far#sources.ag.args.submatch', 'all')
     call far#tools#setdefault('g:far#sources.ag.args.items_file_min', 30)
     call far#tools#setdefault('g:far#sources.ag.args.expand_cmdargs', 1)
+    call far#tools#setdefault('g:far#sources.ag.args.ignore_files', g:far#ignore_files)
+    call far#tools#setdefault('g:far#sources.ag.args.max_columns', g:far#max_columns)
 
     if has('nvim')
         call far#tools#setdefault('g:far#sources.agnvim', {})
         call far#tools#setdefault('g:far#sources.agnvim.fn', 'far.sources.shell.search')
         call far#tools#setdefault('g:far#sources.agnvim.executor', 'nvim')
+        call far#tools#setdefault('g:far#sources.agnvim.param_proc', 's:pyglob_param_proc')
         call far#tools#setdefault('g:far#sources.agnvim.args', {})
         call far#tools#setdefault('g:far#sources.agnvim.args.cmd', cmd)
-        call far#tools#setdefault('g:far#sources.agnvim.args.fix_cnum', 'next')
+        call far#tools#setdefault('g:far#sources.agnvim.args.submatch', 'all')
         call far#tools#setdefault('g:far#sources.agnvim.args.items_file_min', 30)
         call far#tools#setdefault('g:far#sources.agnvim.args.expand_cmdargs', 1)
+        call far#tools#setdefault('g:far#sources.agnvim.args.ignore_files', g:far#ignore_files)
+        call far#tools#setdefault('g:far#sources.agnvim.args.max_columns', g:far#max_columns)
     endif
 endif
 
 if executable('ack')
     let cmd = ['ack', '--nogroup', '--column', '--nocolor',
-            \   '--max-count={limit}', '--type-set=farft:match:{file_mask}', '--farft', '{pattern}']
-    if &smartcase
-        call add(cmd, '--smart-case')
-    endif
-    if &ignorecase
-        call add(cmd, '--ignore-case')
-    endif
+            \   '--max-count={limit}', '{pattern}','-x', '{file_mask}']
 
     call far#tools#setdefault('g:far#sources.ack', {})
     call far#tools#setdefault('g:far#sources.ack.fn', 'far.sources.shell.search')
     call far#tools#setdefault('g:far#sources.ack.executor', 'py3')
-    call far#tools#setdefault('g:far#sources.ack.param_proc', 's:ack_param_proc')
+    call far#tools#setdefault('g:far#sources.ack.param_proc', 's:pyglob_param_proc')
     call far#tools#setdefault('g:far#sources.ack.args', {})
     call far#tools#setdefault('g:far#sources.ack.args.cmd', cmd)
-    call far#tools#setdefault('g:far#sources.ack.args.fix_cnum', 'next')
+    call far#tools#setdefault('g:far#sources.ack.args.submatch', 'first')
     call far#tools#setdefault('g:far#sources.ack.args.items_file_min', 30)
     call far#tools#setdefault('g:far#sources.ack.args.expand_cmdargs', 1)
+    call far#tools#setdefault('g:far#sources.ack.args.ignore_files', g:far#ignore_files)
+    call far#tools#setdefault('g:far#sources.ack.args.max_columns', g:far#max_columns)
 
     if has('nvim')
         call far#tools#setdefault('g:far#sources.acknvim', {})
         call far#tools#setdefault('g:far#sources.acknvim.fn', 'far.sources.shell.search')
         call far#tools#setdefault('g:far#sources.acknvim.executor', 'nvim')
-        call far#tools#setdefault('g:far#sources.acknvim.param_proc', 's:ack_param_proc')
+        call far#tools#setdefault('g:far#sources.acknvim.param_proc', 's:pyglob_param_proc')
         call far#tools#setdefault('g:far#sources.acknvim.args', {})
         call far#tools#setdefault('g:far#sources.acknvim.args.cmd', cmd)
-        call far#tools#setdefault('g:far#sources.acknvim.args.fix_cnum', 'next')
+        call far#tools#setdefault('g:far#sources.acknvim.args.submatch', 'first')
         call far#tools#setdefault('g:far#sources.acknvim.args.items_file_min', 30)
         call far#tools#setdefault('g:far#sources.acknvim.args.expand_cmdargs', 1)
+        call far#tools#setdefault('g:far#sources.acknvim.args.ignore_files', g:far#ignore_files)
+        call far#tools#setdefault('g:far#sources.acknvim.args.max_columns', g:far#max_columns)
     endif
 endif
 
 if executable('rg')
-    let cmd = ['rg', '--no-heading', '--column', '--no-messages',
-        \   '--max-count={limit}']
-    if &smartcase
-        call add(cmd, '--smart-case')
-    else
-        if &ignorecase
-            call add(cmd, '--ignore-case')
-        else
-            call add(cmd, '--case-sensitive')
-        endif
-    endif
-
-    call add(cmd, '--glob={file_mask}')
-    call add(cmd, '{pattern}')
+    let cmd = ['xargs',  'rg','--json','--with-filename', '--no-heading',
+    \ '--vimgrep',  '--max-count={limit}', '{pattern}',  '{file_mask}']
 
     call far#tools#setdefault('g:far#sources.rg', {})
     call far#tools#setdefault('g:far#sources.rg.fn', 'far.sources.shell.search')
     call far#tools#setdefault('g:far#sources.rg.executor', 'py3')
+    call far#tools#setdefault('g:far#sources.rg.param_proc', 's:pyglob_param_proc')
     call far#tools#setdefault('g:far#sources.rg.args', {})
     call far#tools#setdefault('g:far#sources.rg.args.cmd', cmd)
-    call far#tools#setdefault('g:far#sources.rg.args.fix_cnum', 'next')
+    call far#tools#setdefault('g:far#sources.rg.args.submatch', 'all')
     call far#tools#setdefault('g:far#sources.rg.args.items_file_min', 30)
     call far#tools#setdefault('g:far#sources.rg.args.expand_cmdargs', 1)
+    call far#tools#setdefault('g:far#sources.rg.args.ignore_files', g:far#ignore_files)
+    call far#tools#setdefault('g:far#sources.rg.args.max_columns', g:far#max_columns)
 
     if has('nvim')
         call far#tools#setdefault('g:far#sources.rgnvim', {})
         call far#tools#setdefault('g:far#sources.rgnvim.fn', 'far.sources.shell.search')
         call far#tools#setdefault('g:far#sources.rgnvim.executor', 'nvim')
+        call far#tools#setdefault('g:far#sources.rgnvim.param_proc', 's:pyglob_param_proc')
         call far#tools#setdefault('g:far#sources.rgnvim.args', {})
         call far#tools#setdefault('g:far#sources.rgnvim.args.cmd', cmd)
-        call far#tools#setdefault('g:far#sources.rgnvim.args.fix_cnum', 'next')
+        call far#tools#setdefault('g:far#sources.rgnvim.args.submatch', 'all')
         call far#tools#setdefault('g:far#sources.rgnvim.args.items_file_min', 30)
         call far#tools#setdefault('g:far#sources.rgnvim.args.expand_cmdargs', 1)
+        call far#tools#setdefault('g:far#sources.rgnvim.args.ignore_files', g:far#ignore_files)
+        call far#tools#setdefault('g:far#sources.rgnvim.args.max_columns', g:far#max_columns)
     endif
 endif
 
@@ -146,6 +147,9 @@ function! s:create_far_params() abort
     \   'source': g:far#source,
     \   'cwd': g:far#cwd,
     \   'limit': g:far#limit,
+    \   'regex': g:far#regex,
+    \   'case_sensitive': g:far#case_sensitive,
+    \   'word_boundary': g:far#word_boundary,
     \   }
 endfunction
 
@@ -203,6 +207,10 @@ let s:far_params_meta = {
     \   '--source': {'param': 'source', 'values': s:suggest_sources},
     \   '--cwd': {'param': 'cwd', 'values': [getcwd()], 'fnvalues': 's:complete_dir'},
     \   '--limit': {'param': 'limit', 'values': [g:far#limit]},
+    \   '--regex' : {'param': 'regex', 'values': [1,0]},
+    \   '--case-sensitive' : {'param': 'case_sensitive', 'values': [1,0,-1]},
+    \   '--word-boundary' : {'param': 'word_boundary', 'values': [1,0]},
+    \   '--max-columns' : { 'param': 'max_columns', 'values': [300,400,'..']},
     \   }
 
 let s:far_params_meta_vimgrep = {
@@ -328,7 +336,7 @@ let s:act_func_ref = {
     \                           "vnoremap <silent>" : ":call far#change_exclude_under_selection(0)<CR>" },
     \ "toggle_exclude"      : { "nnoremap <silent>" : ":call far#change_exclude_under_cursor(-1)<CR>",
     \                           "vnoremap <silent>" : ":call far#change_exclude_under_selection(-1)<CR>" },
-    \ "stoggle_exclude"     : { "nnoremap <silent>" : ":call far#change_exclude_under_cursor(-1)<CR>",
+    \ "stoggle_exclude"     : { "nnoremap <silent>" : ":call far#change_exclude_under_cursor(-2)<CR>",
     \                           "vnoremap <silent>" : ":call far#change_exclude_under_selection(-2)<CR>" },
     \
     \ "exclude_all"         : { "nnoremap <silent>" : ":call far#change_exclude_all(1)<CR>" },
@@ -456,26 +464,31 @@ endfunction "}}}
 
 function! far#show_preview_window_under_cursor() abort "{{{
     call far#tools#log('far#show_preview_window_under_cursor()')
+    let b:win_params.preview_on = b:win_params.auto_preview
+
 
     let ctxs = s:get_contexts_under_cursor()
     if len(ctxs) < 3
         return
     endif
 
-    let b:win_params.preview_on = b:win_params.auto_preview
 
     " let b:win_params.auto_preview = s:create_win_params().auto_preview
-
+    let far_cwd = b:win_params.far_params.cwd
     let far_bufnr = bufnr('%')
     let far_winid = win_getid(winnr())
     let win_params = b:win_params
     let win_pos = winsaveview()
-    let fname = escape(ctxs[1].fname, ' ')
+    let fname = ctxs[1].fname
+    let file_sep = has('unix')? '/' : '\'
+    let fname = far_cwd . file_sep . fname
+    let fname = escape(fname, ' ')
     let bufnr = bufnr(fname)
     let transbuf = bufnr == -1
     let refrbuf = 0
     let synbuf = bufnr == -1 || !bufloaded(bufnr)
     let bufcmd = !transbuf? 'buffer! '.bufnr : 'edit! '.fname
+
 
     if exists('b:far_preview_winid')
         let preview_winnr = win_id2win(b:far_preview_winid)
@@ -518,10 +531,12 @@ function! far#show_preview_window_under_cursor() abort "{{{
         exec syncmd
     endif
 
-    exec 'norm! '.ctxs[2].lnum.'ggzz0'.ctxs[2].cnum.'l'
+    call setpos('.', [bufnr('%'), ctxs[2].lnum, ctxs[2].cnum, 0])
+
     if !ctxs[2].replaced
         let pmatch = 'match FarPreviewMatch "\%'.ctxs[2].lnum.'l\%'.ctxs[2].cnum.'c'.
-                    \   escape(ctxs[0].pattern, '"').(&ignorecase? '\c"' : '"')
+                    \ escape(ctxs[0].pattern_proc, '"') .(&ignorecase? '\c"' : '"')
+
         call far#tools#log('preview match: '.pmatch)
         exec pmatch
     else
@@ -687,11 +702,25 @@ function! far#change_exclude_under_cursor(cmode) abort "{{{
     for file_ctx in far_ctx.items
         let index += 1
         if pos == index
-            for item_ctx in file_ctx.items
-                if !item_ctx.replaced
-                    let item_ctx.excluded = a:cmode == -1? (item_ctx.excluded == 0? 1 : 0) : a:cmode
-                endif
-            endfor
+            if a:cmode == -2
+                let all_excluded = 1
+                for item_ctx in file_ctx.items
+                    if !item_ctx.replaced
+                        let all_excluded = all_excluded && item_ctx.excluded
+                    endif
+                endfor
+                for item_ctx in file_ctx.items
+                    if !item_ctx.replaced
+                        let item_ctx.excluded = !all_excluded
+                    endif
+                endfor
+            else
+                for item_ctx in file_ctx.items
+                    if !item_ctx.replaced
+                        let item_ctx.excluded = a:cmode == -1? (item_ctx.excluded == 0? 1 : 0) : a:cmode
+                    endif
+                endfor
+            endif
             call s:update_far_buffer(far_ctx, bufnr)
             return
         endif
@@ -700,7 +729,7 @@ function! far#change_exclude_under_cursor(cmode) abort "{{{
             for item_ctx in file_ctx.items
                 let index += 1
                 if pos == index && !item_ctx.replaced
-                    let item_ctx.excluded = a:cmode == -1? (item_ctx.excluded == 0? 1 : 0) : a:cmode
+                    let item_ctx.excluded = (a:cmode == -1 || a:cmode==-2) ? (item_ctx.excluded == 0? 1 : 0) : a:cmode
                     call s:update_far_buffer(far_ctx, bufnr)
                     exec 'norm! j'
                     return
@@ -1060,6 +1089,9 @@ function! far#find(far_params, xargs) "{{{
         call add(g:far#file_mask_history, far_params.file_mask)
     endif
 
+
+    " let far_params['regexp'] = 1
+
     let cmdargs = []
     let win_params = s:create_win_params()
     for xarg in a:xargs
@@ -1080,6 +1112,9 @@ function! far#find(far_params, xargs) "{{{
         endif
         call add(cmdargs, xarg)
     endfor
+
+    let win_params['far_params'] = far_params
+
 
     call s:assemble_context(far_params, win_params, cmdargs,
     \   function('s:open_far_buff'), [win_params])
@@ -1130,6 +1165,11 @@ function! far#replace(xargs) abort "{{{
         return
     endif
 
+    if exists('g:gitgutter_enabled')
+        let old_gitgutter_enabled = g:gitgutter_enabled
+        let g:gitgutter_enabled = 0
+    endif
+
     let start_ts = reltimefloat(reltime())
     let bufnr = bufnr('%')
     let del_bufs = []
@@ -1154,16 +1194,45 @@ function! far#replace(xargs) abort "{{{
 
     for file_ctx in far_ctx.items
         call far#tools#log('replacing buffer '.file_ctx.fname)
+        exe 'buffer! '. bufnr
 
         let cmds = []
         let items = []
+        let delta_cnums = {}
         for item_ctx in file_ctx.items
             if !item_ctx.excluded && !item_ctx.replaced
                 let cmd = item_ctx.lnum.'s/\%'.item_ctx.cnum.'c'.
-                    \   escape(far_ctx.pattern, '/').'/'.
+                    \   escape(far_ctx.pattern_proc, '/').'/'.
                     \   escape(far_ctx.replace_with, '/').'/e#'
+
                 call add(cmds, cmd)
                 call add(items, item_ctx)
+
+                if has_key(item_ctx, 'match')
+                    let match_val = get(item_ctx, 'match')
+                else
+                    let match_val = matchstr(item_ctx.text, far_ctx.pattern_proc, item_ctx.cnum-1)
+                    let multiline = match(far_ctx.pattern_proc, '\\n') >= 0
+                    if multiline
+                        let match_val = item_ctx.text[item_ctx.cnum:]
+                        let match_val = match_val.g:far#multiline_sign
+                    endif
+                    let match_val = get(item_ctx, 'match', match_val)
+                endif
+
+                if far_ctx.regex
+                    let repl_val = substitute(match_val, far_ctx.pattern_proc, far_ctx.replace_with, "")
+                else
+                    let repl_val = far_ctx.replace_with
+                endif
+
+                let delta_cnum = len(repl_val) - len(match_val)
+                if delta_cnum
+                    if !has_key(delta_cnums, item_ctx.lnum)
+                        let delta_cnums[item_ctx.lnum] = {}
+                    endif
+                    let delta_cnums[item_ctx.lnum][item_ctx.cnum] = delta_cnum
+                endif
             endif
         endfor
 
@@ -1181,8 +1250,11 @@ function! far#replace(xargs) abort "{{{
                 endif
                 call add(temp_files, file_ctx.fname)
             endif
+            exe 'buffer! '. bufnr
 
-            exec 'buffer! '.file_ctx.fname
+            let file_bufnr = bufnr(file_ctx.fname)
+            exe 'buffer! '. string(file_bufnr)
+
             let undonum = far#tools#undo_nextnr()
 
             if !repl_params.auto_delete && !buflisted(file_ctx.fname)
@@ -1195,10 +1267,25 @@ function! far#replace(xargs) abort "{{{
             let bufcmd = join(cmds, '|')
             call far#tools#log('bufdo: '.bufcmd)
 
-            exec 'redir => s:bufdo_msgs'
+            exe 'redir => s:bufdo_msgs'
             silent! exec bufcmd
-            exec 'redir END'
+            exe 'redir END'
             call far#tools#log('bufdo_msgs: '.s:bufdo_msgs)
+
+            for item_ctx in file_ctx.items
+                let old_cnum = item_ctx.cnum
+                if has_key(delta_cnums, item_ctx.lnum)
+                    for [others_cnum, delta_cnum] in items(delta_cnums[item_ctx.lnum])
+                        if others_cnum < old_cnum
+                            if !has_key(item_ctx, 'cnum_undo')
+                                let item_ctx.cnum_undo = {}
+                            endif
+                            let item_ctx.cnum_undo[undonum] = old_cnum
+                            let item_ctx.cnum += delta_cnum
+                        endif
+                    endfor
+                endif
+            endfor
 
             let repl_lines = []
             for bufdo_msg in reverse(split(s:bufdo_msgs, "\n"))
@@ -1228,11 +1315,9 @@ function! far#replace(xargs) abort "{{{
                 endif
             endfor
         endif
-
         call add(undonum_list, undonum)
         call add(undoitems_list, undoitems)
     endfor
-
     let sum_undoitem_num = 0
     for undoitems in undoitems_list
         let sum_undoitem_num += len(undoitems)
@@ -1257,6 +1342,11 @@ function! far#replace(xargs) abort "{{{
     let b:temp_files = uniq(sort(b:temp_files))
 
     let b:far_ctx.repl_time = printf('%.3fms', reltimefloat(reltime()) - start_ts)
+
+    if exists('old_gitgutter_enabled') && exists('g:gitgutter_enabled')
+        let g:gitgutter_enabled = old_gitgutter_enabled
+    endif
+
     call s:update_far_buffer(b:far_ctx, bufnr)
 endfunction "}}}
 
@@ -1296,14 +1386,21 @@ function! far#undo(xargs) abort "{{{
             call far#tools#log('undo '.file_ctx.fname.', undos:'.string(file_ctx.undos))
         endif
 
-        exec 'buffer! '.file_ctx.fname
+        exec 'buffer! '. string(bufnr)
+        let file_bufnr = bufnr(file_ctx.fname)
+        if file_bufnr == -1
+            continue
+        endif
+        exec 'buffer! ' . string(file_bufnr)
 
         let write_buf = undo_params.auto_write && !(&mod)
 
-        if undo_params.auto_delete && !bufexists(file_ctx.fname)
-            call add(del_bufs, bufnr(file_ctx.fname))
+        " if undo_params.auto_delete && !bufexists(file_ctx.fname)
+        if undo_params.auto_delete && !bufexists(file_bufnr)
+            call add(del_bufs, file_bufnr)
         endif
 
+        let undo_num = -1
         let items = []
         if undo_params.all
 
@@ -1311,7 +1408,7 @@ function! far#undo(xargs) abort "{{{
                 let items += undo.items
             endfor
 
-            let undo_num = -1
+            " let undo_num = -1
             for undo in file_ctx.undos
                 if len(undo.items)
                     let undo_num = undo.num
@@ -1319,18 +1416,25 @@ function! far#undo(xargs) abort "{{{
                 endif
             endfor
 
-            if undo_num != -1
-                exec 'silent! undo '. undo_num
-            endif
+
             let file_ctx.undos = []
         else
             let undo = remove(file_ctx.undos, len(file_ctx.undos)-1)
             if len(undo.items)
-                exec 'silent! undo ' . undo.num
+                let undo_num = undo.num
             endif
             let items = undo.items
         endif
 
+        if undo_num != -1
+            exec 'silent! undo '. undo_num
+
+            for item_ctx in file_ctx.items
+                if has_key(item_ctx, 'cnum_undo') && has_key(item_ctx.cnum_undo, undo_num)
+                    let item_ctx.cnum = item_ctx.cnum_undo[undo_num]
+                endif
+            endfor
+        endif
 
         if write_buf
             exec 'silent! write'
@@ -1352,13 +1456,112 @@ function! far#undo(xargs) abort "{{{
         unlet b:far_ctx.repl_time
     endif
     let b:far_ctx.undo_time = printf('%.3fms', reltimefloat(reltime()) - start_ts)
+
     call s:update_far_buffer(b:far_ctx, bufnr)
 endfunction "}}}
+
+function! s:proc_pattern_args(far_params, cmdargs) abort "{{{
+    let pattern = a:far_params.pattern
+
+    let multiline = match(pattern, '\n') != -1
+    if multiline && ! (a:far_params.source == 'rg' || a:far_params.source == 'rgnvim' || a:far_params.source == 'vimgrep' )
+        let source_subst = executable('rg') ? ( has('nvim') ? 'rgnvim' : 'rg') : 'vimgrep'
+        call far#tools#echo_warn(a:far_params.source.' does not support multiline' .
+            \ 'searching in far.vim. Use "' . source_subst . '" instead.')
+        let a:far_params.source  = source_subst
+    endif
+
+
+    if a:far_params.regex
+        let pattern = escape(pattern, '<>')
+    else
+        let pattern = substitute(pattern, '\\', '\\\\', 'g')
+    endif
+    let pattern = substitute(pattern, '\n', '\\n', 'g')
+
+    if a:far_params.case_sensitive == 1
+        let pattern = '\C'. pattern
+    elseif a:far_params.case_sensitive == 0
+        let pattern = '\c'. pattern
+    endif
+
+    if !a:far_params.regex && a:far_params.word_boundary
+        let pattern = '\<'.pattern.'\>'
+    elseif a:far_params.regex && a:far_params.word_boundary
+        let pattern = '<'.pattern.'>'
+    endif
+
+    let pattern = (a:far_params.regex          ? '\v'   : '\V') . pattern
+    let a:far_params.pattern_proc = pattern
+
+
+    if a:far_params.source == 'rg' || a:far_params.source == 'rgnvim' ||
+     \ a:far_params.source == 'ag' ||  a:far_params.source == 'agnvim'
+
+        if !a:far_params.regex
+            call add(a:cmdargs, '--fixed-strings')
+        endif
+
+        if a:far_params.case_sensitive == 1
+            call add(a:cmdargs, '--case-sensitive')
+        elseif a:far_params.case_sensitive == 0
+            call add(a:cmdargs, '--ignore-case')
+        else
+            if &smartcase
+                call add(a:cmdargs, '--smart-case')
+            else
+                if &ignorecase
+                    call add(a:cmdargs, '--ignore-case')
+                else
+                    call add(a:cmdargs, '--case-sensitive')
+                endif
+            endif
+        endif
+
+        if a:far_params.word_boundary
+            call add(a:cmdargs, '--word-regexp')
+        endif
+
+        if multiline
+            call add(a:cmdargs, '--multiline')
+        endif
+    elseif a:far_params.source == 'ack' ||  a:far_params.source == 'acknvim'
+        if !a:far_params.regex
+            call add(a:cmdargs, '--literal')
+        endif
+
+        if a:far_params.case_sensitive == 1
+            call add(a:cmdargs, '--no-ignore-case')
+        elseif a:far_params.case_sensitive == 0
+            call add(a:cmdargs, '--ignore-case')
+        else
+            if &smartcase
+                call add(a:cmdargs, '--smart-case')
+            else
+                if &ignorecase
+                    call add(a:cmdargs, '--ignore-case')
+                else
+                    call add(a:cmdargs, '--no-ignore-case')
+                endif
+            endif
+        endif
+
+        if a:far_params.word_boundary
+            call add(a:cmdargs, '--word-regexp')
+        endif
+    elseif a:far_params.source == 'vimgrep'
+        let a:far_params.pattern = pattern
+    endif
+endfunction
+" }}}
 
 function! s:assemble_context(far_params, win_params, cmdargs, callback, cbparams) abort "{{{
     if far#tools#isdebug()
         call far#tools#log('assemble_context('.string(a:far_params).','.string(a:win_params).')')
     endif
+
+    call s:proc_pattern_args(a:far_params, a:cmdargs)
+
 
     if empty(a:far_params.pattern)
         call far#tools#echo_err('No pattern')
@@ -1416,6 +1619,10 @@ function! s:assemble_context_callback(exec_ctx) abort "{{{
     if !empty(get(a:exec_ctx, 'error', ''))
         call far#tools#echo_err(a:exec_ctx.error)
         return
+    endif
+
+    if !empty(get(a:exec_ctx, 'warning', ''))
+        call far#tools#echo_warn(a:exec_ctx.warning)
     endif
 
     let far_ctx = a:exec_ctx.far_ctx
@@ -1495,18 +1702,27 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
         let collapse_sign = file_ctx.collapsed? g:far#expand_sign : g:far#collapse_sign
         let line_num += 1
         let num_matches = 0
+        let num_excluded = 0
         for item_ctx in file_ctx.items
             if !item_ctx.excluded && !item_ctx.replaced
                 let num_matches += 1
             endif
+            if item_ctx.excluded
+                let num_excluded +=1
+            endif
         endfor
+
 
         let file_sep = has('unix')? '/' : '\'
         let filestats = ' ('.len(file_ctx.items).' matches)'
         let maxfilewidth = win_width - strchars(filestats) - strchars(collapse_sign) + 1
         let fileidx = strridx(file_ctx.fname, file_sep)
-        let filepath = far#tools#cut_text_middle(file_ctx.fname[:fileidx-1], maxfilewidth/2 - (maxfilewidth % 2? 0 : 1) - 1).
-            \ file_sep.far#tools#cut_text_middle(file_ctx.fname[fileidx+1:], maxfilewidth/2)
+        if fileidx == -1
+            let filepath = far#tools#cut_text_middle(file_ctx.fname, maxfilewidth/2)
+        else
+            let filepath = far#tools#cut_text_middle(file_ctx.fname[:fileidx-1], maxfilewidth/2 - (maxfilewidth % 2? 0 : 1) - 1).
+                \ file_sep.far#tools#cut_text_middle(file_ctx.fname[fileidx+1:], maxfilewidth/2)
+        endif
         let out = collapse_sign.filepath.filestats
         call add(content, out)
 
@@ -1518,9 +1734,16 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
                 let bstats_syn = 'syn region FarFileStats start="\%'.line_num.'l^.\{'.
                     \   (strchars(filepath)+strchars(collapse_sign)+2).'\}"hs=e end="$" contains=FarFilePath keepend'
                 call add(syntaxs, bstats_syn)
-            else
+            elseif num_excluded > 0
                 let excl_syn = 'syn region FarExcludedItem start="\%'.line_num.'l^" end="$"'
                 call add(syntaxs, excl_syn)
+            else
+                let bname_syn = 'syn region FarReplacedFilePath start="\%'.line_num.
+                    \   'l^.."hs=s+'.strchars(collapse_sign).' end=".\{'.strchars(filepath).'\}"'
+                call add(syntaxs, bname_syn)
+                let bstats_syn = 'syn region FarFileStats start="\%'.line_num.'l^.\{'.
+                    \   (strchars(filepath)+strchars(collapse_sign)+2).'\}"hs=e end="$" contains=FarReplacedFilePath keepend'
+                call add(syntaxs, bstats_syn)
             endif
         endif
 
@@ -1530,6 +1753,8 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
                 let line_num_text = '  '.item_ctx.lnum
                 let line_num_col_text = line_num_text.repeat(' ', 8-strchars(line_num_text))
                 let pattern = a:far_ctx.pattern
+                let pattern = b:win_params.far_params.pattern_proc
+
                 let match_val = matchstr(item_ctx.text, pattern, item_ctx.cnum-1)
                 let multiline = match(pattern, '\\n') >= 0
                 if multiline
@@ -1537,14 +1762,23 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
                     let match_val = match_val.g:far#multiline_sign
                 endif
 
+                let match_val = get(item_ctx, 'match', match_val)
+
+
                 if a:win_params.result_preview && !multiline && !item_ctx.replaced
                     " strdisplaywidth: actual displayed width, so as to deal with wide characters
                     let max_text_len = win_width / 2 - strdisplaywidth(line_num_col_text)
                     let max_repl_len = win_width / 2 - strdisplaywidth(g:far#repl_devider)
-                    " item_ctx.cnum : byte id (begin with 1) the matched substring start from
-                    let repl_val = substitute(match_val, pattern, a:far_ctx.replace_with, "")
+                    if b:win_params.far_params.regex
+                        " item_ctx.cnum : byte id (begin with 1) the matched substring start from
+                        let repl_val = substitute(match_val, pattern, a:far_ctx.replace_with, "")
+                    else
+                        let repl_val = a:far_ctx.replace_with
+                    endif
+
                     let repl_text = (item_ctx.cnum == 1? '' : item_ctx.text[0:item_ctx.cnum-2]).
-                        \   repl_val. item_ctx.text[item_ctx.cnum+len(match_val)-1:]  " change to len, to support replacing wide char
+                        \   repl_val. item_ctx.text[item_ctx.cnum+len(match_val)-1:] " change to len, to support replacing wide char
+
                     let match_text = far#tools#centrify_text(item_ctx.text, max_text_len, item_ctx.cnum)
                     let repl_text = far#tools#centrify_text(repl_text, max_repl_len, item_ctx.cnum)
                     let out = line_num_col_text.match_text.text.g:far#repl_devider.repl_text.text
@@ -1810,19 +2044,28 @@ function! s:param_proc(far_params, win_params, cmdargs) "{{{
 
     if a:far_params.file_mask == '%'
         let a:far_params.cwd = expand('%:p:h')
-        let a:far_params.file_mask = bufname('%')
+        let filename = bufname('%')
+        let a:far_params.file_mask = filename
+        if !filereadable(filename)
+            call far#tools#echo_err('File in current buffer is not readable.')
+            let a:far_params.file_mask = ''
+            return
+        endif
     endif
 endfunction "}}}
 
-function! s:ack_param_proc(far_params, win_params, cmdargs) "{{{
-    call far#tools#log('ack_expand_curfile()')
+function! s:pyglob_param_proc(far_params, win_params, cmdargs) "{{{
+    call far#tools#log('pyglob_param_proc()')
     if a:far_params.file_mask == '%'
-        let a:far_params.file_mask = '--wtf'
+        let filename = expand('%:t')
+        let a:far_params.file_mask = '/' . filename
         let a:far_params.cwd = expand('%:p:h')
-        call add(a:cmdargs, '--type-add=wtf:is:'.expand('%:t'))
-        call add(a:cmdargs, '--no-recurse')
+        if !filereadable(filename)
+            call far#tools#echo_err('File in current buffer is not readable.')
+            let a:far_params.file_mask = ''
+            return
+        endif
     endif
-
     call s:param_proc(a:far_params, a:win_params, a:cmdargs)
 endfunction "}}}
 

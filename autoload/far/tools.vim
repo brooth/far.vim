@@ -182,7 +182,17 @@ function! far#tools#echo_err(msg) abort "{{{
     execute 'normal! \<Esc>'
     echohl ErrorMsg
     echomsg a:msg
+    " echomsg 'Press any key to continue'
     echohl None
+    " call getchar()
+endfunction "}}}
+
+function! far#tools#echo_warn(msg) abort "{{{
+    execute 'normal! \<Esc>'
+    echohl ErrorMsg
+    echomsg 'Warning: ' . a:msg .' | Press any key to continue'
+    echohl None
+    call getchar()
 endfunction "}}}
 
 function! far#tools#echo_msg(msg) abort "{{{

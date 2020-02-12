@@ -80,13 +80,8 @@ function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, .
     call far#tools#log('=========== FAR MODE PROMPT ============')
 
     let cargs = far#tools#splitcmd(a:cmdline)
-    for i in cargs
-        if i =~ '^--source=' && i != '--source=vimgrep'
-            call far#tools#echo_err('FarModePrompt is only available for `--source=vimgrep` (dafault).')
-            return
-        endif
-    endfor
-
+    if len(cargs) == 1 && cargs[0] == '' | let cargs = [] | endif
+    let source_engine = g:far#source
 
     if a:rngmode != -1
         let selected = far#tools#visualtext("\n")
@@ -157,17 +152,13 @@ function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, .
     endif
     call far#tools#log('>replace_with: '.replace_with)
 
-    call add(cargs, '--source=vimgrep')
-
     call far#mode_prompt_close()
     exe current_winnr . "wincmd w"
 
-    " disable escaped sequence
-    let pattern = g:far#mode_open['regex'] ? pattern : substitute(pattern, '\\', '\\\\', 'g')
-    let pattern = substitute(pattern, '\n', '\\n', 'g')
-    let pattern = (g:far#mode_open['case_sensitive'] ? '\C' : '\c') . pattern
-    let pattern = g:far#mode_open['word']            ? ('\<'.pattern.'\>') : pattern
-    let pattern = (g:far#mode_open['regex']          ? ''   : '\V') . pattern
+
+    call add(cargs, '--regex='. (g:far#mode_open['regex']? '1' : '0') )
+    call add(cargs, '--case-sensitive='. (g:far#mode_open['case_sensitive']? '1' : '0') )
+    call add(cargs, '--word-boundary='. (g:far#mode_open['word']? '1' : '0') )
 
 
     let far_params = {
@@ -176,13 +167,13 @@ function! FarModePrompt(rngmode, rngline1, rngline2, substitute_open, cmdline, .
         \   'file_mask': file_mask,
         \   'range': [-1, -1]
         \  }
-        " a:rngmode == -1? [-1,-1] : [a:rngline1, a:rngline2],
+
 
     call far#find(far_params, cargs)
 endfunction
-command! -complete=customlist,far#ModePromptComplete -nargs=* -range=-1 Farr
+command! -complete=customlist,far#FarArgsComplete -nargs=* -range=-1 Farr
     \  call FarModePrompt(<count>,<line1>,<line2>,1,<q-args>)
-command! -complete=customlist,far#ModePromptComplete -nargs=* -range=-1 Farf
+command! -complete=customlist,far#FarArgsComplete -nargs=* -range=-1 Farf
     \  call FarModePrompt(<count>,<line1>,<line2>,0,<q-args>)
 "}}}
 

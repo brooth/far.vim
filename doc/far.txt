@@ -21,11 +21,11 @@ CONTENTS                                                        *far-contents*
    1. Intro ...................................................... |far-intro|
    2. Usage ...................................................... |far-usage|
    2.1  Hello, World! .................................... |far-quick-example|
-   2.2  Far ........................................................... |:Far|
+   2.2  Far, F ................................................... |:Far| |:F|
    2.3  Farp ......................................................... |:Farp|
-   2.4  Fardo ....................................................... |:Fardo|
-   2.5  Refar ....................................................... |:Refar|
-   2.7  F ............................................................... |:F|
+   3.4  Farr Farf ............................................ |:Farr| |:Farf|
+   2.5  Fardo Farundo .................................... |:Fardo| |:Farundo|
+   2.6  Refar ....................................................... |:Refar|
    3. Extras .................................................... |far-extras|
    3.1  Multiline Replacement ................................ |far-multiline|
    3.2  Highlighting ......................................... |far-highlight|
@@ -34,12 +34,13 @@ CONTENTS                                                        *far-contents*
    3.4  Jump to source ............................................ |far-jump|
    3.5  Consistency Check .................................. |far-consistency|
    3.6  Ranges ................................................... |far-range|
-   4. Configuration ............................................. |far-config|
-   5. Mappings ................................................ |far-mappings|
-   6. Command Params ............................................ |far-params|
-   7. Bugs ........................................................ |far-bugs|
-   8. Changelog .............................................. |far-changelog|
-   9. License .................................................. |far-license|
+   4. File mask .............................................. |far-file-mask|
+   5. Configuration ............................................. |far-config|
+   6. Mappings ................................................ |far-mappings|
+   7. Command Params ............................................ |far-params|
+   8. Bugs ........................................................ |far-bugs|
+   9. Changelog .............................................. |far-changelog|
+   10. License .................................................. |far-license|
 
 ==============================================================================
 INTRO                                                              *far-intro*
@@ -66,12 +67,17 @@ USAGE                                                              *far-usage*
     For the {pattern} see |pattern|. You can also use '*' as {pattern} for
     multiline replacement. See |far-multiline|.
     {replace-with} can be a literal string, or |sub-replace-special|.
-    {file-mask} is a simple file mask pattern, see |:vimgrep| for examples.
+    {file-mask} is a simple file mask pattern, see |far-file-mask| for details.
     Note: Use '%' as {file-mask} to search in current buffer.
     Note: Use rg defined types as {file-mask} to search when using rg or rgnvim
     sources. eg. 'html' 'py' 'js'
     For [params] see |far-params|
     See |mappings| to acquaint yourself with the shortcuts availble for far buffer.
+
+*:F* {pattern} {file-mask} [params]
+    Find {pattern} in {file-mask} files. Similar to |Far| without
+    {replace-with}.
+    For {pattern}, {file-mask} and [params] see |Far|.
 
 *:Farp* [params]
     |Farp| command allows to enter {pattern}, {replace-with} and {file-mask}
@@ -144,12 +150,6 @@ USAGE                                                              *far-usage*
     Note: It must be executed in a FAR buffer.
     You can use |Refar| in case the data's been changed so you need to update
     the search result.
-
-
-*:F* {pattern} {file-mask} [params]
-    Find {pattern} in {file-mask} files. Similar to |Far| without
-    {replace-with}.
-    For {pattern}, {file-mask} and [params] see |Far|.
 
 ==============================================================================
 EXTRAS                                                            *far-extras*
@@ -286,6 +286,177 @@ Ranges                                                             *far-range*
     See also: |far-multiline|
 
 ==============================================================================
+FILE MASK                                                      *far-file-mask*
+
+    The format of {filemask} is different for different source searchers.
+
+    {filemask} for all source searchers:
+        'vimgrep' : see |far-vimgrep-file-mask|
+        'rg' 'rgnvim' 'ack' 'acknvim' 'ag' 'agnvim' : see |far-glob|
+
+
+    NOTE: To set glob source in '.vimrc', see |g:far#source|.
+    NOTE: To set source in command, see '--source' in |far-params|.
+          This override |g:far#source|
+
+    The terminology used below:
+        current file: the file opened in the current buffer.
+        cwd: the directory that the current buffer's file is in.
+
+------------------------------------------------------------------------------
+'vimgrep'                                               *far-vimgrep-file-mask*
+
+    Uses the glob syntax for the file-mask
+
+    '%'        : the current file
+
+    '*'
+        any zero or more chars, its regex is ".*"
+        can not contain dir seperator.
+        can contain '.'
+        can not start with '.', cant no be hidden
+
+    '.*'
+        any zero or more chars, its regex is "\..*"
+        can not contain dir seperator.
+        can contain '.'
+        start with '.', is hidden
+
+    '**'
+        any zero or more chars,
+        can contain dir seperator
+        can contain '.', can not be hidden
+        can not start with '.'
+
+    '.**'
+        any zero or more chars,
+        can contain dir seperator
+        can contain '.', can not be hidden
+        can start with '.' or not
+
+    -------------------------------------------------------------------------
+                                 (DCV)             (override
+                                 direct   indirect DCV)
+                  root  subdir   child    subdir   file     file
+    filemask      dir   #layer   visible  visible  visible  regex
+    -------------------------------------------------------------------------
+    '[xx/]' =
+        '' './'   cwd    0
+        '/'       /      0
+        '<path>/' <path> 0
+    -------------------------------------------------------------------------
+    '[xx/]*'      [xx/]  0        Y       -         Y       '^[^\.].*$'
+    '[xx/]*/yy'   [xx/]  1        Y       -         -       -
+    '[xx/].*'     [xx/]  0        Y/N     -         Y/N     '^[^\.].*$'
+    '[xx/].*/yy'  [xx/]  1        Y/N     -         -       -
+    -------------------------------------------------------------------------
+    '[xx/]**'     [xx/]  >=0      Y       Y         Y       '^[^\.].*$'
+    '[xx/]**/yy'  [xx/]  >=0      Y       Y         Y/N     -
+    '[xx/].**'    [xx/]  >=0      Y/N     Y         Y       '^[^\.].*$'
+    '[xx/].**/yy' [xx/]  >=0      Y/N     Y         -       -
+    -------------------------------------------------------------------------
+    '[xx]/.below' [xx/]  0        Y/N     -         Y/N     '^[\.]*below$'
+    '[xx/]*'      [xx/]  0        Y       -         Y       '^[^\.].*$'
+    '[xx]/*.*'    [xx/]  0        Y       -         Y       '^[^\.].*\..*$'
+    '[xx]/*.sh'   [xx/]  0        Y       -         Y       '^[^\.].*\.sh$'
+    '[xx]/*yy*'   [xx/]  0        Y       -         Y       '^[^\.].*yy.*$'
+    '[xx]/*yy*zz' [xx/]  0        Y       -         Y       '^[^\.].*yy.*zz$'
+    -------------------------------------------------------------------------
+    e.g.
+    '/' +<below>  is equivalent
+    '*'           cwd    0        Y       -         Y       '^[^\.].*$'
+    '*.*'         cwd    0        Y       -         Y       '^[^\.].*\..*$'
+    '*.sh'        cwd    0        Y       -         Y       '^[^\.].*\.sh$'
+    '**'          cwd    >=0      Y       Y         Y       '^[^\.].*$'
+    '**/*'        cwd    >=0      Y       Y         Y       '^[^\.].*$'
+    '.**'         cwd    >=0      Y/N     Y         Y       '^[^\.].*$'
+    '.**/*'       cwd    >=0      Y/N     Y         Y       '^[^\.].*$'
+    '.**/*.sh'    cwd    >=0      Y/N     Y         Y       '^[^\.].*\.sh$'
+    -------------------------------------------------------------------------
+
+
+------------------------------------------------------------------------------
+'rg' 'rgnvim' 'ag' 'agnvim' 'ack' ''acknvim'                       *far-glob*
+
+    Those searhing engines use far.vim's own glob expression supported by
+    python 'pathlib.glob'. It searchs all visiable and hidden dirs and files
+    excepted ignored files. Rules to ignore files are loaded from files in list
+    |g:far#ignore_files|. You can create one or more such files and append them
+    to |g:far#ignore_files|.
+
+    Both {file-mask} and ignore-rules are in the following format, which is a
+    bit different from the format of 'vimgrep' {file-mask} and .gitignore.
+
+    NOTE:
+        'xx': a glob expression, can contain '/', doesn't end with '/'.
+        'yy': a glob expression, can contain '/', doesn't start with '/'.
+        'zz': a glob expression, can contain/start with/end with '/'.
+    NOTE:
+        {file-mask} can be glob expressions joint by ',' without whitespace.
+
+    heading
+
+        '/xx'
+            'xx' is directly udner the 'root' dir
+
+        'xx'
+            'xx' is recursively udner the 'root' dir
+
+    tailing
+
+        'xx'
+            File.
+
+        'xx/'
+            Dir. Far.vim returns all files recursively under the dir.
+
+    special chars
+
+        '%'
+            The current file.
+
+        '*'
+            Any >=0 chars except the path separator '/'.
+
+        '?'
+            Any one char except the path separator '/'.
+
+        'xx/**'
+            All dirs recursively under 'xx' dir include 'xx' dir itself.
+            Far.vim returns the same result as 'xx/'.
+
+        'xx/**/yy'
+            'yy' glob experession recursively under 'xx' dir.
+
+    examples
+
+        '/' '*' '**' '**/*'
+            All files under the 'root' dir.
+
+        '*.sh'
+            All files with '.sh' extenstion, recursively under cwd.
+            Including 'xx.sh' '.sh' '.xx.sh'
+
+        '*.*'
+            All files with '.' in name, recursively under cwd.
+            Including '.xx','xx.','xx.xx'
+
+        '/*.sh'
+            All '*.sh' files directly under cwd.
+
+        '/xx/*test*/'
+            All dirs with 'test' in name, directly under '<cwd>/xx/' dir.
+            Including '/xx/test/' '/xx/test2/' '/xx/1test2/' '/xx/test/'
+
+    only for ignore_rules:
+        'zz'
+            Ignoring rule, to ignores xx.
+
+        '!zz'
+            Exception rule, to never ignore xx, overrides all ignoring-rules.
+
+
+==============================================================================
 CONFIGURATION                                                     *far-config*
 
     You can change next variables in order to configure far.vim behavior.
@@ -298,13 +469,11 @@ CONFIGURATION                                                     *far-config*
             Synchronous source. Uses |:vimgrep| to find candidates.
             Doesn't need external dependencies.
             Supports multiline search.
-            Only 'vimgrep' supports |:Farr| and |:Farf|.
 
         'ag'
             Synchronous source. Uses "Ag" (The Silver Searcher) to find
             candidates. Requires 'ag' installation.
             Note: Doesn't support multiline search.
-            Note: Uses regexp as file-mask.
 
         'agnvim'
             Asynchronous source. Same as 'ag' but uses Neovim asynchronous API
@@ -314,8 +483,7 @@ CONFIGURATION                                                     *far-config*
         'rg'
             Synchronous source. Uses "rg" (Ripgrep) to find candidates.
             Requires 'rg' installation.
-            Note: Doesn't support multiline search.
-            Note: Uses rg --glob as file-mask
+            Note: Support multiline search.
 
         'rgnvim'
             Asynchronous source. Same as 'rg' but uses Neovim asynchronous API
@@ -326,7 +494,6 @@ CONFIGURATION                                                     *far-config*
             Synchronous source. Uses "Ack" ("http://beyondgrep.com/") to find
             candidates. Requires 'ack' installation.
             Note: Doesn't support multiline search.
-            Note: Uses regexp as file-mask.
 
         'acknvim'
             Asynchronous source. Same as 'ack' but uses Neovim asynchronous API
@@ -337,6 +504,16 @@ CONFIGURATION                                                     *far-config*
     Limit the maximum amount of candidates.
 
     Default: 1000
+
+*g:far#max_columns*
+    Limit the maximum length of a matched line to avoid matching binary files.
+
+    Default: 400
+
+*g:far#ignore_files*
+    A list. Files of rules to ignore file during matching. See |far-glob|
+
+    Default: [ '<path-to-far.vim-repo>/farignore' ]
 
 *g:far#cwd*
     Specify the current working directory. In this directory where Far.vim

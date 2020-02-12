@@ -30,6 +30,11 @@ endfunction
 function! far#executors#nvim#callback(result, ctx_idx) abort
     let ctx = remove(g:far#executors#nvim#contexts, a:ctx_idx)
     let error = get(a:result, 'error', '')
+    let warning = get(a:result, 'warning', '')
+    if !empty(warning)
+        let ctx['warning'] = 'source warning: '. warning
+    endif
+
     if !empty(error)
         let ctx['error'] = 'source error: '.error
     elseif get(a:result, 'items_file', '') != ''
@@ -50,9 +55,13 @@ function! far#executors#nvim#callback(result, ctx_idx) abort
         for file_ctx in ctx.far_ctx['items']
             for item_ctx in file_ctx.items
                 let item_ctx.text = substitute(item_ctx.text, '\\\\', '\\', 'g')
+                if has_key(item_ctx, 'match')
+                    let item_ctx.match = substitute(item_ctx.match, '\\\\', '\\', 'g')
+                endif
             endfor
         endfor
     endif
+
     call call(ctx.async_callback, [ctx])
 endfunction
 
