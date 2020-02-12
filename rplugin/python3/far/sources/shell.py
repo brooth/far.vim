@@ -27,7 +27,7 @@ def search(ctx, args, cmdargs):
     if not args.get('cmd'):
         return {'error': 'no cmd in args'}
 
-    source = args['cmd'][0]
+    source = ctx['source']
     pattern = ctx['pattern']
     regex = ctx['regex']
     case_sensitive = ctx['case_sensitive']
@@ -62,14 +62,21 @@ def search(ctx, args, cmdargs):
         files = files + files
         one_file_result = []
 
+    with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as fp:
+        for file_name in files:
+            fp.write(file_name+'\n')
+            # print(file_name, file=fp)
+
+    logger.debug('Temporary file for passing files matching glob: ' + fp.name)
+
+    p1 = subprocess.Popen(["cat", fp.name], stdout=subprocess.PIPE)
+
+
     cmd = []
     for c in args['cmd']:
-        if c == '{file_mask}':
-            cmd += files
-        else:
+        if c != '{file_mask}':
             cmd.append(c.format(limit=limit,
                             pattern=pattern))
-
 
     if args.get('expand_cmdargs', '0') != '0':
         cmd += cmdargs
@@ -77,10 +84,15 @@ def search(ctx, args, cmdargs):
     logger.debug('cmd:' + str(cmd))
 
     try:
-        proc = subprocess.Popen(cmd, cwd=ctx['cwd'],
-                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc = subprocess.Popen(cmd, cwd=ctx['cwd'], stdin=p1.stdout,
+                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     except Exception as e:
         return {'error': str(e)}
+
+    p1.stdout.close()
+    logger.debug('type(proc) = ' + str(type(proc)))
+    logger.debug('type(proc) = '+str(type(proc)))
+
 
     range = tuple(ctx['range'])
     result = {}
@@ -90,6 +102,7 @@ def search(ctx, args, cmdargs):
 
         while limit > 0:
             line = proc.stdout.readline()
+
             try:
                 line = line.decode('utf-8').rstrip()
             except UnicodeDecodeError:

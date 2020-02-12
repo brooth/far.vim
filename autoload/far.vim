@@ -81,7 +81,7 @@ endif
 
 if executable('ack')
     let cmd = ['ack', '--nogroup', '--column', '--nocolor',
-            \   '--max-count={limit}', '{pattern}', '{file_mask}']
+            \   '--max-count={limit}', '{pattern}','-x', '{file_mask}']
 
     call far#tools#setdefault('g:far#sources.ack', {})
     call far#tools#setdefault('g:far#sources.ack.fn', 'far.sources.shell.search')
@@ -111,7 +111,8 @@ if executable('ack')
 endif
 
 if executable('rg')
-    let cmd = ['rg','--json', '--no-heading', '--vimgrep',  '--max-count={limit}', '{pattern}',  '{file_mask}']
+    let cmd = ['xargs',  'rg','--json','--with-filename', '--no-heading',
+    \ '--vimgrep',  '--max-count={limit}', '{pattern}',  '{file_mask}']
 
     call far#tools#setdefault('g:far#sources.rg', {})
     call far#tools#setdefault('g:far#sources.rg.fn', 'far.sources.shell.search')
@@ -1463,7 +1464,7 @@ function! s:proc_pattern_args(far_params, cmdargs) abort "{{{
     let pattern = a:far_params.pattern
 
     let multiline = match(pattern, '\n') != -1
-    if ! (a:far_params.source == 'rg' || a:far_params.source == 'rgnvim' || a:far_params.source == 'vimgrep' )
+    if multiline && ! (a:far_params.source == 'rg' || a:far_params.source == 'rgnvim' || a:far_params.source == 'vimgrep' )
         let source_subst = executable('rg') ? ( has('nvim') ? 'rgnvim' : 'rg') : 'vimgrep'
         call far#tools#echo_warn(a:far_params.source.' does not support multiline' .
             \ 'searching in far.vim. Use "' . source_subst . '" instead.')
