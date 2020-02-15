@@ -843,7 +843,7 @@ zm v_zm                                        *g:far#mapping['collapse_all']*
 zA v_zA                                   *g:far#mapping['toggle_expand_all']*
     Toggle exclusion for all nodes.
 
-zS v_zS                                  *g:far#mapping['stoggle_expand_all']*
+zS v_zS
     Smartly toggle exclusion for all nodes: expand all nodes when all are
     collpased, otherwise collapse all nodes.
 

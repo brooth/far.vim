@@ -17,8 +17,6 @@ FarReplaceVal	far.txt	/*FarReplaceVal*
 FarReplacedItem	far.txt	/*FarReplacedItem*
 FarSearchVal	far.txt	/*FarSearchVal*
 default-far-mappings	far.txt	/*default-far-mappings*
-far-ack-file-mask	far.txt	/*far-ack-file-mask*
-far-ag-file-mask	far.txt	/*far-ag-file-mask*
 far-bugs	far.txt	/*far-bugs*
 far-changelog	far.txt	/*far-changelog*
 far-complete	far.txt	/*far-complete*
@@ -27,7 +25,7 @@ far-consistency	far.txt	/*far-consistency*
 far-contents	far.txt	/*far-contents*
 far-extras	far.txt	/*far-extras*
 far-file-mask	far.txt	/*far-file-mask*
-far-glob	temp.txt	/*far-glob*
+far-glob	far.txt	/*far-glob*
 far-highlight	far.txt	/*far-highlight*
 far-highlight-config	far.txt	/*far-highlight-config*
 far-intro	far.txt	/*far-intro*
@@ -39,7 +37,6 @@ far-params	far.txt	/*far-params*
 far-preview	far.txt	/*far-preview*
 far-quick-example	far.txt	/*far-quick-example*
 far-range	far.txt	/*far-range*
-far-rg-file-mask	far.txt	/*far-rg-file-mask*
 far-usage	far.txt	/*far-usage*
 far-vimgrep-file-mask	far.txt	/*far-vimgrep-file-mask*
 far.vim	far.txt	/*far.vim*
@@ -60,6 +57,7 @@ g:far#enable_undo	far.txt	/*g:far#enable_undo*
 g:far#expand_sign	far.txt	/*g:far#expand_sign*
 g:far#file_mask_favorites	far.txt	/*g:far#file_mask_favorites*
 g:far#highlight_match	far.txt	/*g:far#highlight_match*
+g:far#ignore_files	far.txt	/*g:far#ignore_files*
 g:far#limit	far.txt	/*g:far#limit*
 g:far#mapping	far.txt	/*g:far#mapping*
 g:far#mapping['close_preview']	far.txt	/*g:far#mapping['close_preview']*
@@ -82,11 +80,11 @@ g:far#mapping['replace_undo_all']	far.txt	/*g:far#mapping['replace_undo_all']*
 g:far#mapping['stoggle_exclude']	far.txt	/*g:far#mapping['stoggle_exclude']*
 g:far#mapping['stoggle_exclude_all']	far.txt	/*g:far#mapping['stoggle_exclude_all']*
 g:far#mapping['stoggle_expand_all']	far.txt	/*g:far#mapping['stoggle_expand_all']*
-g:far#mapping['stoggle_expand_all']	far.txt	/*g:far#mapping['stoggle_expand_all']*
 g:far#mapping['toggle_exclude']	far.txt	/*g:far#mapping['toggle_exclude']*
 g:far#mapping['toggle_exclude_all']	far.txt	/*g:far#mapping['toggle_exclude_all']*
 g:far#mapping['toggle_expand']	far.txt	/*g:far#mapping['toggle_expand']*
 g:far#mapping['toggle_expand_all']	far.txt	/*g:far#mapping['toggle_expand_all']*
+g:far#max_columns	far.txt	/*g:far#max_columns*
 g:far#mode_open	far.txt	/*g:far#mode_open*
 g:far#multiline_sign	far.txt	/*g:far#multiline_sign*
 g:far#preview_window_height	far.txt	/*g:far#preview_window_height*
