@@ -52,9 +52,9 @@ class GlobError(ValueError):
     pass
 
 def glob_rules(root, rules):
-    root = expanduser(root)
+    root = pathlib.Path(root).expanduser()
     try:
-        files = {f for rule in rules for f in pathlib.Path(root).glob(rule) if pathlib.Path.is_file(f)}
+        files = {f for rule in rules for f in root.glob(rule) if pathlib.Path.is_file(f)}
     except ValueError as e:
         raise GlobError(e)
     return files
@@ -119,9 +119,10 @@ def far_glob(root, rules, ignore_rules):
     ignore_files = glob_rules(root, ignore_rules)
     exception_ignore_files = glob_rules(root, exception_ignore_rules)
 
-    files = {f for f in files if not (f in ignore_files and f not in exception_ignore_files)}
-    files = { str(f.relative_to(root)) for f in files }
-    files = list(files)
+    files = [
+        str(f.relative_to(root))
+        for f in files
+        if not (f in ignore_files and f not in exception_ignore_files)
+    ]
 
     return files
-

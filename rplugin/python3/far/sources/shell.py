@@ -45,7 +45,9 @@ def search(ctx, args, cmdargs):
     ignore_rules = []
     for ignore_file in ignore_files:
         try:
-            ignore_rules += load_ignore_rules(ignore_file)
+            ignore_rules.extend(
+                load_ignore_rules(ignore_file)
+            )
         except IgnoreFileError as e:
             final_result['warning'] += ' | Invalid ignore-rule files. '+str(e)
 
