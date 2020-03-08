@@ -397,10 +397,10 @@ FILE MASK                                                      *far-file-mask*
     heading
 
         '/xx'
-            'xx' is directly udner the 'root' dir
+            'xx' is directly under the 'root' dir
 
         'xx'
-            'xx' is recursively udner the 'root' dir
+            'xx' is recursively under the 'root' dir
 
     tailing
 
@@ -447,6 +447,9 @@ FILE MASK                                                      *far-file-mask*
         '/xx/*test*/'
             All dirs with 'test' in name, directly under '<cwd>/xx/' dir.
             Including '/xx/test/' '/xx/test2/' '/xx/1test2/' '/xx/test/'
+
+        'foo'
+            All files named 'foo', and all files under dirs named 'foo'.
 
     only for ignore_rules:
         'zz'
@@ -511,7 +514,9 @@ CONFIGURATION                                                     *far-config*
     Default: 400
 
 *g:far#ignore_files*
-    A list. Files of rules to ignore file during matching. See |far-glob|
+    A list. Files of rules to ignore file during matching.
+    Paths can be absolute or relative to the current working directory.
+    See |far-glob|, |g:far#cwd|
 
     Default: [ '<path-to-far.vim-repo>/farignore' ]
 
