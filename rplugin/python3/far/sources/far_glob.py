@@ -16,7 +16,7 @@ def proc(rules_origin):
 
     head
     under root: /xx    -> xx
-    anywhere:   xx     -> **/xx
+    anywhere:   xx     -> **/xx, **/xx/**/*
     '''
     rules = []
     for rule_origin in rules_origin:
@@ -32,7 +32,9 @@ def proc(rules_origin):
         if rule[0] == '/':
             rule = rule[1:]
         else:
+            # Match both, files and directories.
             rule = '**/' + rule
+            rules.append(rule + '/**/*')
 
         if rule != '':
             rules.append(rule)
