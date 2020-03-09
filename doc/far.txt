@@ -72,7 +72,7 @@ USAGE                                                              *far-usage*
     Note: Use rg defined types as {file-mask} to search when using rg or rgnvim
     sources. eg. 'html' 'py' 'js'
     For [params] see |far-params|
-    See |mappings| to acquaint yourself with the shortcuts availble for far buffer.
+    See |mappings| to acquaint yourself with the shortcuts available for far buffer.
 
 *:F* {pattern} {file-mask} [params]
     Find {pattern} in {file-mask} files. Similar to |Far| without
@@ -139,7 +139,7 @@ USAGE                                                              *far-usage*
     For [params] see |fardo-params|.
 
 *:Farundo* [params]
-    |Farundo| undos the last replacement tasktaken by |Fardo|. This command is
+    |Farundo| undos the last replacement task taken by |Fardo|. This command is
     only available when you set 'let |g:far#enable_undo|=1'.
     For [params] see |farundo-params|.
 
@@ -312,25 +312,25 @@ FILE MASK                                                      *far-file-mask*
 
     '*'
         any zero or more chars, its regex is ".*"
-        can not contain dir seperator.
+        can not contain dir separator.
         can contain '.'
         can not start with '.', cant no be hidden
 
     '.*'
         any zero or more chars, its regex is "\..*"
-        can not contain dir seperator.
+        can not contain dir separator.
         can contain '.'
         start with '.', is hidden
 
     '**'
         any zero or more chars,
-        can contain dir seperator
+        can contain dir separator
         can contain '.', can not be hidden
         can not start with '.'
 
     '.**'
         any zero or more chars,
-        can contain dir seperator
+        can contain dir separator
         can contain '.', can not be hidden
         can start with '.' or not
 
@@ -378,8 +378,8 @@ FILE MASK                                                      *far-file-mask*
 ------------------------------------------------------------------------------
 'rg' 'rgnvim' 'ag' 'agnvim' 'ack' ''acknvim'                       *far-glob*
 
-    Those searhing engines use far.vim's own glob expression supported by
-    python 'pathlib.glob'. It searchs all visiable and hidden dirs and files
+    Those searching engines use far.vim's own glob expression supported by
+    python 'pathlib.glob'. It searches all visible and hidden dirs and files
     excepted ignored files. Rules to ignore files are loaded from files in list
     |g:far#ignore_files|. You can create one or more such files and append them
     to |g:far#ignore_files|.
@@ -426,7 +426,7 @@ FILE MASK                                                      *far-file-mask*
             Far.vim returns the same result as 'xx/'.
 
         'xx/**/yy'
-            'yy' glob experession recursively under 'xx' dir.
+            'yy' glob expression recursively under 'xx' dir.
 
     examples
 
@@ -434,7 +434,7 @@ FILE MASK                                                      *far-file-mask*
             All files under the 'root' dir.
 
         '*.sh'
-            All files with '.sh' extenstion, recursively under cwd.
+            All files with '.sh' extension, recursively under cwd.
             Including 'xx.sh' '.sh' '.xx.sh'
 
         '*.*'
@@ -683,9 +683,9 @@ CONFIGURATION                                                     *far-config*
     Default: '+'
 
 *g:far#mode_open*
-    This variable controls the initial (when vim starts) saeching mode status
+    This variable controls the initial (when vim starts) searching mode status
     in |Farr| and |Farf|.
-    It is a dictionary, where the keys are saeching modes and the values are
+    It is a dictionary, where the keys are searching modes and the values are
     0/1 for off/on.
 
     Default: { "regex": 1, "case_sensitive": 0, "word": 0, "substitute": 0 }
@@ -837,7 +837,7 @@ za                                            *g:far#mapping['toggle_expand']*
 
 zs                                       *g:far#mapping['stoggle_expand_all']*
     Smartly toggle exclusion for all nodes: expand all nodes when all are
-    collpased, otherwise collapse all nodes.
+    collapsed, otherwise collapse all nodes.
 
 zr v_zr                                          *g:far#mapping['expand_all']*
     Expand all nodes.
@@ -850,7 +850,7 @@ zA v_zA                                   *g:far#mapping['toggle_expand_all']*
 
 zS v_zS
     Smartly toggle exclusion for all nodes: expand all nodes when all are
-    collpased, otherwise collapse all nodes.
+    collapsed, otherwise collapse all nodes.
 
 s v_s                                            *g:far#mapping['replace_do']*
     Execute |:Fardo|<CR>, to replace all included items.
@@ -1036,7 +1036,7 @@ CHANGELOG                                                      *far-changelog*
      - syntax renamed from far_vim to far #50:wq
      - ripgrep file mask changed to --glob
      - default file-mask
-     - Farundo depricated
+     - Farundo deprecated
 
     beta2
      - status line
@@ -1053,7 +1053,7 @@ CHANGELOG                                                      *far-changelog*
      - Neovim async support
      - fix: far#log -> far#log masked as broken
      - fix: set filetype=off if already open
-     - fix: visual selecion inside one line work as full line, syn is broken as
+     - fix: visual selection inside one line work as full line, syn is broken as
             well
      - remove jump setting, always open in far window
      - fix: fails on 500 found items.
