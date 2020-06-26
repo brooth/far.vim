@@ -2060,7 +2060,7 @@ function! s:pyglob_param_proc(far_params, win_params, cmdargs) "{{{
         let filename = expand('%:t')
         let a:far_params.file_mask = '/' . filename
         let a:far_params.cwd = expand('%:p:h')
-        if !filereadable(filename)
+        if !filereadable(expand('%:p'))
             call far#tools#echo_err('File in current buffer is not readable.')
             let a:far_params.file_mask = ''
             return
