@@ -111,8 +111,8 @@ if executable('ack')
 endif
 
 if executable('rg')
-    let cmd = ['xargs',  'rg','--json','--with-filename', '--no-heading',
-    \ '--vimgrep',  '--max-count={limit}', '{pattern}',  '{file_mask}']
+    let cmd = [ 'rg','--json','--with-filename', '--no-heading',
+    \ '--vimgrep',  '--max-count={limit}', '{pattern}', '-g', '{file_mask}']
 
     call far#tools#setdefault('g:far#sources.rg', {})
     call far#tools#setdefault('g:far#sources.rg.fn', 'far.sources.shell.search')
