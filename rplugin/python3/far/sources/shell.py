@@ -45,9 +45,9 @@ def search(ctx, args, cmdargs):
     ignore_rules = []
 
     if source == 'rg' or source == 'rgnvim' :
-        logger.debug(f'Globbing with ripgrep: rg --files {rg_rules_glob(rules)} {rg_ignore_globs()}')
+        logger.debug(f'Globbing with ripgrep: rg --files {rg_rules_glob(rules)} {rg_ignore_globs(ignore_files)}')
         with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as fp:
-            fp.write(os.popen(f'rg --files {rg_rules_glob(rules)} {rg_ignore_globs()}').read())
+            fp.write(os.popen(f'rg --files {rg_rules_glob(rules)} {rg_ignore_globs(ignore_files)}').read())
 
     else:
         for ignore_file in ignore_files:
