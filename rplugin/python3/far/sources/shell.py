@@ -7,7 +7,7 @@ License: MIT
 
 from pprint import pprint
 
-from .far_glob import load_ignore_rules,far_glob,GlobError,IgnoreFileError
+from .far_glob import load_ignore_rules,far_glob,GlobError,IgnoreFileError,rg_rules_glob,rg_ignore_globs
 import logging
 import subprocess
 import re
@@ -18,13 +18,6 @@ import json
 from json import JSONDecodeError
 
 logger = logging.getLogger('far')
-
-def rg_ignore_globs():
-    ignored = open('/home/ubuntu/.config/nvim/plugged/far.vim/farignore', 'r').read().split('\n')
-    return ' '.join(map(lambda dir: f"-g '!{dir}'" if len(dir) > 0 else "", ignored))
-
-def rg_rules_glob(rules):
-    return ' '.join(map(lambda dir: f"-g '{dir}'", rules))
 
 def search(ctx, args, cmdargs):
     logger.debug('search(%s, %s, %s)', str(ctx), str(args), str(cmdargs))
