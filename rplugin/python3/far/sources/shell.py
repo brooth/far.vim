@@ -333,4 +333,3 @@ def search(ctx, args, cmdargs):
         final_result['items'] = list(result.values())
 
     return final_result
-eturn final_result
