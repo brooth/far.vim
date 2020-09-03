@@ -130,12 +130,8 @@ def far_glob(root, rules, ignore_rules):
     return files
 
 def rg_ignore_globs(files):
-    ignored = []
-    for file in files:
-        ignored.extend(open(file, 'r').read().split('\n'))
-
-    filtered_ignored = [dir.strip() for dir in ignored if len(dir.strip()) > 0 and ("#" not in dir)]
-    return ' '.join(map(lambda dir: f"-g '!{dir}'", filtered_ignored))
+    ignored = {val for sublist in [open(file, 'r').read().split('\n') for file in files] if len(val.strip()) > 0 and ("#" not in val) for val in sublist}
+    return ' '.join(map(lambda dir: f"-g '!{dir}'", ignored))
 
 def rg_rules_glob(rules):
     return ' '.join(map(lambda dir: f"-g '{dir}'", rules))
