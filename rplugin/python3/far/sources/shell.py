@@ -42,14 +42,13 @@ def search(ctx, args, cmdargs):
 
     rules = file_mask.split(',')
 
-    ignore_rules = []
-
     if source == 'rg' or source == 'rgnvim' :
         logger.debug(f'Globbing with ripgrep: rg --files {rg_rules_glob(rules)} {rg_ignore_globs(ignore_files)}')
         with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as fp:
             fp.write(os.popen(f'rg --files {rg_rules_glob(rules)} {rg_ignore_globs(ignore_files)}').read())
 
     else:
+        ignore_rules = []
         for ignore_file in ignore_files:
             try:
                 ignore_rules.extend(
