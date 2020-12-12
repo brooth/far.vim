@@ -7,17 +7,17 @@ License: MIT
 
 from pprint import pprint
 
-from .far_glob import load_ignore_rules,far_glob,GlobError,IgnoreFileError
+from .far_glob import load_ignore_rules,far_glob,GlobError,IgnoreFileError,rg_rules_glob,rg_ignore_globs
 import logging
 import subprocess
 import re
+import os
 import tempfile
 import pathlib
 import json
 from json import JSONDecodeError
 
 logger = logging.getLogger('far')
-
 
 def search(ctx, args, cmdargs):
     logger.debug('search(%s, %s, %s)', str(ctx), str(args), str(cmdargs))
@@ -42,32 +42,38 @@ def search(ctx, args, cmdargs):
 
     rules = file_mask.split(',')
 
-    ignore_rules = []
-    for ignore_file in ignore_files:
+    if source == 'rg' or source == 'rgnvim' :
+        logger.debug(f'Globbing with ripgrep: rg --files {rg_rules_glob(rules)} {rg_ignore_globs(ignore_files)}')
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as fp:
+            fp.write(os.popen(f'rg --files {rg_rules_glob(rules)} {rg_ignore_globs(ignore_files)}').read())
+
+    else:
+        ignore_rules = []
+        for ignore_file in ignore_files:
+            try:
+                ignore_rules.extend(
+                    load_ignore_rules(ignore_file)
+                )
+            except IgnoreFileError as e:
+                final_result['warning'] += ' | Invalid ignore-rule files. '+str(e)
+
         try:
-            ignore_rules.extend(
-                load_ignore_rules(ignore_file)
-            )
-        except IgnoreFileError as e:
-            final_result['warning'] += ' | Invalid ignore-rule files. '+str(e)
+            files = far_glob(root, rules, ignore_rules)
+        except GlobError as e:
+            return {'error': 'Invalid glob expression. '+str(e)}
 
-    try:
-        files = far_glob(root, rules, ignore_rules)
-    except GlobError as e:
-        return {'error': 'Invalid glob expression. '+str(e)}
+        if len(files) == 0:
+            return {'error': 'No files matching the glob expression'}
 
-    if len(files) == 0:
-        return {'error': 'No files matching the glob expression'}
+        elif len(files) == 1:
+            # search in one file, cmd do not output the file name
+            files = files + files
+            one_file_result = []
 
-    elif len(files) == 1:
-        # search in one file, cmd do not output the file name
-        files = files + files
-        one_file_result = []
-
-    with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as fp:
-        for file_name in files:
-            fp.write(file_name+'\n')
-            # print(file_name, file=fp)
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as fp:
+            for file_name in files:
+                fp.write(file_name+'\n')
+                # print(file_name, file=fp)
 
     logger.debug('Temporary file for passing files matching glob: ' + fp.name)
 
