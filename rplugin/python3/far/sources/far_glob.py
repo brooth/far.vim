@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import os
 import pathlib
 import re
 from os.path import expanduser
@@ -130,7 +131,16 @@ def far_glob(root, rules, ignore_rules):
     return files
 
 def rg_ignore_globs(files):
-    ignored = {val for sublist in [open(file, 'r').read().split('\n') for file in files] for val in sublist if len(val.strip()) > 0 and ("#" not in val)}
+    ignored = {
+        ignore_glob
+        for sublist in [
+            open(ignore_file, 'r').read().split('\n')
+            for ignore_file in files
+            if os.path.exists(ignore_file)
+        ]
+        for ignore_glob in sublist
+        if len(ignore_glob.strip()) > 0 and ("#" not in ignore_glob)
+    }
     return ' '.join(map(lambda dir: f"-g '!{dir}'", ignored))
 
 def rg_rules_glob(rules):
