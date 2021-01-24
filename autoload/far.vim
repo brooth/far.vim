@@ -27,6 +27,7 @@ call far#tools#setdefault('g:far#case_sensitive', -1)
 call far#tools#setdefault('g:far#word_boundary', 0)
 call far#tools#setdefault('g:far#limit', 1000)
 call far#tools#setdefault('g:far#max_columns', 400)
+call far#tools#setdefault('g:far#glob_mode', 'far')
 
 
 call far#tools#setdefault('g:far#executors', {})
@@ -63,6 +64,7 @@ if executable('ag')
     call far#tools#setdefault('g:far#sources.ag.args.expand_cmdargs', 1)
     call far#tools#setdefault('g:far#sources.ag.args.ignore_files', g:far#ignore_files)
     call far#tools#setdefault('g:far#sources.ag.args.max_columns', g:far#max_columns)
+    call far#tools#setdefault('g:far#sources.ag.args.glob_mode', g:far#glob_mode)
 
     if has('nvim')
         call far#tools#setdefault('g:far#sources.agnvim', {})
@@ -76,6 +78,7 @@ if executable('ag')
         call far#tools#setdefault('g:far#sources.agnvim.args.expand_cmdargs', 1)
         call far#tools#setdefault('g:far#sources.agnvim.args.ignore_files', g:far#ignore_files)
         call far#tools#setdefault('g:far#sources.agnvim.args.max_columns', g:far#max_columns)
+        call far#tools#setdefault('g:far#sources.agnvim.args.glob_mode', g:far#glob_mode)
     endif
 endif
 
@@ -94,6 +97,7 @@ if executable('ack')
     call far#tools#setdefault('g:far#sources.ack.args.expand_cmdargs', 1)
     call far#tools#setdefault('g:far#sources.ack.args.ignore_files', g:far#ignore_files)
     call far#tools#setdefault('g:far#sources.ack.args.max_columns', g:far#max_columns)
+    call far#tools#setdefault('g:far#sources.ack.args.glob_mode', g:far#glob_mode)
 
     if has('nvim')
         call far#tools#setdefault('g:far#sources.acknvim', {})
@@ -107,11 +111,12 @@ if executable('ack')
         call far#tools#setdefault('g:far#sources.acknvim.args.expand_cmdargs', 1)
         call far#tools#setdefault('g:far#sources.acknvim.args.ignore_files', g:far#ignore_files)
         call far#tools#setdefault('g:far#sources.acknvim.args.max_columns', g:far#max_columns)
+        call far#tools#setdefault('g:far#sources.acknvim.args.glob_mode', g:far#glob_mode)
     endif
 endif
 
 if executable('rg')
-    let cmd = ['xargs',  'rg','--json','--with-filename', '--no-heading',
+    let cmd = ['rg', '--json', '--with-filename', '--no-heading',
     \ '--vimgrep',  '--max-count={limit}', '{pattern}',  '{file_mask}']
 
     call far#tools#setdefault('g:far#sources.rg', {})
@@ -125,6 +130,7 @@ if executable('rg')
     call far#tools#setdefault('g:far#sources.rg.args.expand_cmdargs', 1)
     call far#tools#setdefault('g:far#sources.rg.args.ignore_files', g:far#ignore_files)
     call far#tools#setdefault('g:far#sources.rg.args.max_columns', g:far#max_columns)
+    call far#tools#setdefault('g:far#sources.rg.args.glob_mode', g:far#glob_mode)
 
     if has('nvim')
         call far#tools#setdefault('g:far#sources.rgnvim', {})
@@ -138,6 +144,7 @@ if executable('rg')
         call far#tools#setdefault('g:far#sources.rgnvim.args.expand_cmdargs', 1)
         call far#tools#setdefault('g:far#sources.rgnvim.args.ignore_files', g:far#ignore_files)
         call far#tools#setdefault('g:far#sources.rgnvim.args.max_columns', g:far#max_columns)
+        call far#tools#setdefault('g:far#sources.rgnvim.args.glob_mode', g:far#glob_mode)
     endif
 endif
 
@@ -211,6 +218,7 @@ let s:far_params_meta = {
     \   '--case-sensitive' : {'param': 'case_sensitive', 'values': [1,0,-1]},
     \   '--word-boundary' : {'param': 'word_boundary', 'values': [1,0]},
     \   '--max-columns' : { 'param': 'max_columns', 'values': [300,400,'..']},
+    \   '--glob-mode' : {'param': 'glob_mode', 'values': ['far', 'native', 'rg']},
     \   }
 
 let s:far_params_meta_vimgrep = {

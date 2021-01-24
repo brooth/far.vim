@@ -526,6 +526,27 @@ CONFIGURATION                                                     *far-config*
 
     Default: |getpwd()| value.
 
+*g:far#glob_mode*
+    When using a source other than 'vimgrep', specifies how file globbing
+    should be preformed.  It can take these values:
+
+        'far'
+            Use far.vim's built-in globbing mechanism to retrieve the list of
+            files to search.  Has no external dependencies.  This is the
+            default.
+
+        'native'
+            Use the search source tool's own globbing mechanism.  Currently,
+            for sources other than 'rg'/'rgnvim' (which contains a
+            globbing mechanism), this means that a file or directory is
+            specified as the glob.
+
+        'rg'
+            This uses ripgrep's globbing mechanism, and requires ripgrep to be
+            installed.  It can be used with any external search source.  When
+            using with the 'rg' or 'rgnvim' source, it's equivalent and faster
+            to use 'native' instead.
+
 *g:far#default_mappings*
     Apply default mappings to each FAR buffer. See |far-mappings|.
 
