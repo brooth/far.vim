@@ -696,6 +696,13 @@ CONFIGURATION                                                     *far-config*
 
     Default: 1
 
+*g:far#cmdparse_mode*
+    This variable controls how arguments to :F... commands are parsed.  If set
+    to 'vim', uses a style of escaping best suited to vim patterns.  If
+    set to 'shell', it uses bash-style escaping and quoting semantics to parse
+    arguments.  The default is to use 'vim' for the 'vimgrep' source and
+    to use 'shell' for other sources.
+
 ------------------------------------------------------------------------------
 Highlighting Groups:                                    *far-highlight-config*
 
