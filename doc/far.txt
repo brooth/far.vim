@@ -598,6 +598,12 @@ CONFIGURATION                                                     *far-config*
 
     Default: 11
 
+*g:far#open_in_parent_window*
+    Jump to results in original window instead of the far buffer.
+
+    Options: 0, 1
+    Default: 0
+
 *g:far#file_mask_favorites*
     List of favorite file masks provided for command-line completion.
     See |far-complete|
