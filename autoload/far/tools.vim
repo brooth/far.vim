@@ -84,7 +84,83 @@ function! far#tools#undo_nextnr() "{{{
     return undonum
 endfunction "}}}
 
+function! far#tools#splitcmdshell(cmdline)
+    " Split command line into arguments using bash-like semantics
+    " States:
+    " 0 - Scanning spaces between arguments
+    " 1 - Scanning in single-quotes
+    " 2 - Scanning in double-quotes
+    " 3 - Scanning outside of quotes
+    " 4 - Scanning char after backslash in double quotes
+    " 5 - Scanning char after backslash outside quotes
+    let retargs = []
+    let state = 0
+    let carg = ''
+    for c in split(a:cmdline . ' ', '\zs')
+        if state == 0
+            if c == ' '
+                continue
+            elseif c == "'"
+                let state = 1
+                let carg = ''
+            elseif c == '"'
+                let state = 2
+                let carg = ''
+            else
+                let state = 3
+                let carg = c
+            endif
+        elseif state == 1
+            if c == "'"
+                let state = 3
+            else
+                let carg = carg . c
+            endif
+        elseif state == 2
+            if c == '"'
+                let state = 3
+            elseif c == '\'
+                let state = 4
+            else
+                let carg = carg . c
+            endif
+        elseif state == 3
+            if c == ' '
+                call add(retargs, carg)
+                let state = 0
+            elseif c == '\'
+                let state = 5
+            elseif c == "'"
+                let state = 1
+            elseif c == '"'
+                let state = 2
+            else
+                let carg = carg . c
+            endif
+        elseif state == 4
+            if c == '"'
+                let carg = carg . c
+            elseif c == '\'
+                let carg = carg . c
+            else
+                let carg = carg . '\' . c
+            endif
+            let state = 2
+        elseif state == 5
+            let carg = carg . c
+            let state = 3
+        endif
+    endfor
+    if state != 0 && carg != ''
+        call add(retargs, carg)
+    endif
+    return retargs
+endfunction
+
 function! far#tools#splitcmd(cmdline) "{{{
+    if g:far#cmdparse_mode == 'shell'
+        return far#tools#splitcmdshell(a:cmdline)
+    endif
     let cmdline = substitute(a:cmdline, '^\s*\(.\{-}\)\s*$', '\1', '')
     let slashes = split(cmdline, '\\\\')
     let cmds = []

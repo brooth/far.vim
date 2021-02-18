@@ -619,6 +619,12 @@ CONFIGURATION                                                     *far-config*
 
     Default: 11
 
+*g:far#open_in_parent_window*
+    Jump to results in original window instead of the far buffer.
+
+    Options: 0, 1
+    Default: 0
+
 *g:far#file_mask_favorites*
     List of favorite file masks provided for command-line completion.
     See |far-complete|
@@ -716,6 +722,13 @@ CONFIGURATION                                                     *far-config*
     |Farr| and |Farf|.
 
     Default: 1
+
+*g:far#cmdparse_mode*
+    This variable controls how arguments to :F... commands are parsed.  If set
+    to 'vim', uses a style of escaping best suited to vim patterns.  If
+    set to 'shell', it uses bash-style escaping and quoting semantics to parse
+    arguments.  The default is to use 'vim' for the 'vimgrep' source and
+    to use 'shell' for other sources.
 
 ------------------------------------------------------------------------------
 Highlighting Groups:                                    *far-highlight-config*

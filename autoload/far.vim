@@ -14,6 +14,7 @@ call far#tools#setdefault('g:far#expand_sign', '+ ')
 call far#tools#setdefault('g:far#window_min_content_width', 10)
 call far#tools#setdefault('g:far#preview_window_scroll_step', 1)
 call far#tools#setdefault('g:far#check_window_resize_period', 2000)
+call far#tools#setdefault('g:far#open_in_parent_window', 0)
 call far#tools#setdefault('g:far#file_mask_favorites',
     \ [ '%', '/', '* (any char)', '*.extenton', '/root-file','/root-dir/',
     \ 'anywhere-file','anywhere-dir/','dir/directly-under' ,'dir/**/recursively-under'])
@@ -28,7 +29,7 @@ call far#tools#setdefault('g:far#word_boundary', 0)
 call far#tools#setdefault('g:far#limit', 1000)
 call far#tools#setdefault('g:far#max_columns', 400)
 call far#tools#setdefault('g:far#glob_mode', 'far')
-
+call far#tools#setdefault('g:far#cmdparse_mode', g:far#source == 'vimgrep' ? 'vim' : 'shell')
 
 call far#tools#setdefault('g:far#executors', {})
 call far#tools#setdefault('g:far#executors.vim', 'far#executors#basic#execute')
@@ -578,7 +579,7 @@ function! far#jump_buffer_under_cursor() abort "{{{
         return
     endif
 
-    let nowin = 1
+    let new_win = 1
     let fname = ctxs[1].fname
     let bufnr = bufnr(fname)
     if bufnr > 0
@@ -590,7 +591,20 @@ function! far#jump_buffer_under_cursor() abort "{{{
             endif
         endfor
     endif
-    if nowin
+    if g:far#open_in_parent_window && new_win == 1
+        let win_params = b:win_params
+        let parent_buffnr = win_params.parent_buffnr
+        if parent_buffnr >= 0
+            let parent_winnr = bufwinnr(parent_buffnr)
+            if parent_winnr != -1 && !getbufinfo(parent_buffnr)[0].changed
+                let new_win = 0
+                exe parent_winnr . 'wincmd w'
+                exe 'edit '.fname
+                let win_params.parent_buffnr = bufnr()
+            endif
+        endif
+    endif
+    if new_win
         let cmd = bufnr != -1 ? 'buffer '.bufnr : 'edit '.fname
         call far#tools#log('jump wincmd: '.cmd)
         exec cmd
@@ -1761,7 +1775,7 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
                 let line_num_text = '  '.item_ctx.lnum
                 let line_num_col_text = line_num_text.repeat(' ', 8-strchars(line_num_text))
                 let pattern = a:far_ctx.pattern
-                let pattern = b:win_params.far_params.pattern_proc
+                let pattern = a:win_params.far_params.pattern_proc
 
                 let match_val = matchstr(item_ctx.text, pattern, item_ctx.cnum-1)
                 let multiline = match(pattern, '\\n') >= 0
@@ -1777,7 +1791,7 @@ function! s:build_buffer_content(far_ctx, win_params) abort "{{{
                     " strdisplaywidth: actual displayed width, so as to deal with wide characters
                     let max_text_len = win_width / 2 - strdisplaywidth(line_num_col_text)
                     let max_repl_len = win_width / 2 - strdisplaywidth(g:far#repl_devider)
-                    if b:win_params.far_params.regex
+                    if a:win_params.far_params.regex
                         " item_ctx.cnum : byte id (begin with 1) the matched substring start from
                         let repl_val = substitute(match_val, pattern, a:far_ctx.replace_with, "")
                     else
