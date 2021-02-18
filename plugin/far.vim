@@ -26,6 +26,7 @@ function! Find(rngmode, rngline1, rngline2, cmdline, ...) range abort "{{{
     call far#tools#log('cmdline: '.a:cmdline)
 
     let cargs = far#tools#splitcmd(a:cmdline)
+    call far#tools#log('cmdline parsed: ' . string(cargs))
     if len(cargs) == 1
         call add(cargs, g:far#default_file_mask)
     endif
