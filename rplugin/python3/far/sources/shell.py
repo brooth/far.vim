@@ -39,15 +39,14 @@ def search(ctx, args, cmdargs):
     limit = int(ctx['limit'])
     max_columns = args.get('max_columns')
     ignore_files = args.get('ignore_files')
+    glob_mode = args.get('glob_mode', 'far')
 
     rules = file_mask.split(',')
+    native_glob_args = None
 
-    if source == 'rg' or source == 'rgnvim' :
-        logger.debug(f'Globbing with ripgrep: rg --files {rg_rules_glob(rules)} {rg_ignore_globs(ignore_files)}')
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as fp:
-            fp.write(os.popen(f'rg --files {rg_rules_glob(rules)} {rg_ignore_globs(ignore_files)}').read())
-
-    else:
+    # Perform file globbing if non-native
+    if glob_mode == 'far':
+        # Use built-in globbing strategy
         ignore_rules = []
         for ignore_file in ignore_files:
             try:
@@ -64,45 +63,60 @@ def search(ctx, args, cmdargs):
 
         if len(files) == 0:
             return {'error': 'No files matching the glob expression'}
+    elif glob_mode == 'rg':
+        # Use ripgrep to glob
+        logger.debug(f'Globbing with ripgrep: rg --files {rg_rules_glob(rules)} {rg_ignore_globs(ignore_files)}')
+        files = os.popen(f'rg --files {rg_rules_glob(rules)} {rg_ignore_globs(ignore_files)}').read().split('\n')
+        if len(files) and files[-1] == '':
+            files.pop()
+        if len(files) == 0:
+            return {'error': 'No files matching the glob expression'}
+    elif glob_mode == 'native':
+        # Pass the mask directly to the search tool.
+        # For rg, the file mask is converted into -g option glob rules.  For everything else,
+        # the mask is passed directly as an agument (and typically treated as a directory).
+        if source in ('rg', 'rgnvim'):
+            native_glob_args = rg_rules_glob(rules, False) + rg_ignore_globs(ignore_files, False)
+    else:
+        return {'error': 'Invalid glob_mode'}
 
-        elif len(files) == 1:
-            # search in one file, cmd do not output the file name
-            files = files + files
-            one_file_result = []
-
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as fp:
-            for file_name in files:
-                fp.write(file_name+'\n')
-                # print(file_name, file=fp)
-
-    logger.debug('Temporary file for passing files matching glob: ' + fp.name)
-
-    p1 = subprocess.Popen(["cat", fp.name], stdout=subprocess.PIPE)
-
-
+    # Build search command
     cmd = []
+    if glob_mode != 'native':
+        # Run each for each globbed file
+        cmd.append('xargs')
     for c in args['cmd']:
-        if c != '{file_mask}':
-            cmd.append(c.format(limit=limit,
-                            pattern=pattern))
-
+         if c != '{file_mask}' or (glob_mode == 'native' and file_mask and not native_glob_args):
+            cmd.append(c.format(limit=limit, pattern=pattern, file_mask=file_mask))
     if args.get('expand_cmdargs', '0') != '0':
         cmd += cmdargs
+    if native_glob_args:
+        cmd += native_glob_args
 
     logger.debug('cmd:' + str(cmd))
 
+    # Determine how to handle stdin for the command
+    if glob_mode != 'native':
+        proc_stdin = subprocess.PIPE
+    else:
+        proc_stdin = subprocess.DEVNULL
+
+    # Execute search command
     try:
-        proc = subprocess.Popen(cmd, cwd=ctx['cwd'], stdin=p1.stdout,
-                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc = subprocess.Popen(cmd, cwd=ctx['cwd'], stdin=proc_stdin,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     except Exception as e:
         return {'error': str(e)}
 
-    p1.stdout.close()
+    # If non-native glob, pipe the file list to stdin for xargs to handle
+    if glob_mode != 'native':
+        proc.stdin.write(('\n'.join(files) + '\n').encode('utf8'))
+        proc.stdin.close()
+
     logger.debug('type(proc) = ' + str(type(proc)))
-    logger.debug('type(proc) = '+str(type(proc)))
 
 
-    range = tuple(ctx['range'])
+    range_ = tuple(ctx['range'])
     result = {}
 
 
@@ -174,8 +188,8 @@ def search(ctx, args, cmdargs):
                             one_file_result.append(item_idx)
 
 
-                    if (range[0] != -1 and range[0] > lnum) or \
-                       (range[1] != -1 and range[1] < lnum):
+                    if (range_[0] != -1 and range_[0] > lnum) or \
+                       (range_[1] != -1 and range_[1] < lnum):
                         continue
 
                     if not file_name in result:
@@ -238,8 +252,8 @@ def search(ctx, args, cmdargs):
             cnum = int(items[2])
             text = items[3]
 
-            if (range[0] != -1 and range[0] > lnum) or \
-               (range[1] != -1 and range[1] < lnum):
+            if (range_[0] != -1 and range_[0] > lnum) or \
+               (range_[1] != -1 and range_[1] < lnum):
                 continue
 
             if len(text) > max_columns:

@@ -130,7 +130,7 @@ def far_glob(root, rules, ignore_rules):
 
     return files
 
-def rg_ignore_globs(files):
+def rg_ignore_globs(files, as_str=True):
     ignored = {
         ignore_glob
         for sublist in [
@@ -141,7 +141,17 @@ def rg_ignore_globs(files):
         for ignore_glob in sublist
         if len(ignore_glob.strip()) > 0 and ("#" not in ignore_glob)
     }
-    return ' '.join(map(lambda dir: f"-g '!{dir}'", ignored))
+    if as_str:
+        return ' '.join(map(lambda dir: f"-g '!{dir}'", ignored))
+    else:
+        return [ '-g' if g else '!' + d for d in ignored for g in (True, False) ]
 
-def rg_rules_glob(rules):
-    return ' '.join(map(lambda dir: f"-g '{dir}'", rules))
+def rg_rules_glob(rules, as_str=True):
+    # Don't include * globbing rules.  rg behaves like this by default, and explicitly
+    # adding these causes rg to stop ignoring its built-in ignored files.
+    rules = [ r for r in rules if r not in ( '*', '**/*' ) ]
+    if as_str:
+        return ' '.join(map(lambda dir: f"-g '{dir}'", rules))
+    else:
+        return [ '-g' if g else d for d in rules for g in (True, False) ]
+
