@@ -1,7 +1,7 @@
 # far.vim - Find And Replace Vim plugin
 
 ## Disclaimer
-This plugin is completly community driven. The author has betrayed the pure VI expirience and fell down a slippery slope of using VSCode with a vim plugin. **Please do not raise issues without an PR**, they will be ignored anyway.
+This plugin is completly community driven. The author has betrayed the pure vim expirience and fell down a slippery slope of using VSCode with a vim plugin. **Please do not raise issues without an PR**, they will be ignored anyway.
 
 ## Intro
 Far.vim makes it easier to find and replace text through multiple files.
