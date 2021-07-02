@@ -6,6 +6,8 @@ License: MIT
 """
 
 from pprint import pprint
+from locale import getpreferredencoding
+from sys import platform
 
 from .far_glob import load_ignore_rules,far_glob,GlobError,IgnoreFileError,rg_rules_glob,rg_ignore_globs
 import logging
@@ -43,6 +45,9 @@ def search(ctx, args, cmdargs):
 
     rules = file_mask.split(',')
     native_glob_args = None
+
+    is_win32 = (platform == 'win32')
+    preferred_encoding = getpreferredencoding()
 
     # Perform file globbing if non-native
     if glob_mode == 'far':
@@ -85,6 +90,7 @@ def search(ctx, args, cmdargs):
     if glob_mode != 'native':
         # Run each for each globbed file
         cmd.append('xargs')
+        cmd.append('-0')
     for c in args['cmd']:
          if c != '{file_mask}' or (glob_mode == 'native' and file_mask and not native_glob_args):
             cmd.append(c.format(limit=limit, pattern=pattern, file_mask=file_mask))
@@ -110,7 +116,11 @@ def search(ctx, args, cmdargs):
 
     # If non-native glob, pipe the file list to stdin for xargs to handle
     if glob_mode != 'native':
-        proc.stdin.write(('\n'.join(files) + '\n').encode('utf8'))
+        sep = '\0'
+        if is_win32:
+            proc.stdin.write((sep.join(files).replace("\\", "/") + sep).encode(preferred_encoding))
+        else:
+            proc.stdin.write((sep.join(files) + sep).encode(preferred_encoding))
         proc.stdin.close()
 
     logger.debug('type(proc) = ' + str(type(proc)))
@@ -144,6 +154,7 @@ def search(ctx, args, cmdargs):
                     break
                 continue
 
+            logger.debug('proc readline: ' + line)
             try:
                 item = json.loads(line)
             except JSONDecodeError as err:
