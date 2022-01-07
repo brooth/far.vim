@@ -47,6 +47,7 @@ g:far#auto_preview	far.txt	/*g:far#auto_preview*
 g:far#auto_preview_on_start	far.txt	/*g:far#auto_preview_on_start*
 g:far#auto_write_replaced_buffers	far.txt	/*g:far#auto_write_replaced_buffers*
 g:far#check_window_resize_period	far.txt	/*g:far#check_window_resize_period*
+g:far#cmdparse_mode	far.txt	/*g:far#cmdparse_mode*
 g:far#collapse_result	far.txt	/*g:far#collapse_result*
 g:far#collapse_sign	far.txt	/*g:far#collapse_sign*
 g:far#cut_text_sign	far.txt	/*g:far#cut_text_sign*
@@ -56,6 +57,7 @@ g:far#default_mappings	far.txt	/*g:far#default_mappings*
 g:far#enable_undo	far.txt	/*g:far#enable_undo*
 g:far#expand_sign	far.txt	/*g:far#expand_sign*
 g:far#file_mask_favorites	far.txt	/*g:far#file_mask_favorites*
+g:far#glob_mode	far.txt	/*g:far#glob_mode*
 g:far#highlight_match	far.txt	/*g:far#highlight_match*
 g:far#ignore_files	far.txt	/*g:far#ignore_files*
 g:far#limit	far.txt	/*g:far#limit*
@@ -87,6 +89,7 @@ g:far#mapping['toggle_expand_all']	far.txt	/*g:far#mapping['toggle_expand_all']*
 g:far#max_columns	far.txt	/*g:far#max_columns*
 g:far#mode_open	far.txt	/*g:far#mode_open*
 g:far#multiline_sign	far.txt	/*g:far#multiline_sign*
+g:far#open_in_parent_window	far.txt	/*g:far#open_in_parent_window*
 g:far#preview_window_height	far.txt	/*g:far#preview_window_height*
 g:far#preview_window_layout	far.txt	/*g:far#preview_window_layout*
 g:far#preview_window_scroll_step	far.txt	/*g:far#preview_window_scroll_step*
