@@ -118,7 +118,7 @@ USAGE                                                              *far-usage*
                 icon    mode                        toggle
                 ------------------------------------------
                 [.*]    regex                       CTRL-X
-                [Aa]    case-sentive,               CTRL-A
+                [Aa]    case-sensitive,             CTRL-C
                 [""]    word boundary               CTRL-W
                 [⬇ ]    replacement (substitution)  CTRL-S
                         quit |Farr| or |Farf|       <Esc>
