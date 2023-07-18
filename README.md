@@ -1,7 +1,7 @@
 # far.vim - Find And Replace Vim plugin
 
 ## Disclaimer
-This plugin is completly community driven. The author has betrayed the pure vim expirience and fell down a slippery slope of using VSCode with a vim plugin. **Please do not raise issues without an PR**, they will be ignored anyway.
+This plugin is completely community-driven. The author has betrayed the pure vim experience and fallen down a slippery slope of using VSCode with a vim plugin. **Please do not raise issues without a PR**, they will be ignored anyway.
 
 ## Intro
 Far.vim makes it easier to find and replace text through multiple files.
@@ -29,7 +29,7 @@ Find the text to replace.
 #### :F {pattern} {file-mask} [params]
 Find only.
 
-### Searching Interatively
+### Searching Interactively
 
 ```bash
 :Farr foo bar **/*.py
@@ -38,18 +38,18 @@ Find only.
 ![ScreenShot 2020-02-02 01 59 19 2020-02-02 02_03_50](https://user-images.githubusercontent.com/30200581/73597060-3155b200-4563-11ea-82cc-2888a44b98aa.gif)
 
 #### :Farr [params]
-Interative `Far`. Shows searching modes in the status bar (regex, case sensitive, word boundary, replace). Modes can be toggled by the key mapping it prompted. Allows to enter {pattern}, {replace-with} and {file-mask} one after the other.
+Interactive `Far`. Shows searching modes in the status bar (regex, case sensitive, word boundary, replace). Modes can be toggled by the key mapping it prompted. Allows to enter {pattern}, {replace-with}, and {file-mask} one after the other.
 
 #### :Farf [params]
-Interative `F`. The interaction is similar to `Farr`.
+Interactive `F`. The interaction is similar to `Farr`.
 
-### Commands in the searching result window
+### Commands in the search result window
 
 #### :Fardo [params]
 Runs the replacement task. The shortcut for it is `s` (substitute).
 
 #### :Farundo [params]
-Undo the recurrent replacement. The shortcut for it is `u` (undo). It is available when set `let g:far#enable_undo=1`.
+Undo the recurrent replacement. The shortcut for it is `u` (undo). It is available when setting `let g:far#enable_undo=1`.
 
 #### :Refar [params]
 Change `Far`/`F`/`Farr`/`Farf` params.
@@ -79,7 +79,7 @@ Change `Far`/`F`/`Farr`/`Farf` params.
 ## Troubleshooting
 
 #### Recommented Setting
-You can add he following settings to your vim configuration:
+You can add the following settings to your vim configuration:
 
 ```vim
 set lazyredraw            " improve scrolling performance when navigating through large results
