@@ -338,15 +338,12 @@ def search(ctx, args, cmdargs):
         logger.error('failed to terminate proc: ' + str(e))
 
 
-    if int(ctx['limit']) - limit >= args.get('items_file_min', 250):
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as fp:
-            for file_ctx in result.values():
-                json.dump(file_ctx, fp, ensure_ascii=False)
-                fp.write('\n')
+    with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as fp:
+        for file_ctx in result.values():
+            json.dump(file_ctx, fp, ensure_ascii=False)
+            fp.write('\n')
 
-        logger.debug('items_file:' + fp.name)
-        final_result['items_file'] = fp.name
-    else:
-        final_result['items'] = list(result.values())
+    logger.debug('items_file:' + fp.name)
+    final_result['items_file'] = fp.name
 
     return final_result
